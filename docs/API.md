@@ -15,13 +15,52 @@ import {
 } from "data-table-pro";
 ```
 
-### Stylesheet
+### Host stylesheet requirements
 
-```ts
-import "data-table-pro/styles.css";
+`data-table-pro` does not export a stylesheet. The host application must provide the existing global Tailwind + shadcn stylesheet used by the rest of the app.
+
+At minimum, the host stylesheet must:
+
+- import the app's Tailwind and shadcn layers
+- define the theme tokens used by the shared UI primitives
+- include the table container-query helpers
+
+```css
+.data-table-container-query {
+  container-type: inline-size;
+  container-name: data-table;
+}
+
+@container data-table (width < 40rem) {
+  .dt-hide-on-sm {
+    display: none;
+  }
+}
+
+@container data-table (width < 48rem) {
+  .dt-hide-on-md {
+    display: none;
+  }
+}
+
+@container data-table (width < 64rem) {
+  .dt-hide-on-lg {
+    display: none;
+  }
+}
+
+@container data-table (width < 80rem) {
+  .dt-hide-on-xl {
+    display: none;
+  }
+}
+
+@container data-table (width < 96rem) {
+  .dt-hide-on-2xl {
+    display: none;
+  }
+}
 ```
-
-The stylesheet includes the container-query helpers and the shadcn-compatible component styles required by the table package.
 
 ## Exports
 
