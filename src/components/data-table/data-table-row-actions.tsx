@@ -5,6 +5,7 @@ import { Button } from "../ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
@@ -83,7 +84,7 @@ export function DataTableRowActions<TData>({
       </Tooltip>
       <DropdownMenuContent align="end" className="w-52">
         {allowEdit ? (
-          <>
+          <DropdownMenuGroup>
             <DropdownMenuItem
               onClick={(event) => {
                 event.stopPropagation();
@@ -93,31 +94,35 @@ export function DataTableRowActions<TData>({
               <IconEdit data-icon="inline-start" />
               Edit row
             </DropdownMenuItem>
-            {actions.length ? <DropdownMenuSeparator /> : null}
-          </>
+          </DropdownMenuGroup>
         ) : null}
-        {actions.map((action) => {
-          const Icon = action.icon;
-          const destructive = action.variant === "destructive";
-          return (
-            <DropdownMenuItem
-              key={action.key}
-              disabled={action.disabled?.(row)}
-              className={
-                destructive
-                  ? "text-destructive focus:text-destructive"
-                  : undefined
-              }
-              onClick={(event) => {
-                event.stopPropagation();
-                void action.onClick(row);
-              }}
-            >
-              {Icon ? <Icon data-icon="inline-start" /> : null}
-              {resolveRowActionLabel(action.label, row)}
-            </DropdownMenuItem>
-          );
-        })}
+        {allowEdit && actions.length ? <DropdownMenuSeparator /> : null}
+        {actions.length ? (
+          <DropdownMenuGroup>
+            {actions.map((action) => {
+              const Icon = action.icon;
+              const destructive = action.variant === "destructive";
+              return (
+                <DropdownMenuItem
+                  key={action.key}
+                  disabled={action.disabled?.(row)}
+                  className={
+                    destructive
+                      ? "text-destructive focus:text-destructive"
+                      : undefined
+                  }
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    void action.onClick(row);
+                  }}
+                >
+                  {Icon ? <Icon data-icon="inline-start" /> : null}
+                  {resolveRowActionLabel(action.label, row)}
+                </DropdownMenuItem>
+              );
+            })}
+          </DropdownMenuGroup>
+        ) : null}
       </DropdownMenuContent>
     </DropdownMenu>
   );

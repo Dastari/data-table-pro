@@ -22,7 +22,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
-import { Input } from "../ui/input";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "../ui/input-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 
 type DataTableToolbarProps<TData> = {
@@ -83,7 +83,7 @@ export function DataTableToolbar<TData>({
   const showViewToggle = toolbarVisibility?.viewToggle ?? true;
 
   return (
-    <div className="flex flex-col gap-4 px-2">
+    <div className="flex flex-col gap-4 p-2">
       {showTitle && (title || description) ? (
         <div className="flex flex-col gap-1">
           {title ? (
@@ -100,16 +100,19 @@ export function DataTableToolbar<TData>({
       <div className="flex flex-col gap-4 md:flex-row xl:items-center xl:justify-between">
         <div className="flex flex-1 flex-row gap-3 md:flex-row md:items-center">
           {showSearch ? (
-            <div className="relative min-w-0 flex-1 md:max-w-sm">
-              <IconSearch className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={searchValue}
-                onChange={(event) => {
-                  onSearchValueChange(event.target.value);
-                }}
-                placeholder={searchPlaceholder}
-                className="bg-input pl-9"
-              />
+            <div className="min-w-0 flex-1 md:max-w-sm">
+              <InputGroup>
+                <InputGroupInput
+                  value={searchValue}
+                  onChange={(event) => {
+                    onSearchValueChange(event.target.value);
+                  }}
+                  placeholder={searchPlaceholder}
+                />
+                <InputGroupAddon align="inline-start" aria-hidden="true">
+                  <IconSearch />
+                </InputGroupAddon>
+              </InputGroup>
             </div>
           ) : null}
 
@@ -169,37 +172,37 @@ export function DataTableToolbar<TData>({
           <div className="block grow md:hidden" />
           {selectedRows.length
             ? selectionActions.map((action) => {
-                const Icon = action.icon;
-                const disabled =
-                  typeof action.disabled === "function"
-                    ? action.disabled(selectedRows)
-                    : action.disabled;
+              const Icon = action.icon;
+              const disabled =
+                typeof action.disabled === "function"
+                  ? action.disabled(selectedRows)
+                  : action.disabled;
 
-                return (
-                  <Tooltip key={action.key}>
-                    <TooltipTrigger asChild>
-                      <Button
-                        type="button"
-                        variant={action.variant ?? "secondary"}
-                        size="icon-sm"
-                        disabled={disabled}
-                        onClick={() => {
-                          void action.onClick({ rows: selectedRows });
-                        }}
-                        aria-label={action.label}
-                      >
-                        {Icon ? <Icon /> : null}
-                        <span className="sr-only">{action.label}</span>
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>{action.label}</TooltipContent>
-                  </Tooltip>
-                );
-              })
+              return (
+                <Tooltip key={action.key}>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      variant={action.variant ?? "secondary"}
+                      size="icon-sm"
+                      disabled={disabled}
+                      onClick={() => {
+                        void action.onClick({ rows: selectedRows });
+                      }}
+                      aria-label={action.label}
+                    >
+                      {Icon ? <Icon /> : null}
+                      <span className="sr-only">{action.label}</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>{action.label}</TooltipContent>
+                </Tooltip>
+              );
+            })
             : null}
 
           {columnVisibilityOptions.length ||
-          (onShowHiddenRowsChange && hiddenRowsLabel) ? (
+            (onShowHiddenRowsChange && hiddenRowsLabel) ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -296,42 +299,42 @@ export function DataTableToolbar<TData>({
 
           {showTrailingActions
             ? trailingActions.map((action) => {
-                const button = (
-                  <Button
-                    key={action.key}
-                    type="button"
-                    variant={action.variant ?? "outline"}
-                    size={action.iconOnly ? "icon-sm" : "default"}
-                    onClick={() => {
-                      void action.onClick({ rows: allRows });
-                    }}
-                    disabled={action.disabled}
-                    aria-label={action.label}
-                    title={action.iconOnly ? undefined : action.label}
-                    className="bg-input"
-                  >
-                    {action.icon ? (
-                      <action.icon
-                        data-icon={action.iconOnly ? undefined : "inline-start"}
-                      />
-                    ) : null}
-                    {action.iconOnly ? (
-                      <span className="sr-only">{action.label}</span>
-                    ) : (
-                      action.label
-                    )}
-                  </Button>
-                );
+              const button = (
+                <Button
+                  key={action.key}
+                  type="button"
+                  variant={action.variant ?? "outline"}
+                  size={action.iconOnly ? "icon-sm" : "default"}
+                  onClick={() => {
+                    void action.onClick({ rows: allRows });
+                  }}
+                  disabled={action.disabled}
+                  aria-label={action.label}
+                  title={action.iconOnly ? undefined : action.label}
+                  className="bg-input"
+                >
+                  {action.icon ? (
+                    <action.icon
+                      data-icon={action.iconOnly ? undefined : "inline-start"}
+                    />
+                  ) : null}
+                  {action.iconOnly ? (
+                    <span className="sr-only">{action.label}</span>
+                  ) : (
+                    action.label
+                  )}
+                </Button>
+              );
 
-                return action.iconOnly ? (
-                  <Tooltip key={action.key}>
-                    <TooltipTrigger asChild>{button}</TooltipTrigger>
-                    <TooltipContent>{action.label}</TooltipContent>
-                  </Tooltip>
-                ) : (
-                  button
-                );
-              })
+              return action.iconOnly ? (
+                <Tooltip key={action.key}>
+                  <TooltipTrigger asChild>{button}</TooltipTrigger>
+                  <TooltipContent>{action.label}</TooltipContent>
+                </Tooltip>
+              ) : (
+                button
+              );
+            })
             : null}
         </div>
       </div>

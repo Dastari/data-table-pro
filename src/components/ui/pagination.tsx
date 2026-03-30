@@ -39,26 +39,32 @@ function PaginationItem({ ...props }: React.ComponentProps<"li">) {
 
 type PaginationLinkProps = {
   isActive?: boolean;
+  disabled?: boolean;
+  variant?: React.ComponentProps<typeof Button>["variant"];
 } & Pick<React.ComponentProps<typeof Button>, "size"> &
   React.ComponentProps<"a">;
 
 function PaginationLink({
   className,
   isActive,
+  disabled = false,
+  variant,
   size = "icon",
   ...props
 }: PaginationLinkProps) {
   return (
     <Button
       asChild
-      variant={isActive ? "outline" : "ghost"}
+      variant={variant ?? (isActive ? "outline" : "ghost")}
       size={size}
-      className={cn(className)}
+      className={cn(disabled && "pointer-events-none opacity-50", className)}
     >
       <a
         aria-current={isActive ? "page" : undefined}
+        aria-disabled={disabled ? true : undefined}
         data-slot="pagination-link"
         data-active={isActive}
+        tabIndex={disabled ? -1 : props.tabIndex}
         {...props}
       />
     </Button>
@@ -67,35 +73,51 @@ function PaginationLink({
 
 function PaginationPrevious({
   className,
+  disabled,
+  showText = true,
+  size = "default",
   text = "Previous",
   ...props
-}: React.ComponentProps<typeof PaginationLink> & { text?: string }) {
+}: React.ComponentProps<typeof PaginationLink> & {
+  showText?: boolean;
+  text?: string;
+}) {
   return (
     <PaginationLink
       aria-label="Go to previous page"
-      size="default"
+      disabled={disabled}
+      size={size}
+      variant="outline"
       className={cn("pl-1.5!", className)}
       {...props}
     >
       <IconChevronLeft data-icon="inline-start" />
-      <span className="hidden sm:block">{text}</span>
+      {showText ? <span className="hidden sm:block">{text}</span> : null}
     </PaginationLink>
   );
 }
 
 function PaginationNext({
   className,
+  disabled,
+  showText = true,
+  size = "default",
   text = "Next",
   ...props
-}: React.ComponentProps<typeof PaginationLink> & { text?: string }) {
+}: React.ComponentProps<typeof PaginationLink> & {
+  showText?: boolean;
+  text?: string;
+}) {
   return (
     <PaginationLink
       aria-label="Go to next page"
-      size="default"
+      disabled={disabled}
+      size={size}
+      variant="outline"
       className={cn("pr-1.5!", className)}
       {...props}
     >
-      <span className="hidden sm:block">{text}</span>
+      {showText ? <span className="hidden sm:block">{text}</span> : null}
       <IconChevronRight data-icon="inline-end" />
     </PaginationLink>
   );

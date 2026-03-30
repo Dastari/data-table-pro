@@ -1,15 +1,16 @@
-import { IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
-import { Button } from "../ui/button";
 import {
   Pagination,
   PaginationContent,
   PaginationEllipsis,
   PaginationItem,
   PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
 } from "../ui/pagination";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -34,6 +35,8 @@ export function DataTablePagination({
   onPageSizeChange,
 }: DataTablePaginationProps) {
   const pages = getVisiblePages(pageIndex, Math.max(1, pageCount));
+  const canGoPrevious = pageIndex > 0;
+  const canGoNext = pageIndex + 1 < pageCount;
 
   return (
     <div className="flex flex-row justify-between gap-4 rounded-md border bg-card p-2 px-4">
@@ -49,11 +52,13 @@ export function DataTablePagination({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {rowsPerPageOptions.map((option) => (
-              <SelectItem key={option} value={String(option)}>
-                {option}
-              </SelectItem>
-            ))}
+            <SelectGroup>
+              {rowsPerPageOptions.map((option) => (
+                <SelectItem key={option} value={String(option)}>
+                  {option}
+                </SelectItem>
+              ))}
+            </SelectGroup>
           </SelectContent>
         </Select>
       </div>
@@ -67,18 +72,20 @@ export function DataTablePagination({
             <PaginationItem>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="outline"
+                  <PaginationPrevious
+                    href="#"
                     size="icon-sm"
-                    disabled={pageIndex <= 0}
-                    onClick={() => {
-                      onPageIndexChange(Math.max(0, pageIndex - 1));
+                    showText={false}
+                    disabled={!canGoPrevious}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      if (canGoPrevious) {
+                        onPageIndexChange(pageIndex - 1);
+                      }
                     }}
-                    aria-label="Go to previous page"
                   >
-                    <IconChevronLeft />
-                  </Button>
+                    Previous
+                  </PaginationPrevious>
                 </TooltipTrigger>
                 <TooltipContent>Previous page</TooltipContent>
               </Tooltip>
@@ -105,18 +112,20 @@ export function DataTablePagination({
             <PaginationItem>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="outline"
+                  <PaginationNext
+                    href="#"
                     size="icon-sm"
-                    disabled={pageIndex + 1 >= pageCount}
-                    onClick={() => {
-                      onPageIndexChange(pageIndex + 1);
+                    showText={false}
+                    disabled={!canGoNext}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      if (canGoNext) {
+                        onPageIndexChange(pageIndex + 1);
+                      }
                     }}
-                    aria-label="Go to next page"
                   >
-                    <IconChevronRight />
-                  </Button>
+                    Next
+                  </PaginationNext>
                 </TooltipTrigger>
                 <TooltipContent>Next page</TooltipContent>
               </Tooltip>
