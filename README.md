@@ -2,6 +2,8 @@
 
 Standalone React data table components extracted from Digitise and packaged for reuse.
 
+Full API documentation is available in [`docs/API.md`](./docs/API.md).
+
 ## What is included
 
 - `DataTable` built on `@tanstack/react-table`
