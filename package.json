@@ -33,6 +33,7 @@
   },
   "scripts": {
     "build": "tsup && tailwindcss -i ./src/styles.css -o ./dist/styles.css --minify",
+    "prepare": "pnpm build",
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "pnpm build"
   },
