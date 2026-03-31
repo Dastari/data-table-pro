@@ -39,9 +39,9 @@ export function DataTablePagination({
   const canGoNext = pageIndex + 1 < pageCount;
 
   return (
-    <div className="flex flex-row justify-between gap-4 rounded-md border bg-card p-2 px-4">
+    <div className="flex flex-row justify-between gap-4 rounded-md border bg-card p-1 px-4">
       <div className="flex items-center gap-3 text-sm text-muted-foreground">
-        <span className="hidden md:block">Records per page</span>
+        <span className="hidden @md/data-table:inline">Records per page</span>
         <Select
           value={String(pageSize)}
           onValueChange={(value) => {
@@ -64,7 +64,7 @@ export function DataTablePagination({
       </div>
 
       <div className="flex items-center justify-end gap-4">
-        <div className="text-sm text-muted-foreground">
+        <div className="text-sm text-muted-foreground @md/data-table:span hidden">
           Page {pageIndex + 1} of {Math.max(1, pageCount)}
         </div>
         <Pagination className="mx-0 w-auto justify-end">

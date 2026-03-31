@@ -68,6 +68,12 @@ At minimum, the host stylesheet must:
 }
 ```
 
+The table root also includes the named Tailwind container class `@container/data-table`. That allows any descendant inside the table to use Tailwind container-query variants directly in `className` strings, for example `@sm/data-table:*`, `@3xl/data-table:*`, or arbitrary thresholds like `@min-[48rem]/data-table:*`.
+
+Tailwind container-query sizes are not the same as viewport breakpoint names. For example, `@md` is `28rem` for container queries, while the table's built-in `hideOn: "md"` behavior uses `48rem`. If you want Tailwind container-query behavior to line up with `hideOn`, prefer `@3xl/data-table:*` or `@min-[48rem]/data-table:*`.
+
+Use `meta.hideOn` for the built-in column visibility behavior driven by container width. Use Tailwind container-query variants in `headerClassName`, `cellClassName`, `responsiveClassName`, row classes, or custom cell/header content when you need custom conditional styling inside the table.
+
 ## Exports
 
 ### Runtime exports

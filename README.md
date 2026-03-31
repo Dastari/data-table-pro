@@ -75,6 +75,34 @@ That host stylesheet must already:
 }
 ```
 
+The table root also renders a named Tailwind container class, `@container/data-table`, so any descendant inside the table can use Tailwind container-query variants in `className` strings, such as `@sm/data-table:*`, `@3xl/data-table:*`, or arbitrary thresholds like `@min-[48rem]/data-table:*`.
+
+Tailwind container-query sizes are not the same as viewport breakpoint names. For example, `@md` is `28rem` for container queries, while the table's built-in `hideOn: "md"` behavior uses `48rem`. If you want to match `hideOn`, prefer `@3xl/data-table:*` or `@min-[48rem]/data-table:*`.
+
+Example:
+
+```tsx
+const columns: Array<DataTableColumnDef<Person>> = [
+  {
+    accessorKey: "email",
+    header: "Email",
+    meta: {
+      headerClassName: "hidden @3xl/data-table:table-cell",
+      cellClassName: "hidden @3xl/data-table:table-cell",
+    },
+  },
+  {
+    accessorKey: "name",
+    header: "Name",
+    meta: {
+      responsiveClassName: "@lg/data-table:text-sm",
+    },
+  },
+];
+```
+
+Use `meta.hideOn` when you want the built-in column visibility behavior. Use Tailwind container-query variants in `className` strings when you want custom conditional styling inside the table.
+
 ## Usage
 
 ```tsx
