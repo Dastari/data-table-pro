@@ -964,7 +964,7 @@ export function DataTable<TData>({
                                 }
                                 className={cn(
                                   getRowClassName?.(originalRow),
-                                  "hover:bg-muted/50 data-[state=selected]:bg-accent!",
+                                  "hover:bg-muted/50 data-[state=selected]:!bg-primary/10",
                                   onRowClick && "cursor-pointer",
                                 )}
                                 onClick={(event) => {

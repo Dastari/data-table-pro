@@ -68,7 +68,7 @@ export function DataTableCardView<TData>({
               [getRowClassName?.(originalRow)].filter(Boolean).join(" "),
               "relative gap-0 py-0 transition transition-colors hover:scale-101 hover:bg-muted/50 data-[state=selected]:scale-101 data-[state=selected]:bg-primary/10",
               onRowClick && "cursor-pointer",
-              isSelected ? "bg-accent ring-primary" : "border-default",
+              isSelected ? "bg-primary/10 ring-primary" : "border-default",
             )}
             onClick={(event) => {
               const target = event.target as HTMLElement | null;
