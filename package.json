@@ -1,6 +1,6 @@
 {
   "name": "data-table-pro",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Standalone shadcn-compatible data table components built on TanStack Table.",
   "type": "module",
   "license": "MIT",
@@ -13,9 +13,12 @@
     "url": "https://github.com/Dastari/data-table-pro/issues"
   },
   "packageManager": "pnpm@10.33.0",
-  "sideEffects": false,
+  "sideEffects": [
+    "./styles.css"
+  ],
   "files": [
-    "dist"
+    "dist",
+    "styles.css"
   ],
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -25,6 +28,10 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
+    },
+    "./styles.css": {
+      "style": "./styles.css",
+      "default": "./styles.css"
     },
     "./package.json": "./package.json"
   },

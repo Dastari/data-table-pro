@@ -109,7 +109,7 @@ export function DataTableCardView<TData>({
                 },
               })}
             </div>
-            <CardHeader className="pointer-events-none absolute inset-x-0 top-0 z-10 flex flex-row items-center gap-3 space-y-0 bg-linear-to-b from-background/95 via-background/85 to-transparent px-4 pt-4 pb-8">
+            <CardHeader className="absolute inset-x-0 top-0 z-20 flex flex-row items-center gap-3 space-y-0 bg-linear-to-b from-background/95 via-background/85 to-transparent px-4 pt-4 pb-8">
               {enableRowSelection ? (
                 <div
                   data-row-click-ignore="true"
@@ -128,7 +128,7 @@ export function DataTableCardView<TData>({
               ) : (
                 <div className="size-4 shrink-0" />
               )}
-              <div className="min-w-0 flex-1" />
+              <div className="pointer-events-none min-w-0 flex-1" />
               <div data-row-click-ignore="true" className="pointer-events-auto">
                 <DataTableRowActions
                   row={originalRow}

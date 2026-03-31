@@ -791,7 +791,7 @@ export function DataTable<TData>({
                       <TableHeader
                         className={cn(
                           stickyHeader
-                            ? "[&_th]:sticky [&_th]:top-0 [&_th]:z-30 [&_th]:border-border [&_th]:bg-card/95 [&_th]:backdrop-blur"
+                            ? "sticky top-0 z-30 bg-card/95 backdrop-blur [&_th]:border-border [&_th]:bg-card/95"
                             : undefined,
                         )}
                       >
