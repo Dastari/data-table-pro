@@ -359,7 +359,7 @@ export function DataTable<TData>({
                 onStartEditing={() => {
                   startEditingRow(row.original, row.id);
                 }}
-                onCancelEditing={() => {}}
+                onCancelEditing={() => { }}
               />
             </div>
           );
@@ -560,9 +560,9 @@ export function DataTable<TData>({
     pageCount ??
     (manualPagination || infiniteScroll?.enabled
       ? Math.max(
-          1,
-          Math.ceil(effectiveTotalRowCount / currentPagination.pageSize),
-        )
+        1,
+        Math.ceil(effectiveTotalRowCount / currentPagination.pageSize),
+      )
       : table.getPageCount());
 
   const sentinelRef = useDataTableInfiniteScroll({
@@ -675,7 +675,7 @@ export function DataTable<TData>({
                 className={cn(
                   "box-border h-full border-2 border-transparent transition-colors",
                   dragAndDrop?.isDragging &&
-                    "rounded-md border-dotted border-primary ring-2 ring-primary/20",
+                  "rounded-md border-dotted border-primary ring-2 ring-primary/20",
                 )}
               >
                 <ScrollArea className={cn("h-full", tableContainerClassName)}>
@@ -732,7 +732,7 @@ export function DataTable<TData>({
                 className={cn(
                   "box-border h-full border-2 border-transparent transition-colors",
                   dragAndDrop?.isDragging &&
-                    "rounded-md border-dotted border-primary ring-2 ring-primary/20",
+                  "rounded-md border-dotted border-primary ring-2 ring-primary/20",
                 )}
               >
                 <ScrollArea
@@ -774,16 +774,16 @@ export function DataTable<TData>({
                               style={
                                 shouldConstrain
                                   ? {
-                                      width: isFixedUtilityColumn
-                                        ? 50
-                                        : column.getSize(),
-                                      minWidth: isFixedUtilityColumn
-                                        ? 50
-                                        : column.getSize(),
-                                      maxWidth: isFixedUtilityColumn
-                                        ? 50
-                                        : column.getSize(),
-                                    }
+                                    width: isFixedUtilityColumn
+                                      ? 50
+                                      : column.getSize(),
+                                    minWidth: isFixedUtilityColumn
+                                      ? 50
+                                      : column.getSize(),
+                                    maxWidth: isFixedUtilityColumn
+                                      ? 50
+                                      : column.getSize(),
+                                  }
                                   : undefined
                               }
                             />
@@ -830,11 +830,11 @@ export function DataTable<TData>({
                                   className={cn(
                                     "relative border-b",
                                     (isSelectionColumn || isActionsColumn) &&
-                                      "w-[50px] max-w-[50px] min-w-[50px] px-0",
+                                    "w-[50px] max-w-[50px] min-w-[50px] px-0",
                                     isSpacerColumn &&
-                                      "border-b-1 bg-transparent p-0",
+                                    "border-b-1 bg-transparent p-0",
                                     fixedSide &&
-                                      getPinnedColumnClassName(fixedSide),
+                                    getPinnedColumnClassName(fixedSide),
                                     hideClassName,
                                     headerAlignClassName(header.getContext()),
                                     meta?.headerClassName,
@@ -859,14 +859,14 @@ export function DataTable<TData>({
                                     left:
                                       fixedSide === "left"
                                         ? pinnedColumns.left.get(
-                                            header.column.id,
-                                          )
+                                          header.column.id,
+                                        )
                                         : undefined,
                                     right:
                                       fixedSide === "right"
                                         ? pinnedColumns.right.get(
-                                            header.column.id,
-                                          )
+                                          header.column.id,
+                                        )
                                         : undefined,
                                   }}
                                 >
@@ -908,7 +908,7 @@ export function DataTable<TData>({
                                   )}
 
                                   {enableColumnResizing &&
-                                  header.column.getCanResize() ? (
+                                    header.column.getCanResize() ? (
                                     <div
                                       onDoubleClick={() => {
                                         resetColumnSize(header.column.id);
@@ -928,9 +928,9 @@ export function DataTable<TData>({
                                         header.getResizeHandler()(event);
                                       }}
                                       className={cn(
-                                        "absolute top-0 right-[-4px] z-20 h-full w-3 cursor-col-resize touch-none select-none after:absolute after:top-0 after:left-1/2 after:h-full after:w-px after:-translate-x-1/2 after:bg-border hover:after:bg-primary",
+                                        "absolute top-0 right-[-4px] z-20 h-full w-2 cursor-col-resize touch-none select-none after:absolute after:top-0 after:left-1/2 after:h-full after:w-px after:-translate-x-1/2 after:bg-border hover:after:bg-primary",
                                         header.column.getIsResizing() &&
-                                          "after:bg-primary",
+                                        "after:bg-primary",
                                       )}
                                     />
                                   ) : null}
@@ -1015,9 +1015,9 @@ export function DataTable<TData>({
                                   const cellClassName =
                                     typeof meta?.cellClassName === "function"
                                       ? meta.cellClassName({
-                                          row: originalRow,
-                                          value,
-                                        })
+                                        row: originalRow,
+                                        value,
+                                      })
                                       : meta?.cellClassName;
 
                                   return (
@@ -1027,11 +1027,11 @@ export function DataTable<TData>({
                                         "border-b border-border/40",
                                         (isSelectionColumn ||
                                           isActionsColumn) &&
-                                          "w-[50px] max-w-[50px] min-w-[50px] px-0",
+                                        "w-[50px] max-w-[50px] min-w-[50px] px-0",
                                         isSpacerColumn &&
-                                          "border-b-0 bg-transparent p-0",
+                                        "border-b-0 bg-transparent p-0",
                                         fixedSide &&
-                                          getPinnedColumnClassName(fixedSide),
+                                        getPinnedColumnClassName(fixedSide),
                                         hideClassName,
                                         cellAlignClassName(cellContext),
                                         meta?.responsiveClassName,
@@ -1056,14 +1056,14 @@ export function DataTable<TData>({
                                         left:
                                           fixedSide === "left"
                                             ? pinnedColumns.left.get(
-                                                cell.column.id,
-                                              )
+                                              cell.column.id,
+                                            )
                                             : undefined,
                                         right:
                                           fixedSide === "right"
                                             ? pinnedColumns.right.get(
-                                                cell.column.id,
-                                              )
+                                              cell.column.id,
+                                            )
                                             : undefined,
                                       }}
                                     >
@@ -1089,16 +1089,16 @@ export function DataTable<TData>({
                                               />
                                             ))
                                           : isEditing &&
-                                              cell.column.id !== "__select__" &&
-                                              cell.column.id !== "__actions__"
+                                            cell.column.id !== "__select__" &&
+                                            cell.column.id !== "__actions__"
                                             ? renderEditableCell(
-                                                cellContext,
-                                                draftValues,
-                                                setDraftValues,
-                                              )
+                                              cellContext,
+                                              draftValues,
+                                              setDraftValues,
+                                            )
                                             : renderDataTableCellContent(
-                                                cellContext,
-                                              )}
+                                              cellContext,
+                                            )}
                                       </div>
                                     </TableCell>
                                   );
