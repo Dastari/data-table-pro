@@ -791,7 +791,7 @@ export function DataTable<TData>({
                       <TableHeader
                         className={cn(
                           stickyHeader
-                            ? "[&_tr]:sticky [&_tr]:top-0 [&_tr]:z-30 [&_tr]:border-border [&_tr]:backdrop-blur"
+                            ? "[&_th]:sticky [&_th]:top-0 [&_th]:z-30 [&_th]:border-border [&_th]:bg-card/95 [&_th]:backdrop-blur"
                             : undefined,
                         )}
                       >
@@ -925,7 +925,11 @@ export function DataTable<TData>({
                                         );
                                         header.getResizeHandler()(event);
                                       }}
-                                      className="absolute top-0 right-0 h-full w-2 cursor-col-resize touch-none border-r select-none"
+                                      className={cn(
+                                        "absolute top-0 right-[-4px] z-20 h-full w-3 cursor-col-resize touch-none select-none after:absolute after:top-0 after:left-1/2 after:h-full after:w-px after:-translate-x-1/2 after:bg-border hover:after:bg-primary",
+                                        header.column.getIsResizing() &&
+                                          "after:bg-primary",
+                                      )}
                                     />
                                   ) : null}
                                 </TableHead>
@@ -960,7 +964,7 @@ export function DataTable<TData>({
                                 }
                                 className={cn(
                                   getRowClassName?.(originalRow),
-                                  "hover:bg-muted/50 data-[state=selected]:bg-primary/10",
+                                  "hover:bg-muted/50 data-[state=selected]:bg-primary/10!",
                                   onRowClick && "cursor-pointer",
                                 )}
                                 onClick={(event) => {
@@ -1290,7 +1294,7 @@ function getFixedSide<TData>(column: Column<TData>) {
 
 function getPinnedColumnClassName(side: "left" | "right") {
   return cn(
-    "sticky border-dotted border-border bg-card bg-transparent backdrop-blur [&:is(th)]:z-40",
+    "sticky border-dotted border-border bg-card bg-transparent [&:is(th)]:z-40",
     side === "left" ? "border-r-2" : "right-0 border-l",
   );
 }
