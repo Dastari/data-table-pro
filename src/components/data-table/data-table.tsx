@@ -928,7 +928,7 @@ export function DataTable<TData>({
                                         header.getResizeHandler()(event);
                                       }}
                                       className={cn(
-                                        "absolute top-0 right-[-4px] z-20 h-full w-2 cursor-col-resize touch-none select-none after:absolute after:top-0 after:left-1/2 after:h-full after:w-px after:-translate-x-1/2 after:bg-border hover:after:bg-primary",
+                                        "absolute inset-y-0 right-0 z-50 h-full w-3 translate-x-1/2 cursor-col-resize touch-none select-none after:absolute after:top-0 after:left-1/2 after:h-full after:w-px after:-translate-x-1/2 after:bg-border hover:after:bg-primary",
                                         header.column.getIsResizing() &&
                                         "after:bg-primary",
                                       )}
@@ -1296,7 +1296,7 @@ function getFixedSide<TData>(column: Column<TData>) {
 
 function getPinnedColumnClassName(side: "left" | "right") {
   return cn(
-    "sticky border-dotted border-border bg-card bg-transparent [&:is(th)]:z-40",
+    "sticky border-dotted border-border bg-card [&:is(th)]:z-40",
     side === "left" ? "border-r-2" : "right-0 border-l",
   );
 }
