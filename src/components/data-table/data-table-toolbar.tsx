@@ -31,6 +31,7 @@ type DataTableToolbarProps<TData> = {
   searchValue: string;
   searchPlaceholder: string;
   onSearchValueChange: (value: string) => void;
+  customToolbar?: React.ReactNode;
   viewMode: DataTableViewMode;
   onViewModeChange?: (viewMode: DataTableViewMode) => void;
   enableViewToggle: boolean;
@@ -54,6 +55,7 @@ export function DataTableToolbar<TData>({
   searchValue,
   searchPlaceholder,
   onSearchValueChange,
+  customToolbar,
   viewMode,
   onViewModeChange,
   enableViewToggle,
@@ -100,7 +102,7 @@ export function DataTableToolbar<TData>({
       <div className="flex flex-col gap-4 md:flex-row xl:items-center xl:justify-between">
         <div className="flex flex-1 flex-row gap-3 md:flex-row md:items-center">
           {showSearch ? (
-            <div className="min-w-0 flex-1 md:max-w-sm">
+            <div className="min-w-0 flex-1 md:w-full md:max-w-sm md:flex-none">
               <InputGroup>
                 <InputGroupInput
                   value={searchValue}
@@ -338,6 +340,12 @@ export function DataTableToolbar<TData>({
             : null}
         </div>
       </div>
+
+      {customToolbar ? (
+        <div className="flex flex-row items-center gap-3">
+          {customToolbar}
+        </div>
+      ) : null}
     </div>
   );
 }

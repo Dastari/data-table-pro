@@ -186,6 +186,7 @@ export type DataTableProps<TData> = {
   onSearchValueChange?: (value: string) => void;
   searchPlaceholder?: string;
   searchDebounceMs?: number;
+  customToolbar?: React.ReactNode;
   rowsPerPageOptions?: Array<number>;
   totalRowCount?: number;
   sorting?: SortingState;

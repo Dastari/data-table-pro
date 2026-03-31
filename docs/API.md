@@ -17,7 +17,13 @@ import {
 
 ### Host stylesheet requirements
 
-`data-table-pro` does not export a stylesheet. The host application must provide the existing global Tailwind + shadcn stylesheet used by the rest of the app.
+`data-table-pro` exports a stylesheet entrypoint for Tailwind v4 package scanning:
+
+```css
+@import "data-table-pro/styles.css";
+```
+
+The host application must still provide the existing global Tailwind + shadcn stylesheet used by the rest of the app.
 
 At minimum, the host stylesheet must:
 
@@ -128,6 +134,7 @@ function DataTable<TData>(props: DataTableProps<TData>): React.ReactElement;
 | `onSearchValueChange` | `(value: string) => void` | `undefined`        | Called after the debounce window.         |
 | `searchPlaceholder`   | `string`                  | `"Search rows..."` | Search input placeholder.                 |
 | `searchDebounceMs`    | `number`                  | `250`              | Debounce delay for `onSearchValueChange`. |
+| `customToolbar`       | `React.ReactNode`         | `undefined`        | Optional secondary toolbar row rendered below the main toolbar. |
 
 ### Sorting props
 
@@ -220,6 +227,8 @@ function DataTable<TData>(props: DataTableProps<TData>): React.ReactElement;
 | Prop                | Type                         | Default     | Description                             |
 | ------------------- | ---------------------------- | ----------- | --------------------------------------- |
 | `toolbarVisibility` | `DataTableToolbarVisibility` | all enabled | Selectively hides parts of the toolbar. |
+
+`customToolbar` renders in its own second toolbar row under the main toolbar, using a `flex-row` layout with shared toolbar spacing.
 
 ### Drag-and-drop props
 

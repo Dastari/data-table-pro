@@ -60,6 +60,7 @@ export function DataTable<TData>({
   onSearchValueChange,
   searchPlaceholder = "Search rows...",
   searchDebounceMs = 250,
+  customToolbar,
   rowsPerPageOptions = [10, 20, 50, 100],
   totalRowCount,
   sorting,
@@ -648,6 +649,7 @@ export function DataTable<TData>({
             searchValue={localSearchValue}
             searchPlaceholder={searchPlaceholder}
             onSearchValueChange={setLocalSearchValue}
+            customToolbar={customToolbar}
             viewMode={viewMode}
             onViewModeChange={onViewModeChange}
             enableViewToggle={enableViewToggle && Boolean(cardRenderer)}
