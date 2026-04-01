@@ -226,6 +226,7 @@ export type DataTableProps<TData> = {
   columnResizeMode?: "onChange" | "onEnd";
   layoutMode?: "fill" | "fit";
   stickyHeader?: boolean;
+  showFooter?: boolean;
   toolbarVisibility?: DataTableToolbarVisibility;
   className?: string;
   tableClassName?: string;

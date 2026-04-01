@@ -28,6 +28,7 @@ import {
   Table,
   TableBody,
   TableCell,
+  TableFooter,
   TableHead,
   TableHeader,
   TableRow,
@@ -95,6 +96,7 @@ export function DataTable<TData>({
   columnResizeMode = "onChange",
   layoutMode = "fill",
   stickyHeader = true,
+  showFooter = true,
   toolbarVisibility,
   className,
   tableClassName,
@@ -498,6 +500,7 @@ export function DataTable<TData>({
   const constrainedColumnIds = React.useMemo(() => {
     return new Set([...explicitlySizedColumnIds, ...Object.keys(columnSizing)]);
   }, [columnSizing, explicitlySizedColumnIds]);
+  const visibleLeafColumnCount = table.getVisibleLeafColumns().length;
   const fillMinWidth = React.useMemo(() => {
     return table.getVisibleLeafColumns().reduce((total, column) => {
       const isFixedUtilityColumn =
@@ -510,6 +513,10 @@ export function DataTable<TData>({
       return total + (shouldConstrain ? column.getSize() : 0);
     }, 0);
   }, [columnSizing, constrainedColumnIds, effectiveColumnVisibility, table]);
+  const hasCardTitle = React.useMemo(
+    () => columns.some((column) => column.meta?.cardTitle),
+    [columns],
+  );
   const primeColumnForResize = React.useCallback(
     (columnId: string, currentSize: number) => {
       if (
@@ -685,6 +692,7 @@ export function DataTable<TData>({
                       cardRenderer={cardRenderer}
                       rowActions={rowActions}
                       editableRows={editableRows}
+                      hasCardTitle={hasCardTitle}
                       rowSelection={currentRowSelection}
                       onRowSelectionChange={(nextValue) => {
                         onRowSelectionChange?.(nextValue);
@@ -1116,10 +1124,7 @@ export function DataTable<TData>({
                         ) : (
                           <TableRow>
                             <TableCell
-                              colSpan={Math.max(
-                                1,
-                                table.getVisibleLeafColumns().length,
-                              )}
+                              colSpan={Math.max(1, visibleLeafColumnCount)}
                               className="h-full grow"
                             >
                               <div className="flex h-full min-h-40 w-fit items-center justify-center">
@@ -1142,6 +1147,41 @@ export function DataTable<TData>({
                           </TableRow>
                         )}
                       </TableBody>
+                      {showFooter && !infiniteScroll?.enabled ? (
+                        <TableFooter className="border-t border-border bg-card font-normal">
+                          <TableRow className="border-b-0 hover:bg-transparent">
+                            <TableCell
+                              colSpan={Math.max(1, visibleLeafColumnCount)}
+                              className="border-b-0 px-4 py-1"
+                            >
+                              <DataTablePagination
+                                pageIndex={currentPagination.pageIndex}
+                                pageCount={effectivePageCount}
+                                pageSize={currentPagination.pageSize}
+                                rowsPerPageOptions={rowsPerPageOptions}
+                                onPageIndexChange={(nextPageIndex) => {
+                                  onPageIndexChange?.(nextPageIndex);
+                                  if (pageIndex === undefined) {
+                                    setLocalPagination((current) => ({
+                                      ...current,
+                                      pageIndex: nextPageIndex,
+                                    }));
+                                  }
+                                }}
+                                onPageSizeChange={(nextPageSize) => {
+                                  onPageSizeChange?.(nextPageSize);
+                                  if (pageSize === undefined) {
+                                    setLocalPagination({
+                                      pageIndex: 0,
+                                      pageSize: nextPageSize,
+                                    });
+                                  }
+                                }}
+                              />
+                            </TableCell>
+                          </TableRow>
+                        </TableFooter>
+                      ) : null}
                     </Table>
                   </div>
 
@@ -1155,35 +1195,43 @@ export function DataTable<TData>({
               </div>
             )}
           </div>
-          <div className="px-2">
-            {!infiniteScroll?.enabled ? (
-              <DataTablePagination
-                pageIndex={currentPagination.pageIndex}
-                pageCount={effectivePageCount}
-                pageSize={currentPagination.pageSize}
-                rowsPerPageOptions={rowsPerPageOptions}
-                onPageIndexChange={(nextPageIndex) => {
-                  onPageIndexChange?.(nextPageIndex);
-                  if (pageIndex === undefined) {
-                    setLocalPagination((current) => ({
-                      ...current,
-                      pageIndex: nextPageIndex,
-                    }));
-                  }
-                }}
-                onPageSizeChange={(nextPageSize) => {
-                  onPageSizeChange?.(nextPageSize);
-                  if (pageSize === undefined) {
-                    setLocalPagination({
-                      pageIndex: 0,
-                      pageSize: nextPageSize,
-                    });
-                  }
-                }}
-              />
-            ) : null}
-            {children}
-          </div>
+          {((viewMode === "card" &&
+            cardRenderer &&
+            showFooter &&
+            !infiniteScroll?.enabled) ||
+            children) ? (
+            <div className="px-2">
+              {viewMode === "card" && cardRenderer && showFooter && !infiniteScroll?.enabled ? (
+                <div className="rounded-md border bg-card px-4 py-1">
+                  <DataTablePagination
+                    pageIndex={currentPagination.pageIndex}
+                    pageCount={effectivePageCount}
+                    pageSize={currentPagination.pageSize}
+                    rowsPerPageOptions={rowsPerPageOptions}
+                    onPageIndexChange={(nextPageIndex) => {
+                      onPageIndexChange?.(nextPageIndex);
+                      if (pageIndex === undefined) {
+                        setLocalPagination((current) => ({
+                          ...current,
+                          pageIndex: nextPageIndex,
+                        }));
+                      }
+                    }}
+                    onPageSizeChange={(nextPageSize) => {
+                      onPageSizeChange?.(nextPageSize);
+                      if (pageSize === undefined) {
+                        setLocalPagination({
+                          pageIndex: 0,
+                          pageSize: nextPageSize,
+                        });
+                      }
+                    }}
+                  />
+                </div>
+              ) : null}
+              {children}
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

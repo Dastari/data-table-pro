@@ -15,6 +15,7 @@ type DataTableCardViewProps<TData> = {
   cardRenderer: (props: DataTableCardRendererProps<TData>) => React.ReactNode;
   rowActions: Array<DataTableRowAction<TData>>;
   editableRows?: DataTableEditableRowsConfig<TData>;
+  hasCardTitle: boolean;
   rowSelection: Record<string, boolean>;
   onRowSelectionChange: (rowSelection: Record<string, boolean>) => void;
   enableRowSelection: boolean;
@@ -40,6 +41,7 @@ export function DataTableCardView<TData>({
   cardRenderer,
   rowActions,
   editableRows,
+  hasCardTitle,
   rowSelection,
   onRowSelectionChange,
   enableRowSelection,
@@ -58,6 +60,10 @@ export function DataTableCardView<TData>({
         const originalRow = row.original;
         const isSelected = Boolean(rowSelection[rowId]);
         const isEditing = editingRowId === rowId;
+        const hasCardActions = rowActions.length > 0 || Boolean(editableRows);
+        const showCardGradient =
+          enableRowSelection || hasCardActions || hasCardTitle;
+        const showCardOverlayControls = enableRowSelection || hasCardActions;
 
         return (
           <Card
@@ -88,6 +94,12 @@ export function DataTableCardView<TData>({
               onRowDragEnd?.({ row: originalRow, rowId, event });
             }}
           >
+            {showCardGradient ? (
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-x-0 top-0 z-10 h-24 bg-linear-to-b from-background/95 via-background/85 to-transparent opacity-0 transition-opacity group-hover/card:opacity-100"
+              />
+            ) : null}
             <div className="flex min-h-full grow">
               {cardRenderer({
                 row: originalRow,
@@ -109,41 +121,46 @@ export function DataTableCardView<TData>({
                 },
               })}
             </div>
-            <CardHeader className="absolute inset-x-0 top-0 z-20 flex flex-row items-center gap-3 space-y-0 bg-linear-to-b from-background/95 via-background/85 to-transparent px-4 pt-4 pb-8">
-              {enableRowSelection ? (
-                <div
-                  data-row-click-ignore="true"
-                  className="pointer-events-auto"
-                >
-                  <Checkbox
-                    checked={isSelected}
-                    onCheckedChange={(checked) => {
-                      onRowSelectionChange({
-                        ...rowSelection,
-                        [rowId]: checked === true,
-                      });
-                    }}
-                  />
-                </div>
-              ) : (
-                <div className="size-4 shrink-0" />
-              )}
-              <div className="pointer-events-none min-w-0 flex-1" />
-              <div data-row-click-ignore="true" className="pointer-events-auto">
-                <DataTableRowActions
-                  row={originalRow}
-                  rowActions={rowActions}
-                  editableRows={editableRows}
-                  isEditing={isEditing}
-                  onStartEditing={() => {
-                    onEditingRowIdChange(rowId);
-                  }}
-                  onCancelEditing={() => {
-                    onEditingRowIdChange(null);
-                  }}
-                />
-              </div>
-            </CardHeader>
+            {showCardOverlayControls ? (
+              <CardHeader className="absolute inset-x-0 top-0 z-20 flex flex-row items-center gap-3 space-y-0 px-4 pt-4 pb-8">
+                {enableRowSelection ? (
+                  <div
+                    data-row-click-ignore="true"
+                    className="pointer-events-auto"
+                  >
+                    <Checkbox
+                      checked={isSelected}
+                      onCheckedChange={(checked) => {
+                        onRowSelectionChange({
+                          ...rowSelection,
+                          [rowId]: checked === true,
+                        });
+                      }}
+                    />
+                  </div>
+                ) : null}
+                <div className="pointer-events-none min-w-0 flex-1" />
+                {hasCardActions ? (
+                  <div
+                    data-row-click-ignore="true"
+                    className="pointer-events-auto"
+                  >
+                    <DataTableRowActions
+                      row={originalRow}
+                      rowActions={rowActions}
+                      editableRows={editableRows}
+                      isEditing={isEditing}
+                      onStartEditing={() => {
+                        onEditingRowIdChange(rowId);
+                      }}
+                      onCancelEditing={() => {
+                        onEditingRowIdChange(null);
+                      }}
+                    />
+                  </div>
+                ) : null}
+              </CardHeader>
+            ) : null}
           </Card>
         );
       })}
