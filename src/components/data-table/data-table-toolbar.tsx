@@ -87,6 +87,31 @@ export function DataTableToolbar<TData>({
   const showActions = toolbarVisibility?.actions ?? true;
   const showTrailingActions = toolbarVisibility?.trailingActions ?? true;
   const showViewToggle = toolbarVisibility?.viewToggle ?? true;
+  const hasVisibleTitle = showTitle && Boolean(title || description);
+  const hasVisibleSearch = showSearch;
+  const hasVisiblePrimaryActions = showActions && primaryActions.length > 0;
+  const hasVisibleSelectionActions = selectedRows.length > 0 && selectionActions.length > 0;
+  const hasVisibleOptions =
+    columnVisibilityOptions.length > 0 ||
+    Boolean(onShowHiddenRowsChange && hiddenRowsLabel);
+  const hasVisibleViewToggle =
+    showViewToggle && enableViewToggle && Boolean(onViewModeChange);
+  const hasVisibleTrailingActions =
+    showTrailingActions && trailingActions.length > 0;
+  const hasVisibleCustomToolbar = Boolean(customToolbar);
+
+  if (
+    !hasVisibleTitle &&
+    !hasVisibleSearch &&
+    !hasVisiblePrimaryActions &&
+    !hasVisibleSelectionActions &&
+    !hasVisibleOptions &&
+    !hasVisibleViewToggle &&
+    !hasVisibleTrailingActions &&
+    !hasVisibleCustomToolbar
+  ) {
+    return null;
+  }
 
   return (
     <div className="flex flex-col gap-4 p-2 pb-0">
