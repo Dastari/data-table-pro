@@ -39,7 +39,7 @@ export function DataTablePagination({
   const canGoNext = pageIndex + 1 < pageCount;
 
   return (
-    <div className="flex flex-row justify-between gap-4 rounded-md border bg-card p-1 px-4">
+    <div className="flex flex-row justify-between gap-4 rounded-md border bg-card p-0 px-4">
       <div className="flex items-center gap-3 text-sm text-muted-foreground">
         <span className="hidden @md/data-table:inline">Records per page</span>
         <Select
