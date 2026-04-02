@@ -109,7 +109,9 @@ export type DataTableToolbarVisibility = {
   search?: boolean;
   actions?: boolean;
   trailingActions?: boolean;
+  options?: boolean;
   viewToggle?: boolean;
+  customToolbar?: boolean;
 };
 
 export type DataTableCardRendererProps<TData> = {
@@ -227,6 +229,7 @@ export type DataTableProps<TData> = {
   layoutMode?: "fill" | "fit";
   stickyHeader?: boolean;
   showFooter?: boolean;
+  showToolbar?: boolean;
   toolbarVisibility?: DataTableToolbarVisibility;
   className?: string;
   tableClassName?: string;

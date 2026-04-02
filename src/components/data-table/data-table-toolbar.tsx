@@ -86,19 +86,22 @@ export function DataTableToolbar<TData>({
   const showSearch = toolbarVisibility?.search ?? true;
   const showActions = toolbarVisibility?.actions ?? true;
   const showTrailingActions = toolbarVisibility?.trailingActions ?? true;
+  const showOptions = toolbarVisibility?.options ?? true;
   const showViewToggle = toolbarVisibility?.viewToggle ?? true;
+  const showCustomToolbar = toolbarVisibility?.customToolbar ?? true;
   const hasVisibleTitle = showTitle && Boolean(title || description);
   const hasVisibleSearch = showSearch;
   const hasVisiblePrimaryActions = showActions && primaryActions.length > 0;
   const hasVisibleSelectionActions = selectedRows.length > 0 && selectionActions.length > 0;
   const hasVisibleOptions =
-    columnVisibilityOptions.length > 0 ||
-    Boolean(onShowHiddenRowsChange && hiddenRowsLabel);
+    showOptions &&
+    (columnVisibilityOptions.some((column) => column.canHide) ||
+      Boolean(onShowHiddenRowsChange && hiddenRowsLabel));
   const hasVisibleViewToggle =
     showViewToggle && enableViewToggle && Boolean(onViewModeChange);
   const hasVisibleTrailingActions =
     showTrailingActions && trailingActions.length > 0;
-  const hasVisibleCustomToolbar = Boolean(customToolbar);
+  const hasVisibleCustomToolbar = showCustomToolbar && Boolean(customToolbar);
 
   if (
     !hasVisibleTitle &&
@@ -234,8 +237,7 @@ export function DataTableToolbar<TData>({
               })
             : null}
 
-          {columnVisibilityOptions.length ||
-          (onShowHiddenRowsChange && hiddenRowsLabel) ? (
+          {hasVisibleOptions ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -264,26 +266,27 @@ export function DataTableToolbar<TData>({
                     </DropdownMenuCheckboxItem>
                   ) : null}
                 </DropdownMenuGroup>
-                {columnVisibilityOptions.length ? (
+                {columnVisibilityOptions.some((column) => column.canHide) ? (
                   <>
                     <DropdownMenuSeparator />
                     <DropdownMenuLabel>Columns</DropdownMenuLabel>
                     <DropdownMenuGroup>
-                      {columnVisibilityOptions.map((column) => (
-                        <DropdownMenuCheckboxItem
-                          key={column.id}
-                          checked={column.visible}
-                          disabled={!column.canHide}
-                          onCheckedChange={(checked) => {
-                            onColumnVisibilityChange?.(
-                              column.id,
-                              checked === true,
-                            );
-                          }}
-                        >
-                          {column.label}
-                        </DropdownMenuCheckboxItem>
-                      ))}
+                      {columnVisibilityOptions
+                        .filter((column) => column.canHide)
+                        .map((column) => (
+                          <DropdownMenuCheckboxItem
+                            key={column.id}
+                            checked={column.visible}
+                            onCheckedChange={(checked) => {
+                              onColumnVisibilityChange?.(
+                                column.id,
+                                checked === true,
+                              );
+                            }}
+                          >
+                            {column.label}
+                          </DropdownMenuCheckboxItem>
+                        ))}
                     </DropdownMenuGroup>
                   </>
                 ) : null}
@@ -374,7 +377,7 @@ export function DataTableToolbar<TData>({
         </div>
       </div>
 
-      {customToolbar ? (
+      {showCustomToolbar && customToolbar ? (
         <div className="flex flex-row items-center gap-3">{customToolbar}</div>
       ) : null}
     </div>

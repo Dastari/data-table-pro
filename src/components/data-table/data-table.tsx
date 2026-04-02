@@ -96,6 +96,7 @@ export function DataTable<TData>({
   layoutMode = "fill",
   stickyHeader = true,
   showFooter = true,
+  showToolbar = true,
   toolbarVisibility,
   className,
   tableClassName,
@@ -649,31 +650,33 @@ export function DataTable<TData>({
       ) : null}
       <div className="flex h-0 grow">
         <div className={cn("flex w-full grow flex-col gap-4", className)}>
-          <DataTableToolbar
-            title={title}
-            description={description}
-            searchValue={localSearchValue}
-            searchPlaceholder={searchPlaceholder}
-            onSearchValueChange={setLocalSearchValue}
-            customToolbar={customToolbar}
-            viewMode={viewMode}
-            onViewModeChange={onViewModeChange}
-            enableViewToggle={enableViewToggle && Boolean(cardRenderer)}
-            toolbarActions={toolbarActions}
-            selectionActions={selectionActions}
-            selectedRows={selectedRows}
-            totalRowCount={effectiveTotalRowCount}
-            showHiddenRows={showHiddenRows}
-            hiddenRowsLabel={hiddenRows?.label}
-            onShowHiddenRowsChange={onShowHiddenRowsChange}
-            allRows={visibleData}
-            columnVisibilityOptions={columnVisibilityOptions}
-            onColumnVisibilityChange={(columnId, visible) => {
-              table.getColumn(columnId)?.toggleVisibility(visible);
-            }}
-            toolbarVisibility={toolbarVisibility}
-            openFileDialog={fileUpload ? openFileDialog : undefined}
-          />
+          {showToolbar ? (
+            <DataTableToolbar
+              title={title}
+              description={description}
+              searchValue={localSearchValue}
+              searchPlaceholder={searchPlaceholder}
+              onSearchValueChange={setLocalSearchValue}
+              customToolbar={customToolbar}
+              viewMode={viewMode}
+              onViewModeChange={onViewModeChange}
+              enableViewToggle={enableViewToggle && Boolean(cardRenderer)}
+              toolbarActions={toolbarActions}
+              selectionActions={selectionActions}
+              selectedRows={selectedRows}
+              totalRowCount={effectiveTotalRowCount}
+              showHiddenRows={showHiddenRows}
+              hiddenRowsLabel={hiddenRows?.label}
+              onShowHiddenRowsChange={onShowHiddenRowsChange}
+              allRows={visibleData}
+              columnVisibilityOptions={columnVisibilityOptions}
+              onColumnVisibilityChange={(columnId, visible) => {
+                table.getColumn(columnId)?.toggleVisibility(visible);
+              }}
+              toolbarVisibility={toolbarVisibility}
+              openFileDialog={fileUpload ? openFileDialog : undefined}
+            />
+          ) : null}
 
           <div className="h-0 min-h-0 flex-1 overflow-hidden px-2">
             {viewMode === "card" && cardRenderer ? (
