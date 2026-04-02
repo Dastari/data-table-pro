@@ -28,7 +28,6 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableFooter,
   TableHead,
   TableHeader,
   TableRow,
@@ -38,7 +37,7 @@ import { cn } from "../../lib/utils";
 import { renderDataTableCellContent } from "./data-table-cell-content";
 import { DataTableCardView } from "./data-table-card-view";
 import { DataTableEmptyState } from "./data-table-empty-state";
-import { DataTablePagination } from "./data-table-pagination";
+import { DataTableFooter } from "./data-table-pagination";
 import { DataTableRowActions } from "./data-table-row-actions";
 import { DataTableToolbar } from "./data-table-toolbar";
 import { useDataTableInfiniteScroll } from "./use-data-table-infinite-scroll";
@@ -1147,41 +1146,6 @@ export function DataTable<TData>({
                           </TableRow>
                         )}
                       </TableBody>
-                      {showFooter && !infiniteScroll?.enabled ? (
-                        <TableFooter className="border-t border-border bg-card font-normal">
-                          <TableRow className="border-b-0 hover:bg-transparent">
-                            <TableCell
-                              colSpan={Math.max(1, visibleLeafColumnCount)}
-                              className="border-b-0 px-4 py-1"
-                            >
-                              <DataTablePagination
-                                pageIndex={currentPagination.pageIndex}
-                                pageCount={effectivePageCount}
-                                pageSize={currentPagination.pageSize}
-                                rowsPerPageOptions={rowsPerPageOptions}
-                                onPageIndexChange={(nextPageIndex) => {
-                                  onPageIndexChange?.(nextPageIndex);
-                                  if (pageIndex === undefined) {
-                                    setLocalPagination((current) => ({
-                                      ...current,
-                                      pageIndex: nextPageIndex,
-                                    }));
-                                  }
-                                }}
-                                onPageSizeChange={(nextPageSize) => {
-                                  onPageSizeChange?.(nextPageSize);
-                                  if (pageSize === undefined) {
-                                    setLocalPagination({
-                                      pageIndex: 0,
-                                      pageSize: nextPageSize,
-                                    });
-                                  }
-                                }}
-                              />
-                            </TableCell>
-                          </TableRow>
-                        </TableFooter>
-                      ) : null}
                     </Table>
                   </div>
 
@@ -1195,39 +1159,33 @@ export function DataTable<TData>({
               </div>
             )}
           </div>
-          {((viewMode === "card" &&
-            cardRenderer &&
-            showFooter &&
-            !infiniteScroll?.enabled) ||
-            children) ? (
+          {(showFooter && !infiniteScroll?.enabled) || children ? (
             <div className="px-2">
-              {viewMode === "card" && cardRenderer && showFooter && !infiniteScroll?.enabled ? (
-                <div className="rounded-md border bg-card px-4 py-1">
-                  <DataTablePagination
-                    pageIndex={currentPagination.pageIndex}
-                    pageCount={effectivePageCount}
-                    pageSize={currentPagination.pageSize}
-                    rowsPerPageOptions={rowsPerPageOptions}
-                    onPageIndexChange={(nextPageIndex) => {
-                      onPageIndexChange?.(nextPageIndex);
-                      if (pageIndex === undefined) {
-                        setLocalPagination((current) => ({
-                          ...current,
-                          pageIndex: nextPageIndex,
-                        }));
-                      }
-                    }}
-                    onPageSizeChange={(nextPageSize) => {
-                      onPageSizeChange?.(nextPageSize);
-                      if (pageSize === undefined) {
-                        setLocalPagination({
-                          pageIndex: 0,
-                          pageSize: nextPageSize,
-                        });
-                      }
-                    }}
-                  />
-                </div>
+              {showFooter && !infiniteScroll?.enabled ? (
+                <DataTableFooter
+                  pageIndex={currentPagination.pageIndex}
+                  pageCount={effectivePageCount}
+                  pageSize={currentPagination.pageSize}
+                  rowsPerPageOptions={rowsPerPageOptions}
+                  onPageIndexChange={(nextPageIndex) => {
+                    onPageIndexChange?.(nextPageIndex);
+                    if (pageIndex === undefined) {
+                      setLocalPagination((current) => ({
+                        ...current,
+                        pageIndex: nextPageIndex,
+                      }));
+                    }
+                  }}
+                  onPageSizeChange={(nextPageSize) => {
+                    onPageSizeChange?.(nextPageSize);
+                    if (pageSize === undefined) {
+                      setLocalPagination({
+                        pageIndex: 0,
+                        pageSize: nextPageSize,
+                      });
+                    }
+                  }}
+                />
               ) : null}
               {children}
             </div>

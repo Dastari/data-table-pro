@@ -1,6 +1,6 @@
 {
   "name": "data-table-pro",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "Standalone shadcn-compatible data table components built on TanStack Table.",
   "type": "module",
   "license": "MIT",

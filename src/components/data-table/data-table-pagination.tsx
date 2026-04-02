@@ -137,6 +137,14 @@ export function DataTablePagination({
   );
 }
 
+export function DataTableFooter(props: DataTablePaginationProps) {
+  return (
+    <div className="rounded-md border bg-card px-4 py-1">
+      <DataTablePagination {...props} />
+    </div>
+  );
+}
+
 function getVisiblePages(currentPageIndex: number, pageCount: number) {
   const currentPage = currentPageIndex + 1;
   const pages = new Set<number>([1, pageCount]);
