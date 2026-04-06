@@ -30,7 +30,7 @@ export function renderDataTableCellContent<TData>(
     return <span className="text-muted-foreground">-</span>;
   }
 
-  return String(value);
+  return formatCellValue(value);
 }
 
 function formatDateValue(value: unknown) {
@@ -43,4 +43,25 @@ function formatDateValue(value: unknown) {
   }
 
   return "-";
+}
+
+function formatCellValue(value: unknown) {
+  if (value instanceof Date) {
+    return value.toLocaleString();
+  }
+
+  if (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean" ||
+    typeof value === "bigint"
+  ) {
+    return String(value);
+  }
+
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return "-";
+  }
 }

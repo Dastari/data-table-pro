@@ -97,6 +97,7 @@ export function DataTable<TData>({
   stickyHeader = true,
   showFooter = true,
   showToolbar = true,
+  flexGrow = true,
   toolbarVisibility,
   className,
   tableClassName,
@@ -244,8 +245,39 @@ export function DataTable<TData>({
     });
   }, [columns, effectiveColumnVisibility]);
 
-  const tableColumns = React.useMemo<Array<ColumnDef<TData, any>>>(() => {
-    const defs: Array<ColumnDef<TData, any>> = [];
+  const startEditingRow = React.useCallback(
+    (row: TData, rowId: string) => {
+      const initialValues =
+        editableRows?.getInitialValues?.(row) ??
+        defaultDraftValues(row, columns);
+      setDraftValues(initialValues);
+      setEditingRowId(rowId);
+    },
+    [columns, editableRows],
+  );
+
+  const saveEdit = React.useCallback(
+    async (row: TData) => {
+      if (!editableRows) {
+        return;
+      }
+
+      setIsSavingEdit(true);
+      try {
+        await editableRows.onSaveRow(row, draftValues);
+        React.startTransition(() => {
+          setEditingRowId(null);
+          setDraftValues({});
+        });
+      } finally {
+        setIsSavingEdit(false);
+      }
+    },
+    [draftValues, editableRows],
+  );
+
+  const tableColumns = React.useMemo<Array<ColumnDef<TData, unknown>>>(() => {
+    const defs: Array<ColumnDef<TData, unknown>> = [];
 
     if (enableRowSelection) {
       defs.push({
@@ -376,7 +408,10 @@ export function DataTable<TData>({
     editingRowId,
     enableRowSelection,
     isSavingEdit,
+    layoutMode,
     rowActions,
+    saveEdit,
+    startEditingRow,
   ]);
 
   const table = useReactTable({
@@ -448,6 +483,7 @@ export function DataTable<TData>({
     ),
   });
   const columnSizing = table.getState().columnSizing;
+  const visibleLeafColumns = table.getVisibleLeafColumns();
 
   const renderedRows = infiniteScroll?.enabled
     ? table.getRowModel().rows
@@ -456,12 +492,11 @@ export function DataTable<TData>({
       : table.getRowModel().rows;
 
   const pinnedColumns = React.useMemo(() => {
-    const leafColumns = table.getVisibleLeafColumns();
     const left = new Map<string, number>();
     const right = new Map<string, number>();
 
     let leftOffset = 0;
-    for (const column of leafColumns) {
+    for (const column of visibleLeafColumns) {
       if (getFixedSide(column) === "left") {
         left.set(column.id, leftOffset);
         leftOffset += column.getSize();
@@ -469,7 +504,7 @@ export function DataTable<TData>({
     }
 
     let rightOffset = 0;
-    for (const column of [...leafColumns].reverse()) {
+    for (const column of [...visibleLeafColumns].reverse()) {
       if (getFixedSide(column) === "right") {
         right.set(column.id, rightOffset);
         rightOffset += column.getSize();
@@ -477,7 +512,7 @@ export function DataTable<TData>({
     }
 
     return { left, right };
-  }, [columnSizing, effectiveColumnVisibility, table, tableColumns]);
+  }, [visibleLeafColumns]);
   const explicitlySizedColumnIds = React.useMemo(() => {
     const ids = new Set<string>();
 
@@ -497,22 +532,41 @@ export function DataTable<TData>({
 
     return ids;
   }, [columns, editableRows, enableRowSelection, rowActions.length]);
-  const constrainedColumnIds = React.useMemo(() => {
+  const minimumColumnWidths = React.useMemo(() => {
+    const widths = new Map<string, number>();
+
+    for (const [index, column] of columns.entries()) {
+      const configuredMinWidth = getConfiguredColumnMinWidth(column);
+
+      if (configuredMinWidth !== undefined) {
+        widths.set(getColumnId(column, index), configuredMinWidth);
+      }
+    }
+
+    return widths;
+  }, [columns]);
+  const fixedWidthColumnIds = React.useMemo(() => {
     return new Set([...explicitlySizedColumnIds, ...Object.keys(columnSizing)]);
   }, [columnSizing, explicitlySizedColumnIds]);
-  const visibleLeafColumnCount = table.getVisibleLeafColumns().length;
+  const visibleLeafColumnCount = visibleLeafColumns.length;
   const fillMinWidth = React.useMemo(() => {
-    return table.getVisibleLeafColumns().reduce((total, column) => {
+    return visibleLeafColumns.reduce((total, column) => {
       const isFixedUtilityColumn =
         column.id === "__select__" || column.id === "__actions__";
       const isSpacerColumn = column.id === "__spacer__";
-      const shouldConstrain =
-        !isSpacerColumn &&
-        (isFixedUtilityColumn || constrainedColumnIds.has(column.id));
+      const configuredMinWidth = minimumColumnWidths.get(column.id);
 
-      return total + (shouldConstrain ? column.getSize() : 0);
+      if (isSpacerColumn) {
+        return total;
+      }
+
+      if (isFixedUtilityColumn || fixedWidthColumnIds.has(column.id)) {
+        return total + column.getSize();
+      }
+
+      return total + (configuredMinWidth ?? 0);
     }, 0);
-  }, [columnSizing, constrainedColumnIds, effectiveColumnVisibility, table]);
+  }, [fixedWidthColumnIds, minimumColumnWidths, visibleLeafColumns]);
   const hasCardTitle = React.useMemo(
     () => columns.some((column) => column.meta?.cardTitle),
     [columns],
@@ -598,30 +652,6 @@ export function DataTable<TData>({
     [onRowClick],
   );
 
-  function startEditingRow(row: TData, rowId: string) {
-    const initialValues =
-      editableRows?.getInitialValues?.(row) ?? defaultDraftValues(row, columns);
-    setDraftValues(initialValues);
-    setEditingRowId(rowId);
-  }
-
-  async function saveEdit(row: TData) {
-    if (!editableRows) {
-      return;
-    }
-
-    setIsSavingEdit(true);
-    try {
-      await editableRows.onSaveRow(row, draftValues);
-      React.startTransition(() => {
-        setEditingRowId(null);
-        setDraftValues({});
-      });
-    } finally {
-      setIsSavingEdit(false);
-    }
-  }
-
   return (
     <div
       ref={containerRef}
@@ -648,7 +678,7 @@ export function DataTable<TData>({
           }}
         />
       ) : null}
-      <div className="flex h-0 grow">
+      <div className={cn(flexGrow ? "flex h-0 grow" : "flex")}>
         <div className={cn("flex w-full grow flex-col gap-4", className)}>
           {showToolbar ? (
             <DataTableToolbar
@@ -678,7 +708,7 @@ export function DataTable<TData>({
             />
           ) : null}
 
-          <div className="h-0 min-h-0 flex-1 overflow-hidden px-2">
+          <div className="h-0 min-h-0 flex-1">
             {viewMode === "card" && cardRenderer ? (
               <div
                 className={cn(
@@ -772,27 +802,36 @@ export function DataTable<TData>({
                             column.id === "__select__" ||
                             column.id === "__actions__";
                           const isSpacerColumn = column.id === "__spacer__";
-                          const shouldConstrain =
+                          const configuredMinWidth = minimumColumnWidths.get(
+                            column.id,
+                          );
+                          const shouldFixWidth =
                             !isSpacerColumn &&
                             (layoutMode === "fit" ||
                               isFixedUtilityColumn ||
-                              constrainedColumnIds.has(column.id));
+                              fixedWidthColumnIds.has(column.id));
 
                           return (
                             <col
                               key={column.id}
                               style={
-                                shouldConstrain
+                                shouldFixWidth || configuredMinWidth !== undefined
                                   ? {
-                                      width: isFixedUtilityColumn
-                                        ? 50
-                                        : column.getSize(),
+                                      width: shouldFixWidth
+                                        ? isFixedUtilityColumn
+                                          ? 50
+                                          : column.getSize()
+                                        : undefined,
                                       minWidth: isFixedUtilityColumn
                                         ? 50
-                                        : column.getSize(),
-                                      maxWidth: isFixedUtilityColumn
-                                        ? 50
-                                        : column.getSize(),
+                                        : shouldFixWidth
+                                          ? column.getSize()
+                                          : configuredMinWidth,
+                                      maxWidth: shouldFixWidth
+                                        ? isFixedUtilityColumn
+                                          ? 50
+                                          : column.getSize()
+                                        : undefined,
                                     }
                                   : undefined
                               }
@@ -824,12 +863,15 @@ export function DataTable<TData>({
                                 header.column.id === "__actions__";
                               const isSpacerColumn =
                                 header.column.id === "__spacer__";
-                              const shouldConstrain =
+                              const configuredMinWidth = minimumColumnWidths.get(
+                                header.column.id,
+                              );
+                              const shouldFixWidth =
                                 !isSpacerColumn &&
                                 (layoutMode === "fit" ||
                                   isSelectionColumn ||
                                   isActionsColumn ||
-                                  constrainedColumnIds.has(header.column.id));
+                                  fixedWidthColumnIds.has(header.column.id));
                               const fixedSide = getFixedSide(header.column);
                               const hideClassName = hideOnClassName(
                                 meta?.hideOn,
@@ -854,17 +896,17 @@ export function DataTable<TData>({
                                     meta?.responsiveClassName,
                                   )}
                                   style={{
-                                    width: shouldConstrain
+                                    width: shouldFixWidth
                                       ? isSelectionColumn || isActionsColumn
                                         ? 50
                                         : header.getSize()
                                       : undefined,
-                                    minWidth: shouldConstrain
-                                      ? isSelectionColumn || isActionsColumn
-                                        ? 50
-                                        : header.getSize()
-                                      : undefined,
-                                    maxWidth: shouldConstrain
+                                    minWidth: isSelectionColumn || isActionsColumn
+                                      ? 50
+                                      : shouldFixWidth
+                                        ? header.getSize()
+                                        : configuredMinWidth,
+                                    maxWidth: shouldFixWidth
                                       ? isSelectionColumn || isActionsColumn
                                         ? 50
                                         : header.getSize()
@@ -1015,12 +1057,15 @@ export function DataTable<TData>({
                                     cell.column.id === "__actions__";
                                   const isSpacerColumn =
                                     cell.column.id === "__spacer__";
-                                  const shouldConstrain =
+                                  const configuredMinWidth = minimumColumnWidths.get(
+                                    cell.column.id,
+                                  );
+                                  const shouldFixWidth =
                                     !isSpacerColumn &&
                                     (layoutMode === "fit" ||
                                       isSelectionColumn ||
                                       isActionsColumn ||
-                                      constrainedColumnIds.has(cell.column.id));
+                                      fixedWidthColumnIds.has(cell.column.id));
                                   const fixedSide = getFixedSide(cell.column);
                                   const hideClassName = hideOnClassName(
                                     meta?.hideOn,
@@ -1055,17 +1100,18 @@ export function DataTable<TData>({
                                         cellClassName,
                                       )}
                                       style={{
-                                        width: shouldConstrain
+                                        width: shouldFixWidth
                                           ? isSelectionColumn || isActionsColumn
                                             ? 50
                                             : cell.column.getSize()
                                           : undefined,
-                                        minWidth: shouldConstrain
-                                          ? isSelectionColumn || isActionsColumn
+                                        minWidth:
+                                          isSelectionColumn || isActionsColumn
                                             ? 50
-                                            : cell.column.getSize()
-                                          : undefined,
-                                        maxWidth: shouldConstrain
+                                            : shouldFixWidth
+                                              ? cell.column.getSize()
+                                              : configuredMinWidth,
+                                        maxWidth: shouldFixWidth
                                           ? isSelectionColumn || isActionsColumn
                                             ? 50
                                             : cell.column.getSize()
@@ -1129,7 +1175,7 @@ export function DataTable<TData>({
                               colSpan={Math.max(1, visibleLeafColumnCount)}
                               className="h-full grow"
                             >
-                              <div className="flex h-full min-h-40 w-fit items-center justify-center">
+                              <div className="flex h-full min-h-full w-full grow items-center justify-center">
                                 {emptyNode ?? (
                                   <DataTableEmptyState
                                     title={
@@ -1163,7 +1209,7 @@ export function DataTable<TData>({
             )}
           </div>
           {(showFooter && !infiniteScroll?.enabled) || children ? (
-            <div className="px-2">
+            <div>
               {showFooter && !infiniteScroll?.enabled ? (
                 <DataTableFooter
                   pageIndex={currentPagination.pageIndex}
@@ -1201,7 +1247,7 @@ export function DataTable<TData>({
 
 function defaultDraftValues<TData>(
   row: TData,
-  columns: Array<DataTableColumnDef<TData, any>>,
+  columns: Array<DataTableColumnDef<TData, unknown>>,
 ) {
   return columns.reduce<Record<string, unknown>>((draft, column) => {
     if ("accessorKey" in column && typeof column.accessorKey === "string") {
@@ -1255,12 +1301,51 @@ function renderEditableCell<TData>(
 
   return (
     <Input
-      value={draftValue == null ? "" : String(draftValue)}
+      value={getEditableInputValue(draftValue)}
       onChange={(event) => {
         setDraftValue(event.target.value);
       }}
     />
   );
+}
+
+function getEditableInputValue(value: unknown) {
+  if (value == null) {
+    return "";
+  }
+
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+
+  if (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean" ||
+    typeof value === "bigint"
+  ) {
+    return String(value);
+  }
+
+  return "";
+}
+
+function getConfiguredColumnMinWidth<TData>(
+  column: DataTableColumnDef<TData, unknown>,
+) {
+  if (typeof column.meta?.minWidth === "number") {
+    return column.meta.minWidth;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(column, "minSize")) {
+    const minSize = (column as { minSize?: unknown }).minSize;
+
+    if (typeof minSize === "number") {
+      return minSize;
+    }
+  }
+
+  return undefined;
 }
 
 function handleStateChange<TState>(

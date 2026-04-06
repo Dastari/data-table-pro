@@ -2,7 +2,9 @@ import {
   Pagination,
   PaginationContent,
   PaginationEllipsis,
+  PaginationFirst,
   PaginationItem,
+  PaginationLast,
   PaginationLink,
   PaginationNext,
   PaginationPrevious,
@@ -37,6 +39,7 @@ export function DataTablePagination({
   const pages = getVisiblePages(pageIndex, Math.max(1, pageCount));
   const canGoPrevious = pageIndex > 0;
   const canGoNext = pageIndex + 1 < pageCount;
+  const lastPageIndex = Math.max(0, pageCount - 1);
 
   return (
     <div className="flex flex-row justify-between gap-4">
@@ -69,6 +72,27 @@ export function DataTablePagination({
         </div>
         <Pagination className="mx-0 w-auto justify-end">
           <PaginationContent>
+            <PaginationItem className="@md/data-table:hidden">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <PaginationFirst
+                    href="#"
+                    size="icon-sm"
+                    showText={false}
+                    disabled={!canGoPrevious}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      if (canGoPrevious) {
+                        onPageIndexChange(0);
+                      }
+                    }}
+                  >
+                    First
+                  </PaginationFirst>
+                </TooltipTrigger>
+                <TooltipContent>First page</TooltipContent>
+              </Tooltip>
+            </PaginationItem>
             <PaginationItem>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -91,7 +115,10 @@ export function DataTablePagination({
               </Tooltip>
             </PaginationItem>
             {pages.map((item, index) => (
-              <PaginationItem key={`${item}-${index}`}>
+              <PaginationItem
+                key={`${item}-${index}`}
+                className="hidden @md/data-table:block"
+              >
                 {item === "ellipsis" ? (
                   <PaginationEllipsis />
                 ) : (
@@ -130,6 +157,27 @@ export function DataTablePagination({
                 <TooltipContent>Next page</TooltipContent>
               </Tooltip>
             </PaginationItem>
+            <PaginationItem className="@md/data-table:hidden">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <PaginationLast
+                    href="#"
+                    size="icon-sm"
+                    showText={false}
+                    disabled={!canGoNext}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      if (canGoNext) {
+                        onPageIndexChange(lastPageIndex);
+                      }
+                    }}
+                  >
+                    Last
+                  </PaginationLast>
+                </TooltipTrigger>
+                <TooltipContent>Last page</TooltipContent>
+              </Tooltip>
+            </PaginationItem>
           </PaginationContent>
         </Pagination>
       </div>
@@ -139,7 +187,7 @@ export function DataTablePagination({
 
 export function DataTableFooter(props: DataTablePaginationProps) {
   return (
-    <div className="rounded-md border bg-card px-4 py-1">
+    <div className="rounded-md border bg-card px-2 py-1">
       <DataTablePagination {...props} />
     </div>
   );

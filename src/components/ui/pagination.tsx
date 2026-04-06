@@ -3,6 +3,8 @@ import * as React from "react";
 import { cn } from "../../lib/utils";
 import { Button } from "./button";
 import {
+  IconChevronsLeft,
+  IconChevronsRight,
   IconChevronLeft,
   IconChevronRight,
   IconDots,
@@ -97,6 +99,32 @@ function PaginationPrevious({
   );
 }
 
+function PaginationFirst({
+  className,
+  disabled,
+  showText = true,
+  size = "default",
+  text = "First",
+  ...props
+}: React.ComponentProps<typeof PaginationLink> & {
+  showText?: boolean;
+  text?: string;
+}) {
+  return (
+    <PaginationLink
+      aria-label="Go to first page"
+      disabled={disabled}
+      size={size}
+      variant="outline"
+      className={cn("pl-1.5!", className)}
+      {...props}
+    >
+      <IconChevronsLeft data-icon="inline-start" />
+      {showText ? <span className="hidden sm:block">{text}</span> : null}
+    </PaginationLink>
+  );
+}
+
 function PaginationNext({
   className,
   disabled,
@@ -119,6 +147,32 @@ function PaginationNext({
     >
       {showText ? <span className="hidden sm:block">{text}</span> : null}
       <IconChevronRight data-icon="inline-end" />
+    </PaginationLink>
+  );
+}
+
+function PaginationLast({
+  className,
+  disabled,
+  showText = true,
+  size = "default",
+  text = "Last",
+  ...props
+}: React.ComponentProps<typeof PaginationLink> & {
+  showText?: boolean;
+  text?: string;
+}) {
+  return (
+    <PaginationLink
+      aria-label="Go to last page"
+      disabled={disabled}
+      size={size}
+      variant="outline"
+      className={cn("pr-1.5!", className)}
+      {...props}
+    >
+      {showText ? <span className="hidden sm:block">{text}</span> : null}
+      <IconChevronsRight data-icon="inline-end" />
     </PaginationLink>
   );
 }
@@ -147,7 +201,9 @@ export {
   Pagination,
   PaginationContent,
   PaginationEllipsis,
+  PaginationFirst,
   PaginationItem,
+  PaginationLast,
   PaginationLink,
   PaginationNext,
   PaginationPrevious,

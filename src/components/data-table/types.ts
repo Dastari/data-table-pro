@@ -44,6 +44,7 @@ export type DataTableColumnMeta<TData, TValue> = {
   fixed?: DataTableColumnFixed;
   cardTitle?: boolean;
   hideOn?: DataTableContainerBreakpoint | Array<DataTableContainerBreakpoint>;
+  minWidth?: number;
   align?: DataTableAlign;
   headerClassName?: string;
   cellClassName?:
@@ -178,7 +179,7 @@ export type DataTableFileUploadConfig = {
 };
 
 export type DataTableProps<TData> = {
-  columns: Array<DataTableColumnDef<TData, any>>;
+  columns: Array<DataTableColumnDef<TData, unknown>>;
   data: Array<TData>;
   getRowId: (row: TData, index: number) => string;
   children?: React.ReactNode;
@@ -230,6 +231,7 @@ export type DataTableProps<TData> = {
   stickyHeader?: boolean;
   showFooter?: boolean;
   showToolbar?: boolean;
+  flexGrow?: boolean;
   toolbarVisibility?: DataTableToolbarVisibility;
   className?: string;
   tableClassName?: string;

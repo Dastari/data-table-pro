@@ -3,6 +3,7 @@ import {
   IconLayoutGrid,
   IconList,
   IconSearch,
+  IconX,
 } from "@tabler/icons-react";
 import type {
   DataTableColumnVisibilityOption,
@@ -92,7 +93,8 @@ export function DataTableToolbar<TData>({
   const hasVisibleTitle = showTitle && Boolean(title || description);
   const hasVisibleSearch = showSearch;
   const hasVisiblePrimaryActions = showActions && primaryActions.length > 0;
-  const hasVisibleSelectionActions = selectedRows.length > 0 && selectionActions.length > 0;
+  const hasVisibleSelectionActions =
+    selectedRows.length > 0 && selectionActions.length > 0;
   const hasVisibleOptions =
     showOptions &&
     (columnVisibilityOptions.some((column) => column.canHide) ||
@@ -117,7 +119,7 @@ export function DataTableToolbar<TData>({
   }
 
   return (
-    <div className="flex flex-col gap-4 p-2 pb-0">
+    <div className="flex flex-col gap-4 pb-0">
       {showTitle && (title || description) ? (
         <div className="flex flex-col gap-1">
           {title ? (
@@ -146,6 +148,21 @@ export function DataTableToolbar<TData>({
                 <InputGroupAddon align="inline-start" aria-hidden="true">
                   <IconSearch />
                 </InputGroupAddon>
+                {searchValue ? (
+                  <InputGroupAddon align="inline-end">
+                    <button
+                      type="button"
+                      className="inline-flex size-5 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none"
+                      onClick={() => {
+                        onSearchValueChange("");
+                      }}
+                      aria-label="Clear search"
+                      title="Clear search"
+                    >
+                      <IconX />
+                    </button>
+                  </InputGroupAddon>
+                ) : null}
               </InputGroup>
             </div>
           ) : null}
@@ -157,8 +174,9 @@ export function DataTableToolbar<TData>({
                   <Button
                     key={action.key}
                     type="button"
+                    className="size-7 @md/data-table:w-fit @md/data-table:h-8 "
                     variant={action.variant ?? "outline"}
-                    size={action.iconOnly ? "icon-sm" : "default"}
+                    size={action.iconOnly ? "icon" : "default"}
                     onClick={() => {
                       void action.onClick({
                         rows: allRows,
@@ -169,11 +187,7 @@ export function DataTableToolbar<TData>({
                     aria-label={action.label}
                     title={action.iconOnly ? undefined : action.label}
                   >
-                    {action.icon ? (
-                      <action.icon
-                        data-icon={action.iconOnly ? undefined : "inline-start"}
-                      />
-                    ) : null}
+                    {action.icon ? <action.icon /> : null}
                     {action.iconOnly ? (
                       <span className="sr-only">{action.label}</span>
                     ) : (

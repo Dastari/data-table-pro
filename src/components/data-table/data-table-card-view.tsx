@@ -54,7 +54,7 @@ export function DataTableCardView<TData>({
   onRowDragEnd,
 }: DataTableCardViewProps<TData>) {
   return (
-    <div className="flex flex-wrap gap-4 p-2">
+    <div className="flex flex-wrap gap-4 p-1">
       {rows.map((row) => {
         const rowId = row.id;
         const originalRow = row.original;

@@ -41,7 +41,7 @@ export function useDataTableInfiniteScroll({
     return () => {
       observer.disconnect();
     };
-  }, [enabled, hasMore, isLoadingMore, onLoadMoreEvent]);
+  }, [enabled, hasMore, isLoadingMore]);
 
   return sentinelRef;
 }
