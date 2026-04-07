@@ -1,6 +1,6 @@
 {
   "name": "data-table-pro",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "Standalone shadcn-compatible data table components built on TanStack Table.",
   "type": "module",
   "license": "MIT",
@@ -39,6 +39,7 @@
     "build": "tsup",
     "lint": "eslint src --max-warnings=0",
     "prepare": "pnpm build",
+    "test": "vitest run --environment jsdom",
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "pnpm build"
   },
@@ -64,14 +65,17 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
+    "@testing-library/react": "^16.3.2",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "eslint": "^9.39.4",
     "eslint-plugin-react-hooks": "^7.0.1",
     "globals": "^17.4.0",
+    "jsdom": "^29.0.2",
     "shadcn": "^4.1.1",
     "tsup": "^8.5.0",
     "typescript": "^6.0.2",
-    "typescript-eslint": "^8.58.0"
+    "typescript-eslint": "^8.58.0",
+    "vitest": "^4.1.3"
   }
 }

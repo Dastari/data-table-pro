@@ -128,6 +128,12 @@ export function DataTable<TData>({
   );
   const [isSavingEdit, setIsSavingEdit] = React.useState(false);
   const [containerWidth, setContainerWidth] = React.useState(0);
+  const hasOnSearchValueChange = Boolean(onSearchValueChange);
+  const lastReportedSearchValueRef = React.useRef(searchValue);
+  const onSearchValueChangeEvent = React.useEffectEvent((value: string) => {
+    lastReportedSearchValueRef.current = value;
+    onSearchValueChange?.(value);
+  });
 
   React.useEffect(() => {
     const element = containerRef.current;
@@ -153,22 +159,31 @@ export function DataTable<TData>({
   }, []);
 
   React.useEffect(() => {
+    lastReportedSearchValueRef.current = searchValue;
     setLocalSearchValue(searchValue);
   }, [searchValue]);
 
   React.useEffect(() => {
-    if (!onSearchValueChange) {
+    if (!hasOnSearchValueChange) {
+      return;
+    }
+
+    if (localSearchValue === searchValue) {
+      return;
+    }
+
+    if (localSearchValue === lastReportedSearchValueRef.current) {
       return;
     }
 
     const timeout = window.setTimeout(() => {
-      onSearchValueChange(localSearchValue);
+      onSearchValueChangeEvent(localSearchValue);
     }, searchDebounceMs);
 
     return () => {
       window.clearTimeout(timeout);
     };
-  }, [localSearchValue, onSearchValueChange, searchDebounceMs]);
+  }, [hasOnSearchValueChange, localSearchValue, searchDebounceMs, searchValue]);
 
   const currentSorting = sorting ?? localSorting;
   const currentPagination: PaginationState = {
