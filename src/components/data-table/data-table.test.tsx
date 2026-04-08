@@ -174,3 +174,77 @@ describe("DataTable search debounce", () => {
     expect(onSearchValueChange).not.toHaveBeenCalled();
   });
 });
+
+describe("DataTable initial loading", () => {
+  it("renders synthetic table skeleton rows instead of the empty state", () => {
+    const loadingColumns: Array<DataTableColumnDef<TestRow, unknown>> = [
+      {
+        accessorKey: "name",
+        header: "Name",
+        meta: {
+          skeleton: () => <span>Loading name cell</span>,
+        },
+      },
+    ];
+
+    renderTable({
+      columns: loadingColumns,
+      data: [],
+      isLoading: true,
+      loadingRowCount: 2,
+    });
+
+    expect(screen.queryByText("No rows yet")).toBeNull();
+    expect(screen.getAllByText("Loading name cell")).toHaveLength(2);
+  });
+
+  it("renders skeleton cards while initially loading with no rows", () => {
+    const cardRenderer = vi.fn(() => <div>Rendered card</div>);
+    const { container } = renderTable({
+      data: [],
+      isLoading: true,
+      loadingRowCount: 3,
+      viewMode: "card",
+      cardRenderer,
+    });
+
+    expect(screen.queryByText("No rows yet")).toBeNull();
+    expect(cardRenderer).not.toHaveBeenCalled();
+    expect(container.querySelectorAll("[data-slot='card']")).toHaveLength(3);
+    expect(container.querySelectorAll("[data-slot='skeleton']").length).toBeGreaterThan(0);
+  });
+
+  it("still renders the empty state when there are no rows and loading is false", () => {
+    renderTable({
+      data: [],
+    });
+
+    expect(screen.getByText("No rows yet")).not.toBeNull();
+  });
+});
+
+describe("DataTable summaries", () => {
+  it("shows the total record count in the footer", () => {
+    renderTable({
+      totalRowCount: 42,
+    });
+
+    expect(screen.getByLabelText("Total records: 42")).not.toBeNull();
+  });
+
+  it("shows the selected record count in the toolbar", () => {
+    renderTable({
+      enableRowSelection: true,
+      rowSelection: { "1": true },
+      selectionActions: [
+        {
+          key: "archive",
+          label: "Archive",
+          onClick: vi.fn(),
+        },
+      ],
+    });
+
+    expect(screen.getByText("1 record selected")).not.toBeNull();
+  });
+});

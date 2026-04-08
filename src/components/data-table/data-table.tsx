@@ -49,6 +49,13 @@ import {
   isRowVisible,
 } from "./types";
 
+const DATA_TABLE_LOADING_ROW = Symbol("data-table-loading-row");
+
+type DataTableLoadingRow = {
+  [DATA_TABLE_LOADING_ROW]: true;
+  index: number;
+};
+
 export function DataTable<TData>({
   columns,
   data,
@@ -83,6 +90,8 @@ export function DataTable<TData>({
   onViewModeChange,
   enableViewToggle = false,
   emptyState,
+  isLoading = false,
+  loadingRowCount,
   getRowLoadingState,
   hiddenRows,
   showHiddenRows = false,
@@ -190,6 +199,10 @@ export function DataTable<TData>({
     pageIndex: pageIndex ?? localPagination.pageIndex,
     pageSize: pageSize ?? localPagination.pageSize,
   };
+  const resolvedLoadingRowCount = Math.max(
+    1,
+    loadingRowCount ?? Math.min(5, currentPagination.pageSize),
+  );
   const currentRowSelection = rowSelection ?? localRowSelection;
   const currentColumnVisibility = columnVisibility ?? localColumnVisibility;
   const responsiveColumnVisibility = React.useMemo<VisibilityState>(() => {
@@ -224,6 +237,22 @@ export function DataTable<TData>({
   const visibleData = React.useMemo(
     () => data.filter((row) => isRowVisible(row, hiddenRows, showHiddenRows)),
     [data, hiddenRows, showHiddenRows],
+  );
+  const shouldRenderInitialLoading = isLoading && visibleData.length === 0;
+  const loadingRows = React.useMemo(
+    () => createDataTableLoadingRows<TData>(resolvedLoadingRowCount),
+    [resolvedLoadingRowCount],
+  );
+  const tableData = shouldRenderInitialLoading ? loadingRows : visibleData;
+  const tableGetRowId = React.useCallback(
+    (row: TData, index: number) => {
+      if (isDataTableLoadingRow(row)) {
+        return getDataTableLoadingRowId(index);
+      }
+
+      return getRowId(row, index);
+    },
+    [getRowId],
   );
 
   const rowById = React.useMemo(() => {
@@ -430,7 +459,7 @@ export function DataTable<TData>({
   ]);
 
   const table = useReactTable({
-    data: visibleData,
+    data: tableData,
     columns: tableColumns,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: manualSorting ? undefined : getSortedRowModel(),
@@ -442,7 +471,7 @@ export function DataTable<TData>({
     enableMultiRowSelection: enableRowSelection,
     enableColumnResizing,
     columnResizeMode,
-    getRowId,
+    getRowId: tableGetRowId,
     manualSorting,
     manualPagination: manualPagination || Boolean(infiniteScroll?.enabled),
     defaultColumn: {
@@ -629,17 +658,17 @@ export function DataTable<TData>({
 
   const effectiveTotalRowCount =
     totalRowCount ??
-    (manualPagination || infiniteScroll?.enabled
-      ? visibleData.length
-      : table.getFilteredRowModel().rows.length);
+    visibleData.length;
   const effectivePageCount =
-    pageCount ??
-    (manualPagination || infiniteScroll?.enabled
-      ? Math.max(
-          1,
-          Math.ceil(effectiveTotalRowCount / currentPagination.pageSize),
-        )
-      : table.getPageCount());
+    shouldRenderInitialLoading
+      ? 1
+      : (pageCount ??
+        (manualPagination || infiniteScroll?.enabled
+          ? Math.max(
+              1,
+              Math.ceil(effectiveTotalRowCount / currentPagination.pageSize),
+            )
+          : table.getPageCount()));
 
   const sentinelRef = useDataTableInfiniteScroll({
     enabled: Boolean(infiniteScroll?.enabled),
@@ -709,7 +738,6 @@ export function DataTable<TData>({
               toolbarActions={toolbarActions}
               selectionActions={selectionActions}
               selectedRows={selectedRows}
-              totalRowCount={effectiveTotalRowCount}
               showHiddenRows={showHiddenRows}
               hiddenRowsLabel={hiddenRows?.label}
               onShowHiddenRowsChange={onShowHiddenRowsChange}
@@ -733,7 +761,32 @@ export function DataTable<TData>({
                 )}
               >
                 <ScrollArea className={cn("h-full", tableContainerClassName)}>
-                  {visibleData.length ? (
+                  {shouldRenderInitialLoading ? (
+                    <DataTableCardView
+                      rows={[]}
+                      cardRenderer={cardRenderer}
+                      rowActions={rowActions}
+                      editableRows={editableRows}
+                      hasCardTitle={hasCardTitle}
+                      rowSelection={currentRowSelection}
+                      onRowSelectionChange={(nextValue) => {
+                        onRowSelectionChange?.(nextValue);
+                        if (!rowSelection) {
+                          setLocalRowSelection(nextValue);
+                        }
+                      }}
+                      enableRowSelection={enableRowSelection}
+                      editingRowId={editingRowId}
+                      onEditingRowIdChange={setEditingRowId}
+                      getRowClassName={getRowClassName}
+                      onRowClick={onRowClick}
+                      getRowDraggable={dragAndDrop?.getRowDraggable}
+                      onRowDragStart={dragAndDrop?.onRowDragStart}
+                      onRowDragEnd={dragAndDrop?.onRowDragEnd}
+                      isLoading={true}
+                      loadingRowCount={resolvedLoadingRowCount}
+                    />
+                  ) : visibleData.length ? (
                     <DataTableCardView
                       rows={renderedRows}
                       cardRenderer={cardRenderer}
@@ -775,7 +828,7 @@ export function DataTable<TData>({
                     </div>
                   )}
 
-                  {infiniteScroll?.enabled ? (
+                  {infiniteScroll?.enabled && !shouldRenderInitialLoading ? (
                     <div className="px-4 pb-4">
                       <div ref={sentinelRef} className="h-4 w-full" />
                     </div>
@@ -1014,10 +1067,11 @@ export function DataTable<TData>({
                         {renderedRows.length ? (
                           renderedRows.map((row, rowIndex) => {
                             const originalRow = row.original;
-                            const loadingState = getRowLoadingState?.(
-                              originalRow,
-                              rowIndex,
-                            );
+                            const isInitialLoadingRow =
+                              isDataTableLoadingRow(originalRow);
+                            const loadingState = isInitialLoadingRow
+                              ? { isLoading: true }
+                              : getRowLoadingState?.(originalRow, rowIndex);
                             const resolvedLoadingState =
                               typeof loadingState === "boolean"
                                 ? { isLoading: loadingState }
@@ -1028,21 +1082,44 @@ export function DataTable<TData>({
                               <TableRow
                                 key={row.id}
                                 draggable={
-                                  dragAndDrop?.getRowDraggable?.(originalRow) ??
-                                  false
+                                  isInitialLoadingRow
+                                    ? false
+                                    : (dragAndDrop?.getRowDraggable?.(
+                                        originalRow,
+                                      ) ??
+                                      false)
+                                }
+                                data-loading={
+                                  resolvedLoadingState?.isLoading || undefined
                                 }
                                 data-state={
-                                  row.getIsSelected() ? "selected" : undefined
+                                  isInitialLoadingRow
+                                    ? undefined
+                                    : row.getIsSelected()
+                                      ? "selected"
+                                      : undefined
                                 }
                                 className={cn(
-                                  getRowClassName?.(originalRow),
+                                  !isInitialLoadingRow &&
+                                    getRowClassName?.(originalRow),
                                   "hover:bg-muted/50 data-[state=selected]:!bg-primary/10",
-                                  onRowClick && "cursor-pointer",
+                                  onRowClick &&
+                                    !isInitialLoadingRow &&
+                                    "cursor-pointer",
+                                  isInitialLoadingRow && "pointer-events-none",
                                 )}
                                 onClick={(event) => {
+                                  if (isInitialLoadingRow) {
+                                    return;
+                                  }
+
                                   handleRowClick(event, originalRow, row.id);
                                 }}
                                 onDragStart={(event) => {
+                                  if (isInitialLoadingRow) {
+                                    return;
+                                  }
+
                                   dragAndDrop?.onRowDragStart?.({
                                     row: originalRow,
                                     rowId: row.id,
@@ -1050,6 +1127,10 @@ export function DataTable<TData>({
                                   });
                                 }}
                                 onDragEnd={(event) => {
+                                  if (isInitialLoadingRow) {
+                                    return;
+                                  }
+
                                   dragAndDrop?.onRowDragEnd?.({
                                     row: originalRow,
                                     rowId: row.id,
@@ -1085,8 +1166,9 @@ export function DataTable<TData>({
                                   const hideClassName = hideOnClassName(
                                     meta?.hideOn,
                                   );
-                                  const cellClassName =
-                                    typeof meta?.cellClassName === "function"
+                                  const cellClassName = isInitialLoadingRow
+                                    ? undefined
+                                    : typeof meta?.cellClassName === "function"
                                       ? meta.cellClassName({
                                           row: originalRow,
                                           value,
@@ -1213,7 +1295,9 @@ export function DataTable<TData>({
                     </Table>
                   </div>
 
-                  {infiniteScroll?.enabled && renderedRows.length ? (
+                  {infiniteScroll?.enabled &&
+                  renderedRows.length &&
+                  !shouldRenderInitialLoading ? (
                     <div className="px-4 pb-4">
                       <div ref={sentinelRef} className="h-4 w-full" />
                     </div>
@@ -1230,6 +1314,7 @@ export function DataTable<TData>({
                   pageIndex={currentPagination.pageIndex}
                   pageCount={effectivePageCount}
                   pageSize={currentPagination.pageSize}
+                  totalRowCount={effectiveTotalRowCount}
                   rowsPerPageOptions={rowsPerPageOptions}
                   onPageIndexChange={(nextPageIndex) => {
                     onPageIndexChange?.(nextPageIndex);
@@ -1343,6 +1428,27 @@ function getEditableInputValue(value: unknown) {
   }
 
   return "";
+}
+
+function createDataTableLoadingRows<TData>(count: number) {
+  return Array.from({ length: count }, (_, index) => {
+    return {
+      [DATA_TABLE_LOADING_ROW]: true,
+      index,
+    } as DataTableLoadingRow as TData;
+  });
+}
+
+function isDataTableLoadingRow(row: unknown): row is DataTableLoadingRow {
+  return Boolean(
+    row &&
+      typeof row === "object" &&
+      DATA_TABLE_LOADING_ROW in (row as Record<PropertyKey, unknown>),
+  );
+}
+
+function getDataTableLoadingRowId(index: number) {
+  return `__loading__${index}`;
 }
 
 function getConfiguredColumnMinWidth<TData>(

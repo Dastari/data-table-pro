@@ -15,6 +15,7 @@ export type {
   DataTableFileUploadConfig,
   DataTableHiddenRowsConfig,
   DataTableInfiniteScroll,
+  DataTableLoadingState,
   DataTableProps,
   DataTableRowAction,
   DataTableRowLoadingState,

@@ -97,6 +97,7 @@ Use `meta.hideOn` for the built-in column visibility behavior driven by containe
 - `DataTableFileUploadConfig`
 - `DataTableHiddenRowsConfig`
 - `DataTableInfiniteScroll`
+- `DataTableLoadingState`
 - `DataTableProps`
 - `DataTableRowAction`
 - `DataTableRowLoadingState`
@@ -192,10 +193,14 @@ function DataTable<TData>(props: DataTableProps<TData>): React.ReactElement;
 
 ### Empty and loading props
 
-| Prop                 | Type                                                                                   | Default              | Description                                       |
-| -------------------- | -------------------------------------------------------------------------------------- | -------------------- | ------------------------------------------------- |
-| `emptyState`         | `React.ReactNode \| ((context: DataTableEmptyStateContext<TData>) => React.ReactNode)` | built-in empty state | Custom empty state for both table and card modes. |
-| `getRowLoadingState` | `(row: TData, index: number) => boolean \| DataTableRowLoadingState`                   | `undefined`          | Per-row loading and skeleton override hook.       |
+| Prop                 | Type                                                                                   | Default              | Description                                                                 |
+| -------------------- | -------------------------------------------------------------------------------------- | -------------------- | --------------------------------------------------------------------------- |
+| `emptyState`         | `React.ReactNode \| ((context: DataTableEmptyStateContext<TData>) => React.ReactNode)` | built-in empty state | Custom empty state for both table and card modes.                           |
+| `isLoading`          | `boolean`                                                                              | `false`              | Renders initial skeleton rows or cards when `data` is empty and loading.    |
+| `loadingRowCount`    | `number`                                                                               | `min(5, pageSize)`   | Number of synthetic skeleton rows or cards to render for initial loading.   |
+| `getRowLoadingState` | `(row: TData, index: number) => boolean \| DataTableRowLoadingState`                   | `undefined`          | Per-row loading and skeleton override hook for real rows that already exist. |
+
+When `isLoading` is `true` and `data` is empty, `DataTable` suppresses the empty state and renders package-level loading placeholders instead. Table mode reuses the normal cell-level loading path, so column `meta.skeleton` renderers still apply to the synthetic loading rows.
 
 ### Hidden row props
 
@@ -329,7 +334,7 @@ TanStack `ColumnDef` with a `meta` field typed as `DataTableColumnMeta<TData, TV
 | `headerClassName`     | `string`                                                              | Header cell class.                                     |
 | `cellClassName`       | `string \| ((args) => string \| undefined)`                           | Per-cell class or computed class.                      |
 | `responsiveClassName` | `string`                                                              | Extra class applied in responsive layouts.             |
-| `skeleton`            | `(context) => React.ReactNode`                                        | Custom loading skeleton renderer.                      |
+| `skeleton`            | `(context) => React.ReactNode`                                        | Custom loading skeleton renderer for row-level and initial empty-data loading. |
 | `renderEditCell`      | `(props) => React.ReactNode`                                          | Custom editor renderer for inline editing.             |
 
 ### `DataTableToolbarAction<TData>`
@@ -480,3 +485,10 @@ Represents an entry in the built-in column visibility menu.
 | ----------- | ----------------- | -------------------------------------- |
 | `isLoading` | `boolean`         | Whether the row is in a loading state. |
 | `skeleton`  | `React.ReactNode` | Optional row-level skeleton override.  |
+
+### `DataTableLoadingState`
+
+| Field             | Type      | Description                                                       |
+| ----------------- | --------- | ----------------------------------------------------------------- |
+| `isLoading`       | `boolean` | Whether the table should render initial loading placeholders.     |
+| `loadingRowCount` | `number`  | Optional number of synthetic skeleton rows or cards to generate. |

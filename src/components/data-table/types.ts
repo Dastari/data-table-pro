@@ -31,6 +31,11 @@ export type DataTableRowLoadingState = {
   skeleton?: React.ReactNode;
 };
 
+export type DataTableLoadingState = {
+  isLoading: boolean;
+  loadingRowCount?: number;
+};
+
 export type DataTableCellEditRenderProps<TData, TValue> = {
   cell: CellContext<TData, TValue>;
   row: TData;
@@ -214,6 +219,8 @@ export type DataTableProps<TData> = {
   emptyState?:
     | React.ReactNode
     | ((context: DataTableEmptyStateContext<TData>) => React.ReactNode);
+  isLoading?: boolean;
+  loadingRowCount?: number;
   getRowLoadingState?: (
     row: TData,
     index: number,

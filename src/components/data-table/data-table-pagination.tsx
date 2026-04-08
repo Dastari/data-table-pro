@@ -1,3 +1,4 @@
+import { IconDatabase } from "@tabler/icons-react";
 import {
   Pagination,
   PaginationContent,
@@ -23,6 +24,7 @@ type DataTablePaginationProps = {
   pageIndex: number;
   pageCount: number;
   pageSize: number;
+  totalRowCount?: number;
   rowsPerPageOptions: Array<number>;
   onPageIndexChange: (pageIndex: number) => void;
   onPageSizeChange: (pageSize: number) => void;
@@ -32,6 +34,7 @@ export function DataTablePagination({
   pageIndex,
   pageCount,
   pageSize,
+  totalRowCount,
   rowsPerPageOptions,
   onPageIndexChange,
   onPageSizeChange,
@@ -42,8 +45,8 @@ export function DataTablePagination({
   const lastPageIndex = Math.max(0, pageCount - 1);
 
   return (
-    <div className="flex flex-row justify-between gap-4">
-      <div className="flex items-center gap-3 text-sm text-muted-foreground">
+    <div className="flex flex-row items-center justify-between gap-4">
+      <div className="flex flex-1 items-center gap-3 text-sm text-muted-foreground">
         <span className="hidden @md/data-table:inline">Records per page</span>
         <Select
           value={String(pageSize)}
@@ -66,7 +69,20 @@ export function DataTablePagination({
         </Select>
       </div>
 
-      <div className="flex items-center justify-end gap-4">
+      <div className="flex shrink-0 items-center justify-center">
+        <div
+          className="inline-flex items-center gap-2 rounded-lg border border-border bg-input px-2.5 py-1.5 text-sm text-muted-foreground"
+          aria-label={`Total records: ${totalRowCount ?? 0}`}
+        >
+          <IconDatabase className="size-4" />
+          <span className="@md/data-table:hidden">{totalRowCount ?? 0}</span>
+          <span className="hidden @md/data-table:inline">
+            Total Records {totalRowCount ?? 0}
+          </span>
+        </div>
+      </div>
+
+      <div className="flex flex-1 items-center justify-end gap-4">
         <div className="hidden text-sm text-muted-foreground @md/data-table:inline">
           Page {pageIndex + 1} of {Math.max(1, pageCount)}
         </div>

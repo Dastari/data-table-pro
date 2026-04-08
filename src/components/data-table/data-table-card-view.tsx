@@ -7,7 +7,8 @@ import type {
 } from "./types";
 import { Checkbox } from "../ui/checkbox";
 import { DataTableRowActions } from "./data-table-row-actions";
-import { Card, CardHeader } from "../ui/card";
+import { Card, CardContent, CardHeader } from "../ui/card";
+import { Skeleton } from "../ui/skeleton";
 import { cn } from "../../lib/utils";
 
 type DataTableCardViewProps<TData> = {
@@ -34,6 +35,8 @@ type DataTableCardViewProps<TData> = {
     rowId: string;
     event: React.DragEvent<HTMLElement>;
   }) => void;
+  isLoading?: boolean;
+  loadingRowCount?: number;
 };
 
 export function DataTableCardView<TData>({
@@ -52,7 +55,36 @@ export function DataTableCardView<TData>({
   getRowDraggable,
   onRowDragStart,
   onRowDragEnd,
+  isLoading = false,
+  loadingRowCount = 5,
 }: DataTableCardViewProps<TData>) {
+  if (isLoading) {
+    return (
+      <div className="flex flex-wrap gap-4 p-1">
+        {Array.from({ length: Math.max(1, loadingRowCount) }, (_, index) => (
+          <Card
+            key={`loading-card-${index}`}
+            aria-hidden="true"
+            className="relative min-h-52 min-w-72 flex-1 basis-72 gap-0 py-0"
+          >
+            {hasCardTitle ? (
+              <CardHeader className="px-4 pt-4 pb-3">
+                <Skeleton className="h-5 w-40 max-w-[70%]" />
+                <Skeleton className="h-4 w-24 max-w-[40%]" />
+              </CardHeader>
+            ) : null}
+            <CardContent className={cn("space-y-3 pb-4", hasCardTitle ? "" : "pt-4")}>
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-[82%]" />
+              <Skeleton className="h-4 w-[68%]" />
+              <Skeleton className="h-24 w-full rounded-xl" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-wrap gap-4 p-1">
       {rows.map((row) => {

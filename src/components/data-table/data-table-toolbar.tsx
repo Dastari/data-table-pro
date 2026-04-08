@@ -43,7 +43,6 @@ type DataTableToolbarProps<TData> = {
   toolbarActions: Array<DataTableToolbarAction<TData>>;
   selectionActions: Array<DataTableSelectionAction<TData>>;
   selectedRows: Array<TData>;
-  totalRowCount?: number;
   showHiddenRows: boolean;
   hiddenRowsLabel?: string;
   onShowHiddenRowsChange?: (showHiddenRows: boolean) => void;
@@ -67,7 +66,6 @@ export function DataTableToolbar<TData>({
   toolbarActions,
   selectionActions,
   selectedRows,
-  totalRowCount,
   showHiddenRows,
   hiddenRowsLabel,
   onShowHiddenRowsChange,
@@ -104,6 +102,7 @@ export function DataTableToolbar<TData>({
   const hasVisibleTrailingActions =
     showTrailingActions && trailingActions.length > 0;
   const hasVisibleCustomToolbar = showCustomToolbar && Boolean(customToolbar);
+  const selectedRowCountLabel = `${selectedRows.length} record${selectedRows.length === 1 ? "" : "s"} selected`;
 
   if (
     !hasVisibleTitle &&
@@ -212,14 +211,12 @@ export function DataTableToolbar<TData>({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          {typeof totalRowCount === "number" ? (
-            <div className="hidden text-sm text-muted-foreground">
-              {totalRowCount} total
-              {" • "}
-              {selectedRows.length} selected
+          <div className="block grow md:hidden" />
+          {selectedRows.length ? (
+            <div className="hidden text-sm text-muted-foreground @md/data-table:block">
+              {selectedRowCountLabel}
             </div>
           ) : null}
-          <div className="block grow md:hidden" />
           {selectedRows.length
             ? selectionActions.map((action) => {
                 const Icon = action.icon;
