@@ -656,9 +656,12 @@ export function DataTable<TData>({
     [explicitlySizedColumnIds, table],
   );
 
-  const effectiveTotalRowCount =
-    totalRowCount ??
-    visibleData.length;
+  const derivedTotalRowCount =
+    manualPagination || infiniteScroll?.enabled
+      ? visibleData.length
+      : table.getFilteredRowModel().rows.length;
+  const effectiveTotalRowCount = totalRowCount ?? derivedTotalRowCount;
+  const footerTotalRowCount = totalRowCount ?? effectiveTotalRowCount;
   const effectivePageCount =
     shouldRenderInitialLoading
       ? 1
@@ -1314,7 +1317,7 @@ export function DataTable<TData>({
                   pageIndex={currentPagination.pageIndex}
                   pageCount={effectivePageCount}
                   pageSize={currentPagination.pageSize}
-                  totalRowCount={effectiveTotalRowCount}
+                  totalRowCount={footerTotalRowCount}
                   rowsPerPageOptions={rowsPerPageOptions}
                   onPageIndexChange={(nextPageIndex) => {
                     onPageIndexChange?.(nextPageIndex);

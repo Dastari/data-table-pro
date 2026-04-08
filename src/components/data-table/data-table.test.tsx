@@ -232,6 +232,19 @@ describe("DataTable summaries", () => {
     expect(screen.getByLabelText("Total records: 42")).not.toBeNull();
   });
 
+  it("prefers the provided total row count over the current page row count", () => {
+    renderTable({
+      data: rows.slice(0, 1),
+      manualPagination: true,
+      totalRowCount: 42,
+      pageCount: 5,
+      pageIndex: 0,
+      pageSize: 10,
+    });
+
+    expect(screen.getByLabelText("Total records: 42")).not.toBeNull();
+  });
+
   it("shows the selected record count in the toolbar", () => {
     renderTable({
       enableRowSelection: true,
