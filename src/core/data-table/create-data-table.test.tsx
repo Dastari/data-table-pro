@@ -9,7 +9,13 @@ import {
   it,
   vi,
 } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { DataTable as ShadcnDataTable } from "../../index";
 import { DataTable as HeroDataTable } from "../../entries/heroui";
 import { DataTable as GridDataTable } from "../../entries/thegridcn";
@@ -328,6 +334,114 @@ for (const suite of suites) {
 
       expect(screen.queryByText("Ada")).toBeNull();
       expect(screen.getByText("Linus")).not.toBeNull();
+    });
+
+    it("does not reset controlled pagination when inline visibility config changes identity", () => {
+      function ControlledPaginationTable() {
+        const [pageIndex, setPageIndex] = React.useState(0);
+
+        return (
+          <TooltipProvider>
+            <DataTable
+              columns={columns}
+              data={[
+                { id: "1", name: "Ada" },
+                { id: "2", name: "Grace" },
+                { id: "3", name: "Linus" },
+              ]}
+              getRowId={(row) => row.id}
+              hiddenRows={{
+                getIsHidden: () => false,
+                label: "hidden rows",
+              }}
+              rowsPerPageOptions={[2, 3]}
+              pageIndex={pageIndex}
+              pageSize={2}
+              onPageIndexChange={setPageIndex}
+            />
+          </TooltipProvider>
+        );
+      }
+
+      render(<ControlledPaginationTable />);
+
+      fireEvent.click(screen.getByLabelText("Go to next page"));
+
+      expect(screen.queryByText("Ada")).toBeNull();
+      expect(screen.getByText("Linus")).not.toBeNull();
+      expect(screen.getByText("Page 2 of 2")).not.toBeNull();
+    });
+
+    it("clamps a controlled page index when local data shrinks", async () => {
+      const onPageIndexChange = vi.fn();
+
+      renderTable({
+        data: [
+          { id: "1", name: "Ada" },
+          { id: "2", name: "Grace" },
+          { id: "3", name: "Linus" },
+        ],
+        pageIndex: 5,
+        pageSize: 2,
+        onPageIndexChange,
+      });
+
+      await waitFor(() => {
+        expect(onPageIndexChange).toHaveBeenCalledWith(1);
+      });
+    });
+
+    it("renders table rows when virtualization is enabled before viewport discovery", () => {
+      renderTable({
+        data: Array.from({ length: 50 }, (_, index) => ({
+          id: String(index + 1),
+          name: `Row ${index + 1}`,
+        })),
+        pageSize: 50,
+        rowsPerPageOptions: [50],
+        virtualization: true,
+      });
+
+      expect(screen.getByText("Row 1")).not.toBeNull();
+      expect(screen.getByText("Row 50")).not.toBeNull();
+    });
+
+    it("uses the last fixed data column as the fill column before actions", () => {
+      renderTable({
+        columns: [
+          {
+            accessorKey: "name",
+            header: "Name",
+            size: 120,
+          },
+          {
+            id: "role",
+            header: "Role",
+            accessorFn: () => "Admin",
+            size: 160,
+          },
+        ],
+        rowActions: [
+          {
+            key: "open",
+            label: "Open",
+            onClick: vi.fn(),
+          },
+        ],
+      });
+
+      const headers = screen.getAllByRole("columnheader");
+      expect(headers).toHaveLength(3);
+      expect(headers[2]?.textContent).toContain("Actions");
+      expect(
+        screen.getByRole("columnheader", { name: "Name" }).style.width,
+      ).toBe("120px");
+      expect(
+        screen.getByRole("columnheader", { name: "Role" }).style.width,
+      ).toBe("");
+      expect(
+        screen.getByRole("columnheader", { name: "Role" }).style.minWidth,
+      ).toBe("160px");
     });
 
     it("shows the selected record count in the toolbar", () => {

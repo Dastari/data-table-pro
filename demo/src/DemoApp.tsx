@@ -140,6 +140,7 @@ export function DemoApp() {
   const [isLoading, setIsLoading] = React.useState(false);
   const [showRowLoading, setShowRowLoading] = React.useState(false);
   const [useInfiniteScroll, setUseInfiniteScroll] = React.useState(false);
+  const [useVirtualization, setUseVirtualization] = React.useState(false);
   const [visibleCount, setVisibleCount] = React.useState(24);
   const [notice, setNotice] = React.useState("Ready");
 
@@ -325,6 +326,13 @@ export function DemoApp() {
     ? filteredRows.slice(0, visibleCount)
     : filteredRows;
   const selectedRows = rows.filter((row) => rowSelection[row.id]);
+  const hiddenRowsConfig = React.useMemo(
+    () => ({
+      label: "archived rows",
+      getIsHidden: (row: Employee) => row.status === "archived",
+    }),
+    [],
+  );
 
   React.useEffect(() => {
     setPageIndex(0);
@@ -380,292 +388,309 @@ export function DemoApp() {
         <div className="flex min-h-0 grow flex-col">
           <TooltipProvider>
             <DataTable
-            columns={columns}
-            data={tableRows}
-            getRowId={(row) => row.id}
-            title={`${adapters[adapter].label} employees`}
-            description={`${filteredRows.length} matching rows, ${selectedRows.length} selected`}
-            searchValue={searchValue}
-            onSearchValueChange={setSearchValue}
-            searchPlaceholder="Search name, role, status, manager..."
-            rowsPerPageOptions={[5, 10, 20, 50]}
-            totalRowCount={filteredRows.length}
-            sorting={sorting}
-            onSortingChange={setSorting}
-            pageIndex={pageIndex}
-            pageSize={pageSize}
-            onPageIndexChange={setPageIndex}
-            onPageSizeChange={(nextSize) => {
-              setPageSize(nextSize);
-              setPageIndex(0);
-            }}
-            rowSelection={rowSelection}
-            onRowSelectionChange={setRowSelection}
-            enableRowSelection
-            toolbarActions={[
-              {
-                key: "refresh",
-                label: "Refresh",
-                icon: IconRefresh,
-                onClick: refreshRows,
-                variant: "outline",
-              },
-              {
-                key: "upload",
-                label: "Upload CSV",
-                icon: IconFileUpload,
-                onClick: ({ openFileDialog }) => openFileDialog?.(),
-                variant: "secondary",
-              },
-              {
-                key: "export",
-                label: "Export",
-                icon: IconDownload,
-                placement: "trailing",
-                onClick: ({ rows: currentRows }) => {
-                  setNotice(`Prepared ${currentRows.length} rows for export`);
+              columns={columns}
+              data={tableRows}
+              getRowId={(row) => row.id}
+              title={`${adapters[adapter].label} employees`}
+              description={`${filteredRows.length} matching rows, ${selectedRows.length} selected`}
+              searchValue={searchValue}
+              onSearchValueChange={setSearchValue}
+              searchPlaceholder="Search name, role, status, manager..."
+              rowsPerPageOptions={[5, 10, 20, 50]}
+              totalRowCount={filteredRows.length}
+              sorting={sorting}
+              onSortingChange={setSorting}
+              pageIndex={pageIndex}
+              pageSize={pageSize}
+              onPageIndexChange={setPageIndex}
+              onPageSizeChange={(nextSize) => {
+                setPageSize(nextSize);
+                setPageIndex(0);
+              }}
+              rowSelection={rowSelection}
+              onRowSelectionChange={setRowSelection}
+              enableRowSelection
+              toolbarActions={[
+                {
+                  key: "refresh",
+                  label: "Refresh",
+                  icon: IconRefresh,
+                  onClick: refreshRows,
+                  variant: "outline",
                 },
-              },
-            ]}
-            selectionActions={[
-              {
-                key: "promote",
-                label: "Mark high priority",
-                icon: IconStar,
-                onClick: ({ rows: selected }) => {
-                  updateRows(
-                    selected.map((row) => row.id),
-                    { priority: "high" },
-                  );
-                  setNotice(`Updated ${selected.length} selected rows`);
+                {
+                  key: "upload",
+                  label: "Upload CSV",
+                  icon: IconFileUpload,
+                  onClick: ({ openFileDialog }) => openFileDialog?.(),
+                  variant: "secondary",
                 },
-              },
-              {
-                key: "archive",
-                label: "Archive",
-                icon: IconArchive,
-                variant: "destructive",
-                onClick: ({ rows: selected }) => {
-                  updateRows(
-                    selected.map((row) => row.id),
-                    { status: "archived" },
-                  );
-                  setRowSelection({});
-                  setNotice(`Archived ${selected.length} selected rows`);
+                {
+                  key: "export",
+                  label: "Export",
+                  icon: IconDownload,
+                  placement: "trailing",
+                  onClick: ({ rows: currentRows }) => {
+                    setNotice(`Prepared ${currentRows.length} rows for export`);
+                  },
                 },
-              },
-            ]}
-            rowActions={[
-              {
-                key: "review",
-                label: "Send to review",
-                icon: IconBell,
-                onClick: (row) => {
-                  updateRows([row.id], { status: "review" });
-                  setNotice(`${row.name} moved to review`);
+              ]}
+              selectionActions={[
+                {
+                  key: "promote",
+                  label: "Mark high priority",
+                  icon: IconStar,
+                  onClick: ({ rows: selected }) => {
+                    updateRows(
+                      selected.map((row) => row.id),
+                      { priority: "high" },
+                    );
+                    setNotice(`Updated ${selected.length} selected rows`);
+                  },
                 },
-                hidden: (row) => row.status === "archived",
-              },
-              {
-                key: "activate",
-                label: "Activate",
-                icon: IconUserCheck,
-                onClick: (row) => {
-                  updateRows([row.id], { status: "active" });
-                  setNotice(`${row.name} activated`);
+                {
+                  key: "archive",
+                  label: "Archive",
+                  icon: IconArchive,
+                  variant: "destructive",
+                  onClick: ({ rows: selected }) => {
+                    updateRows(
+                      selected.map((row) => row.id),
+                      { status: "archived" },
+                    );
+                    setRowSelection({});
+                    setNotice(`Archived ${selected.length} selected rows`);
+                  },
                 },
-                disabled: (row) => row.status === "active",
-              },
-              {
-                key: "archive",
-                label: (row) => `Archive ${row.name}`,
-                icon: IconArchive,
-                variant: "destructive",
-                onClick: (row) => {
-                  updateRows([row.id], { status: "archived" });
-                  setNotice(`${row.name} archived`);
+              ]}
+              rowActions={[
+                {
+                  key: "review",
+                  label: "Send to review",
+                  icon: IconBell,
+                  onClick: (row) => {
+                    updateRows([row.id], { status: "review" });
+                    setNotice(`${row.name} moved to review`);
+                  },
+                  hidden: (row) => row.status === "archived",
                 },
-              },
-            ]}
-            cardRenderer={(props) => <EmployeeCard {...props} />}
-            viewMode={viewMode}
-            onViewModeChange={setViewMode}
-            enableViewToggle
-            emptyState={({ searchValue: query }) => (
-              <div className="rounded-xl border border-dashed border-border bg-card p-8 text-center">
-                <div className="mx-auto mb-3 flex size-10 items-center justify-center rounded-lg bg-muted">
-                  <IconBriefcase className="size-5" />
+                {
+                  key: "activate",
+                  label: "Activate",
+                  icon: IconUserCheck,
+                  onClick: (row) => {
+                    updateRows([row.id], { status: "active" });
+                    setNotice(`${row.name} activated`);
+                  },
+                  disabled: (row) => row.status === "active",
+                },
+                {
+                  key: "archive",
+                  label: (row) => `Archive ${row.name}`,
+                  icon: IconArchive,
+                  variant: "destructive",
+                  onClick: (row) => {
+                    updateRows([row.id], { status: "archived" });
+                    setNotice(`${row.name} archived`);
+                  },
+                },
+              ]}
+              cardRenderer={(props) => <EmployeeCard {...props} />}
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
+              enableViewToggle
+              emptyState={({ searchValue: query }) => (
+                <div className="rounded-xl border border-dashed border-border bg-card p-8 text-center">
+                  <div className="mx-auto mb-3 flex size-10 items-center justify-center rounded-lg bg-muted">
+                    <IconBriefcase className="size-5" />
+                  </div>
+                  <div className="text-sm font-medium">
+                    No matching employees
+                  </div>
+                  <div className="mt-1 text-sm text-muted-foreground">
+                    {query
+                      ? `Search "${query}" has no matches.`
+                      : "Filters are too narrow."}
+                  </div>
                 </div>
-                <div className="text-sm font-medium">No matching employees</div>
-                <div className="mt-1 text-sm text-muted-foreground">
-                  {query
-                    ? `Search "${query}" has no matches.`
-                    : "Filters are too narrow."}
-                </div>
-              </div>
-            )}
-            isLoading={isLoading}
-            loadingRowCount={8}
-            getRowLoadingState={(row) =>
-              showRowLoading && row.status === "review"
-                ? {
-                    isLoading: true,
-                    skeleton: <span>Reviewing</span>,
-                  }
-                : false
-            }
-            hiddenRows={{
-              label: "archived rows",
-              getIsHidden: (row) => row.status === "archived",
-            }}
-            showHiddenRows={showHiddenRows}
-            onShowHiddenRowsChange={setShowHiddenRows}
-            infiniteScroll={
-              useInfiniteScroll
-                ? {
-                    enabled: true,
-                    hasMore: visibleCount < filteredRows.length,
-                    onLoadMore: () => {
-                      setVisibleCount((current) =>
-                        Math.min(current + 16, filteredRows.length),
-                      );
-                    },
-                  }
-                : undefined
-            }
-            editableRows={{
-              canEditRow: (row) => row.status !== "archived",
-              onSaveRow: (row, draftValues) => {
-                setRows((current) =>
-                  current.map((item) =>
-                    item.id === row.id
-                      ? {
-                          ...item,
-                          ...normaliseDraftValues(draftValues),
-                        }
-                      : item,
-                  ),
-                );
-                setNotice(`${row.name} saved`);
-              },
-            }}
-            columnVisibility={columnVisibility}
-            onColumnVisibilityChange={setColumnVisibility}
-            enableColumnResizing
-            columnResizeMode="onChange"
-            layoutMode="fit"
-            stickyHeader
-            className="h-full min-h-0"
-            tableContainerClassName="min-h-0"
-            getRowClassName={(row) =>
-              row.priority === "high" ? "bg-accent/35" : undefined
-            }
-            onRowClick={({ row }) => setNotice(`Opened ${row.name}`)}
-            dragAndDrop={{
-              getRowDraggable: (row) => row.priority === "high",
-              onRowDragStart: ({ row }) => setNotice(`Dragging ${row.name}`),
-              onRowDragEnd: ({ row }) => setNotice(`Dropped ${row.name}`),
-            }}
-            fileUpload={{
-              accept: ".csv",
-              multiple: false,
-              onFilesSelected: (files) => {
-                const file = Array.isArray(files) ? files[0] : files.item(0);
-                setNotice(file ? `Selected ${file.name}` : "No file selected");
-              },
-            }}
-            customToolbar={
-              <div className="flex w-full flex-col gap-3">
-                <div className="demo-filter-row grid gap-3 md:grid-cols-[repeat(5,minmax(0,1fr))]">
-                  <FilterSelect
-                    label="Department"
-                    value={department}
-                    onChange={setDepartment}
-                    options={["all", ...departments]}
-                  />
-                  <FilterSelect
-                    label="Status"
-                    value={status}
-                    onChange={setStatus}
-                    options={["all", ...statuses]}
-                  />
-                  <FilterSelect
-                    label="Priority"
-                    value={priority}
-                    onChange={setPriority}
-                    options={["all", ...priorities]}
-                  />
-                  <label className="flex min-w-0 flex-col gap-1 text-xs font-medium text-muted-foreground">
-                    Minimum score
-                    <input
-                      type="number"
-                      min={0}
-                      max={100}
-                      className="demo-native-control h-9 rounded-lg border border-border bg-background px-2 text-sm text-foreground"
-                      value={minimumScore}
-                      onChange={(event) =>
-                        setMinimumScore(Number(event.target.value))
-                      }
+              )}
+              isLoading={isLoading}
+              loadingRowCount={8}
+              getRowLoadingState={(row) =>
+                showRowLoading && row.status === "review"
+                  ? {
+                      isLoading: true,
+                      skeleton: <span>Reviewing</span>,
+                    }
+                  : false
+              }
+              hiddenRows={hiddenRowsConfig}
+              showHiddenRows={showHiddenRows}
+              onShowHiddenRowsChange={setShowHiddenRows}
+              infiniteScroll={
+                useInfiniteScroll
+                  ? {
+                      enabled: true,
+                      hasMore: visibleCount < filteredRows.length,
+                      onLoadMore: () => {
+                        setVisibleCount((current) =>
+                          Math.min(current + 16, filteredRows.length),
+                        );
+                      },
+                    }
+                  : undefined
+              }
+              editableRows={{
+                canEditRow: (row) => row.status !== "archived",
+                onSaveRow: (row, draftValues) => {
+                  setRows((current) =>
+                    current.map((item) =>
+                      item.id === row.id
+                        ? {
+                            ...item,
+                            ...normaliseDraftValues(draftValues),
+                          }
+                        : item,
+                    ),
+                  );
+                  setNotice(`${row.name} saved`);
+                },
+              }}
+              columnVisibility={columnVisibility}
+              onColumnVisibilityChange={setColumnVisibility}
+              enableColumnResizing
+              columnResizeMode="onChange"
+              layoutMode="fill"
+              stickyHeader
+              className="h-full min-h-0"
+              tableContainerClassName="min-h-0"
+              getRowClassName={(row) =>
+                row.priority === "high" ? "bg-accent/35" : undefined
+              }
+              onRowClick={({ row }) => setNotice(`Opened ${row.name}`)}
+              dragAndDrop={{
+                getRowDraggable: (row) => row.priority === "high",
+                onRowDragStart: ({ row }) => setNotice(`Dragging ${row.name}`),
+                onRowDragEnd: ({ row }) => setNotice(`Dropped ${row.name}`),
+              }}
+              fileUpload={{
+                accept: ".csv",
+                multiple: false,
+                onFilesSelected: (files) => {
+                  const file = Array.isArray(files) ? files[0] : files.item(0);
+                  setNotice(
+                    file ? `Selected ${file.name}` : "No file selected",
+                  );
+                },
+              }}
+              virtualization={
+                useVirtualization
+                  ? {
+                      enabled: true,
+                      estimateRowHeight: 51,
+                      overscan: 8,
+                    }
+                  : undefined
+              }
+              customToolbar={
+                <div className="flex w-full flex-col gap-3">
+                  <div className="demo-filter-row grid gap-3 md:grid-cols-[repeat(5,minmax(0,1fr))]">
+                    <FilterSelect
+                      label="Department"
+                      value={department}
+                      onChange={setDepartment}
+                      options={["all", ...departments]}
                     />
-                  </label>
-                  <div className="flex items-end gap-2">
+                    <FilterSelect
+                      label="Status"
+                      value={status}
+                      onChange={setStatus}
+                      options={["all", ...statuses]}
+                    />
+                    <FilterSelect
+                      label="Priority"
+                      value={priority}
+                      onChange={setPriority}
+                      options={["all", ...priorities]}
+                    />
+                    <label className="flex min-w-0 flex-col gap-1 text-xs font-medium text-muted-foreground">
+                      Minimum score
+                      <input
+                        type="number"
+                        min={0}
+                        max={100}
+                        className="demo-native-control h-9 rounded-lg border border-border bg-background px-2 text-sm text-foreground"
+                        value={minimumScore}
+                        onChange={(event) =>
+                          setMinimumScore(Number(event.target.value))
+                        }
+                      />
+                    </label>
+                    <div className="flex items-end gap-2">
+                      <button
+                        type="button"
+                        className={buttonClass(false)}
+                        onClick={() => {
+                          setDepartment("all");
+                          setStatus("all");
+                          setPriority("all");
+                          setMinimumScore(0);
+                          setSearchValue("");
+                        }}
+                      >
+                        Reset filters
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex w-full flex-wrap items-center gap-2">
+                    <ToggleControl
+                      label="Infinite"
+                      checked={useInfiniteScroll}
+                      onChange={setUseInfiniteScroll}
+                    />
+                    <ToggleControl
+                      label="Row loading"
+                      checked={showRowLoading}
+                      onChange={setShowRowLoading}
+                    />
+                    <ToggleControl
+                      label="Virtual rows"
+                      checked={useVirtualization}
+                      onChange={setUseVirtualization}
+                    />
                     <button
                       type="button"
                       className={buttonClass(false)}
                       onClick={() => {
-                        setDepartment("all");
-                        setStatus("all");
-                        setPriority("all");
-                        setMinimumScore(0);
-                        setSearchValue("");
+                        setRows((current) =>
+                          current.map((row, index) =>
+                            index % 7 === 0
+                              ? { ...row, status: "review" }
+                              : row,
+                          ),
+                        );
+                        setNotice("Custom action marked every seventh row");
                       }}
                     >
-                      Reset filters
+                      <IconSparkles className="size-4" />
+                      Custom action
+                    </button>
+                    <button
+                      type="button"
+                      className={buttonClass(false)}
+                      onClick={() => {
+                        setColumnVisibility((current) => ({
+                          ...current,
+                          budget: !current.budget,
+                          manager: !current.manager,
+                        }));
+                      }}
+                    >
+                      Toggle budget/manager
                     </button>
                   </div>
                 </div>
-                <div className="flex w-full flex-wrap items-center gap-2">
-                  <ToggleControl
-                    label="Infinite"
-                    checked={useInfiniteScroll}
-                    onChange={setUseInfiniteScroll}
-                  />
-                  <ToggleControl
-                    label="Row loading"
-                    checked={showRowLoading}
-                    onChange={setShowRowLoading}
-                  />
-                  <button
-                    type="button"
-                    className={buttonClass(false)}
-                    onClick={() => {
-                      setRows((current) =>
-                        current.map((row, index) =>
-                          index % 7 === 0 ? { ...row, status: "review" } : row,
-                        ),
-                      );
-                      setNotice("Custom action marked every seventh row");
-                    }}
-                  >
-                    <IconSparkles className="size-4" />
-                    Custom action
-                  </button>
-                  <button
-                    type="button"
-                    className={buttonClass(false)}
-                    onClick={() => {
-                      setColumnVisibility((current) => ({
-                        ...current,
-                        budget: !current.budget,
-                        manager: !current.manager,
-                      }));
-                    }}
-                  >
-                    Toggle budget/manager
-                  </button>
-                </div>
-              </div>
-            }
+              }
             />
           </TooltipProvider>
         </div>
@@ -819,7 +844,7 @@ function buttonClass(active: boolean) {
     "demo-native-button inline-flex h-9 items-center justify-center gap-2 rounded-lg border px-3 text-sm font-medium transition-colors",
     active
       ? "border-primary bg-primary text-primary-foreground"
-      : "border-border bg-background text-foreground hover:bg-muted",
+      : "border-border bg-input text-foreground hover:bg-muted",
   ].join(" ");
 }
 

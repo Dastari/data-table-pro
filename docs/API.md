@@ -242,6 +242,14 @@ function DataTable<TData>(props: DataTableProps<TData>): React.ReactElement;
 | --- | --- | --- | --- |
 | `infiniteScroll` | `DataTableInfiniteScroll` | `undefined` | Enables sentinel-based load-more behavior and hides the pagination footer. |
 
+### Virtualization props
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `virtualization` | `boolean \| DataTableVirtualizationConfig` | `undefined` | Enables opt-in row virtualization in table mode. Use `{ estimateRowHeight, overscan }` to tune the virtual row window. |
+
+Virtualization is intentionally disabled until the table scroll viewport has a measurable height, so collapsed or server-like test environments still render rows instead of a blank virtual window. Card mode does not virtualize.
+
 ### Inline editing props
 
 | Prop | Type | Default | Description |

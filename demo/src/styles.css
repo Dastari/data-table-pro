@@ -31,7 +31,7 @@
 [data-demo-adapter="shadcn"] {
   --radius: 0.625rem;
   --font-heading: ui-sans-serif, system-ui, sans-serif;
-  --background: oklch(1 0 0);
+  --background: oklch(.97 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
@@ -47,7 +47,7 @@
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
+  --input: oklch(1 0 0);
   --ring: oklch(0.708 0 0);
   --default: var(--secondary);
   --default-foreground: var(--secondary-foreground);
@@ -107,7 +107,7 @@ select {
 [data-demo-adapter="shadcn"] .demo-metric,
 [data-demo-adapter="shadcn"] .demo-filter-row {
   border-color: var(--border);
-  background: var(--background);
+  background: var(--card);
   color: var(--foreground);
 }
 

@@ -1,17 +1,17 @@
-export { DataTable } from "./data-table";
-export { useDataTableUrlState } from "./use-data-table-url-state";
+export { DataTable } from "../../index";
+export { useDataTableUrlState } from "../../core/data-table/use-data-table-url-state";
 export type {
   DataTableAlign,
-  DataTableDragAndDropConfig,
   DataTableCardRendererProps,
-  DataTableContainerBreakpoint,
   DataTableColumnDef,
   DataTableColumnFixed,
   DataTableColumnMeta,
   DataTableColumnType,
   DataTableColumnVisibilityOption,
-  DataTableEmptyStateContext,
+  DataTableContainerBreakpoint,
+  DataTableDragAndDropConfig,
   DataTableEditableRowsConfig,
+  DataTableEmptyStateContext,
   DataTableFileUploadConfig,
   DataTableHiddenRowsConfig,
   DataTableInfiniteScroll,
@@ -22,5 +22,6 @@ export type {
   DataTableSelectionAction,
   DataTableToolbarAction,
   DataTableToolbarVisibility,
+  DataTableVirtualizationConfig,
   DataTableViewMode,
-} from "./types";
+} from "../../core/types";

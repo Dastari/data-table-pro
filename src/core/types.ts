@@ -183,6 +183,12 @@ export type DataTableFileUploadConfig = {
   onFilesSelected: (files: FileList | Array<File>) => void | Promise<void>;
 };
 
+export type DataTableVirtualizationConfig = {
+  enabled?: boolean;
+  estimateRowHeight?: number;
+  overscan?: number;
+};
+
 export type DataTableProps<TData> = {
   columns: Array<DataTableColumnDef<TData, unknown>>;
   data: Array<TData>;
@@ -247,6 +253,7 @@ export type DataTableProps<TData> = {
   onRowClick?: (context: { row: TData; rowId: string }) => void | Promise<void>;
   dragAndDrop?: DataTableDragAndDropConfig<TData>;
   fileUpload?: DataTableFileUploadConfig;
+  virtualization?: boolean | DataTableVirtualizationConfig;
 };
 
 export function isRowVisible<TData>(

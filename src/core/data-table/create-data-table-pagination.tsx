@@ -75,7 +75,7 @@ export function createDataTablePagination(ui: DataTableUiKit) {
 
         <div className="flex shrink-0 items-center justify-center">
           <div
-            className="inline-flex items-center gap-2 rounded-lg border border-border bg-input px-2.5 py-1.5 text-sm text-muted-foreground"
+            className="inline-flex items-center gap-2 rounded-lg bg-input px-2.5 py-1.5 text-sm text-muted-foreground"
             aria-label={`Total records: ${totalRowCount ?? 0}`}
           >
             <IconDatabase className="size-4" />
@@ -207,7 +207,7 @@ export function createDataTablePagination(ui: DataTableUiKit) {
 
   function DataTableFooter(props: DataTablePaginationProps) {
     return (
-      <div className="rounded-md border bg-card px-2 py-1">
+      <div className="rounded-md border border-border bg-card px-2 py-1">
         <DataTablePagination {...props} />
       </div>
     );

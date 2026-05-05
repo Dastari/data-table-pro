@@ -21,5 +21,6 @@ export type {
   DataTableSelectionAction,
   DataTableToolbarAction,
   DataTableToolbarVisibility,
+  DataTableVirtualizationConfig,
   DataTableViewMode,
 } from "../types";
