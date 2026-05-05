@@ -29,6 +29,16 @@
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
     },
+    "./heroui": {
+      "types": "./dist/heroui.d.ts",
+      "import": "./dist/heroui.js",
+      "require": "./dist/heroui.cjs"
+    },
+    "./thegridcn": {
+      "types": "./dist/thegridcn.d.ts",
+      "import": "./dist/thegridcn.js",
+      "require": "./dist/thegridcn.cjs"
+    },
     "./styles.css": {
       "style": "./styles.css",
       "default": "./styles.css"
@@ -37,6 +47,10 @@
   },
   "scripts": {
     "build": "tsup",
+    "demo": "vite --config demo/vite.config.ts",
+    "demo:build": "vite build --config demo/vite.config.ts",
+    "demo:preview": "vite preview --config demo/vite.config.ts",
+    "demo:typecheck": "tsc -p demo/tsconfig.json --noEmit",
     "lint": "eslint src --max-warnings=0",
     "prepare": "pnpm build",
     "test": "vitest run --environment jsdom",
@@ -46,6 +60,8 @@
   "keywords": [
     "react",
     "shadcn",
+    "heroui",
+    "thegridcn",
     "tanstack-table",
     "data-table",
     "component-library"
@@ -55,6 +71,8 @@
     "react-dom": "^19.0.0"
   },
   "dependencies": {
+    "@heroui/react": "^3.0.3",
+    "@heroui/styles": "^3.0.3",
     "@tabler/icons-react": "^3.41.1",
     "@tanstack/react-table": "^8.21.3",
     "class-variance-authority": "^0.7.1",
@@ -65,17 +83,21 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
+    "@tailwindcss/vite": "^4.2.4",
     "@testing-library/react": "^16.3.2",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
     "eslint": "^9.39.4",
     "eslint-plugin-react-hooks": "^7.0.1",
     "globals": "^17.4.0",
     "jsdom": "^29.0.2",
     "shadcn": "^4.1.1",
+    "tailwindcss": "^4.2.4",
     "tsup": "^8.5.0",
     "typescript": "^6.0.2",
     "typescript-eslint": "^8.58.0",
+    "vite": "^8.0.10",
     "vitest": "^4.1.3"
   }
 }

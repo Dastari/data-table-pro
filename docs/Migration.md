@@ -1,0 +1,92 @@
+# Migration Guide
+
+## Overview
+
+`data-table-pro` now supports multiple UI adapter entrypoints without changing the table API.
+
+Choose the migration path that matches the UI stack of the host app.
+
+## 1. Stay on shadcn/default
+
+No import-path change is required.
+
+Before:
+
+```ts
+import { DataTable } from "data-table-pro";
+```
+
+After:
+
+```ts
+import { DataTable } from "data-table-pro";
+import "data-table-pro/styles.css";
+```
+
+Host app notes:
+
+- keep the existing shadcn-compatible theme tokens
+- import `data-table-pro/styles.css`
+- remove copied `.data-table-container-query` and `.dt-hide-on-*` helpers if they were manually duplicated in app globals
+
+## 2. Move to HeroUI
+
+Change imports:
+
+```ts
+import { DataTable } from "data-table-pro/heroui";
+```
+
+Host stylesheet:
+
+```css
+@import "tailwindcss";
+@import "@heroui/styles";
+@import "data-table-pro/styles.css";
+```
+
+Host app requirements:
+
+- React 19
+- Tailwind CSS v4
+- HeroUI style import in the app
+
+Migration notes:
+
+- remove assumptions that the table inherits shadcn-specific theme tokens
+- keep the `DataTable` props unchanged
+- downstream app code should only change the import path and host style setup
+
+## 3. Move to The Gridcn
+
+Change imports:
+
+```ts
+import { DataTable } from "data-table-pro/thegridcn";
+```
+
+Host stylesheet:
+
+```css
+@import "tailwindcss";
+@import "data-table-pro/styles.css";
+@import "./thegridcn-theme.css";
+```
+
+Host app requirements:
+
+- a host-supplied The Gridcn theme or token stylesheet
+- Tailwind CSS v4 recommended
+
+Migration notes:
+
+- no `shadcn add` step is required for `data-table-pro` itself
+- no 3D or showcase-only The Gridcn setup is required
+- keep the `DataTable` props unchanged
+
+## What did not change
+
+- `DataTable` runtime props
+- `useDataTableUrlState`
+- public exported types
+- root import path for existing shadcn/default consumers

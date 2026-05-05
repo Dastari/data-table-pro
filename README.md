@@ -1,21 +1,20 @@
 # data-table-pro
 
-Standalone React data table components extracted from Digitise and packaged for reuse.
+Reusable React data table components built on TanStack Table with multiple UI adapter entrypoints.
 
-Full API documentation is available in [`docs/API.md`](./docs/API.md).
+## Adapters
 
-## What is included
+`data-table-pro` now ships one shared table implementation with three adapter entrypoints:
 
-- `DataTable` built on `@tanstack/react-table`
-- Supporting card view, toolbar, pagination, selection, inline editing, and infinite scroll behavior
-- Bundled shadcn-compatible UI primitives required by the table
-- `useDataTableUrlState` for `nuqs`-based query-string state
+- `data-table-pro`: shadcn-compatible default
+- `data-table-pro/heroui`: HeroUI-flavored adapter
+- `data-table-pro/thegridcn`: The Gridcn-flavored adapter
 
-## What is intentionally excluded
+All three entrypoints export the same runtime API:
 
-- Digitise-specific GraphQL ORM helpers and generated GraphQL types
-- Any reintegration changes back into the main Digitise frontend
-- A package-owned global stylesheet
+- `DataTable`
+- `useDataTableUrlState`
+- the same public TypeScript types
 
 ## Installation
 
@@ -25,85 +24,81 @@ pnpm add data-table-pro
 
 Peer dependencies:
 
-- `react`
-- `react-dom`
+- `react@^19`
+- `react-dom@^19`
 
-## Styling requirements
+Baseline assumptions:
 
-`data-table-pro` does not ship a global stylesheet. The consuming app must provide the existing Tailwind + shadcn stylesheet it already uses for the rest of the application.
+- Tailwind CSS v4
+- host application owns theme tokens
+- host application imports `data-table-pro/styles.css`
 
-That host stylesheet must already:
+## Quick Start
 
-- import the app's Tailwind and shadcn layers
-- define the theme tokens used by the shared UI primitives
-- include the table container-query helpers below
-
-```css
-.data-table-container-query {
-  container-type: inline-size;
-  container-name: data-table;
-}
-
-@container data-table (width < 40rem) {
-  .dt-hide-on-sm {
-    display: none;
-  }
-}
-
-@container data-table (width < 48rem) {
-  .dt-hide-on-md {
-    display: none;
-  }
-}
-
-@container data-table (width < 64rem) {
-  .dt-hide-on-lg {
-    display: none;
-  }
-}
-
-@container data-table (width < 80rem) {
-  .dt-hide-on-xl {
-    display: none;
-  }
-}
-
-@container data-table (width < 96rem) {
-  .dt-hide-on-2xl {
-    display: none;
-  }
-}
-```
-
-The table root also renders a named Tailwind container class, `@container/data-table`, so any descendant inside the table can use Tailwind container-query variants in `className` strings, such as `@sm/data-table:*`, `@3xl/data-table:*`, or arbitrary thresholds like `@min-[48rem]/data-table:*`.
-
-Tailwind container-query sizes are not the same as viewport breakpoint names. For example, `@md` is `28rem` for container queries, while the table's built-in `hideOn: "md"` behavior uses `48rem`. If you want to match `hideOn`, prefer `@3xl/data-table:*` or `@min-[48rem]/data-table:*`.
-
-Example:
+### Shadcn default
 
 ```tsx
-const columns: Array<DataTableColumnDef<Person>> = [
-  {
-    accessorKey: "email",
-    header: "Email",
-    meta: {
-      headerClassName: "hidden @3xl/data-table:table-cell",
-      cellClassName: "hidden @3xl/data-table:table-cell",
-    },
-  },
-  {
-    accessorKey: "name",
-    header: "Name",
-    meta: {
-      responsiveClassName: "@lg/data-table:text-sm",
-    },
-  },
-];
+import { DataTable, type DataTableColumnDef } from "data-table-pro";
+import "data-table-pro/styles.css";
 ```
 
-Use `meta.hideOn` when you want the built-in column visibility behavior. Use Tailwind container-query variants in `className` strings when you want custom conditional styling inside the table.
+### HeroUI
 
-## Usage
+```tsx
+import { DataTable, type DataTableColumnDef } from "data-table-pro/heroui";
+import "@heroui/styles";
+import "data-table-pro/styles.css";
+```
+
+### The Gridcn
+
+```tsx
+import { DataTable, type DataTableColumnDef } from "data-table-pro/thegridcn";
+import "data-table-pro/styles.css";
+import "./thegridcn-theme.css";
+```
+
+## Shared Styling Contract
+
+Always import:
+
+```css
+@import "tailwindcss";
+@import "data-table-pro/styles.css";
+```
+
+`data-table-pro/styles.css` provides:
+
+- Tailwind package scanning for the built output
+- the package-owned container query helpers used by column `hideOn`
+
+It does not provide:
+
+- shadcn theme tokens
+- HeroUI theme tokens
+- The Gridcn theme tokens
+
+## Adapter Requirements
+
+### `data-table-pro`
+
+Use this if the host app already provides shadcn-compatible theme tokens and styles.
+
+### `data-table-pro/heroui`
+
+The host app must also import:
+
+```css
+@import "@heroui/styles";
+```
+
+Use this adapter in apps standardized on HeroUI, React 19, and Tailwind v4.
+
+### `data-table-pro/thegridcn`
+
+The host app must provide a The Gridcn theme or token file. This package does not run the The Gridcn registry installer for the consumer.
+
+## Example
 
 ```tsx
 import { DataTable, type DataTableColumnDef } from "data-table-pro";
@@ -137,10 +132,26 @@ export function PeopleTable({ rows }: { rows: Array<Person> }) {
 }
 ```
 
-## Development
+## Demo App
+
+Run the bundled demo workbench:
 
 ```bash
-pnpm install
-pnpm typecheck
-pnpm build
+pnpm demo
 ```
+
+The demo uses generated employee data and can switch between the shadcn, HeroUI, and The Gridcn adapters. It exercises selection, sorting, local automatic pagination, column resizing, search, custom filter rows inside the table toolbar, custom toolbar controls, row actions, selection actions, inline editing, card view, hidden rows, infinite scroll, file upload hooks, drag hooks, and loading states.
+
+## Migration Notes
+
+- Existing shadcn consumers can keep importing from `data-table-pro`.
+- Existing consumers should now import `data-table-pro/styles.css`.
+- Existing consumers can remove copied `.data-table-container-query` and `.dt-hide-on-*` helpers from app globals after upgrading.
+- HeroUI migrations change imports to `data-table-pro/heroui` and add `@heroui/styles`.
+- The Gridcn migrations change imports to `data-table-pro/thegridcn` and add a host-supplied The Gridcn theme/token stylesheet.
+
+See:
+
+- [`docs/API.md`](./docs/API.md)
+- [`docs/Migration.md`](./docs/Migration.md)
+- [`docs/Adapters.md`](./docs/Adapters.md)

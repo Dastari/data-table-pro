@@ -1,9 +1,9 @@
-import { shadcnUiKit } from "./adapters/shadcn";
-import { createDataTable } from "./core/data-table/create-data-table";
+import { heroUiKit } from "../adapters/heroui";
+import { createDataTable } from "../core/data-table/create-data-table";
 
-export const DataTable = createDataTable(shadcnUiKit);
+export const DataTable = createDataTable(heroUiKit);
 
-export { useDataTableUrlState } from "./core/data-table/use-data-table-url-state";
+export { useDataTableUrlState } from "../core/data-table/use-data-table-url-state";
 export type {
   DataTableAlign,
   DataTableCardRendererProps,
@@ -27,4 +27,4 @@ export type {
   DataTableToolbarAction,
   DataTableToolbarVisibility,
   DataTableViewMode,
-} from "./core/types";
+} from "../core/types";

@@ -1,9 +1,4 @@
-import { shadcnUiKit } from "./adapters/shadcn";
-import { createDataTable } from "./core/data-table/create-data-table";
-
-export const DataTable = createDataTable(shadcnUiKit);
-
-export { useDataTableUrlState } from "./core/data-table/use-data-table-url-state";
+export { useDataTableUrlState } from "./use-data-table-url-state";
 export type {
   DataTableAlign,
   DataTableCardRendererProps,
@@ -27,4 +22,4 @@ export type {
   DataTableToolbarAction,
   DataTableToolbarVisibility,
   DataTableViewMode,
-} from "./core/types";
+} from "../types";
