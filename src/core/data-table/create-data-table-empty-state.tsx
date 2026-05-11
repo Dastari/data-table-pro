@@ -2,6 +2,7 @@ import { IconInbox } from "@tabler/icons-react";
 import type { DataTableUiKit } from "../ui-kit";
 
 export function createDataTableEmptyState(ui: DataTableUiKit) {
+  const uiClassNames = ui.classNames ?? {};
   const {
     Empty,
     EmptyContent,
@@ -19,7 +20,9 @@ export function createDataTableEmptyState(ui: DataTableUiKit) {
     description?: string;
   }) {
     return (
-      <Empty className="min-h-60 rounded-2xl border-border/60 bg-background/70">
+      <Empty
+        className={`min-h-60 rounded-2xl ${uiClassNames.emptyState ?? "border-border/60 bg-background/70"}`}
+      >
         <EmptyHeader>
           <EmptyMedia variant="icon">
             <IconInbox />

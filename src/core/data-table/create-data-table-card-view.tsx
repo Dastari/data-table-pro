@@ -49,6 +49,7 @@ export function createDataTableCardView(
   ui: DataTableUiKit,
   DataTableRowActions: DataTableRowActionsComponent,
 ) {
+  const uiClassNames = ui.classNames ?? {};
   const { Card, CardContent, CardHeader, Checkbox, Skeleton } = ui;
 
   return function DataTableCardView<TData>({
@@ -118,9 +119,13 @@ export function createDataTableCardView(
               data-state={isSelected ? "selected" : undefined}
               className={cn(
                 [getRowClassName?.(originalRow)].filter(Boolean).join(" "),
-                "relative gap-0 py-0 transition transition-colors hover:scale-101 hover:bg-muted/50 data-[state=selected]:scale-101 data-[state=selected]:bg-primary/10",
+                "relative gap-0 py-0 transition transition-colors hover:scale-101 data-[state=selected]:scale-101",
+                uiClassNames.card ??
+                  "hover:bg-muted/50 data-[state=selected]:bg-primary/10",
                 onRowClick && "cursor-pointer",
-                isSelected ? "bg-primary/10 ring-primary" : "border-default",
+                isSelected
+                  ? (uiClassNames.cardSelected ?? "bg-primary/10 ring-primary")
+                  : (uiClassNames.cardUnselected ?? "border-default"),
               )}
               onClick={(event: React.MouseEvent<HTMLDivElement>) => {
                 const target = event.target as HTMLElement | null;
@@ -143,7 +148,11 @@ export function createDataTableCardView(
               {showCardGradient ? (
                 <div
                   aria-hidden="true"
-                  className="pointer-events-none absolute inset-x-0 top-0 z-10 h-24 bg-linear-to-b from-background/95 via-background/85 to-transparent opacity-0 transition-opacity group-hover/card:opacity-100"
+                  className={cn(
+                    "pointer-events-none absolute inset-x-0 top-0 z-10 h-24 bg-linear-to-b opacity-0 transition-opacity group-hover/card:opacity-100",
+                    uiClassNames.cardOverlay ??
+                      "from-background/95 via-background/85 to-transparent",
+                  )}
                 />
               ) : null}
               <div className="flex min-h-full grow">

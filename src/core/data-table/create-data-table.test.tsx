@@ -88,6 +88,22 @@ describe("DataTable adapter providers", () => {
       );
     }).not.toThrow();
   });
+
+  it("uses HeroUI table container classes instead of shadcn token classes", () => {
+    const { container } = render(
+      <HeroDataTable
+        columns={columns}
+        data={rows}
+        getRowId={(row) => row.id}
+      />,
+    );
+    const scrollArea = container.querySelector('[data-slot="scroll-area"]');
+
+    expect(scrollArea?.className).toContain("border-separator");
+    expect(scrollArea?.className).toContain("bg-surface");
+    expect(scrollArea?.className).not.toContain("border-border");
+    expect(scrollArea?.className).not.toContain("bg-card");
+  });
 });
 
 beforeAll(() => {

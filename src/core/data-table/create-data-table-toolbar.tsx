@@ -38,6 +38,7 @@ type DataTableToolbarProps<TData> = {
 };
 
 export function createDataTableToolbar(ui: DataTableUiKit) {
+  const uiClassNames = ui.classNames ?? {};
   const {
     Button,
     ButtonGroup,
@@ -128,7 +129,9 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
               <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
             ) : null}
             {description ? (
-              <p className="max-w-3xl text-sm text-muted-foreground">
+              <p
+                className={`max-w-3xl text-sm ${uiClassNames.mutedText ?? "text-muted-foreground"}`}
+              >
                 {description}
               </p>
             ) : null}
@@ -154,7 +157,7 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
                     <InputGroupAddon align="inline-end">
                       <button
                         type="button"
-                        className="inline-flex size-5 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none"
+                        className={`inline-flex size-5 items-center justify-center rounded-md transition-colors focus-visible:outline-none ${uiClassNames.toolbarIconButton ?? "text-muted-foreground hover:text-foreground"}`}
                         onClick={() => {
                           onSearchValueChange("");
                         }}
@@ -216,7 +219,9 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
           <div className="flex flex-wrap items-center gap-2">
             <div className="block grow md:hidden" />
             {selectedRows.length ? (
-              <div className="hidden text-sm text-muted-foreground @md/data-table:block">
+              <div
+                className={`hidden text-sm @md/data-table:block ${uiClassNames.mutedText ?? "text-muted-foreground"}`}
+              >
                 {selectedRowCountLabel}
               </div>
             ) : null}
@@ -259,7 +264,7 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
                     variant="outline"
                     size="icon-sm"
                     aria-label="Show table options"
-                    className="bg-input"
+                    className={uiClassNames.toolbarInputButton ?? "bg-input"}
                     title="Show table options"
                   >
                     <IconAdjustmentsHorizontal />
@@ -317,7 +322,11 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
                     <Button
                       type="button"
                       variant={viewMode === "table" ? "default" : "outline"}
-                      className={viewMode === "table" ? "" : "bg-input"}
+                      className={
+                        viewMode === "table"
+                          ? ""
+                          : (uiClassNames.toolbarInputButton ?? "bg-input")
+                      }
                       size="icon-sm"
                       onClick={() => {
                         onViewModeChange("table");
@@ -334,7 +343,11 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
                     <Button
                       type="button"
                       variant={viewMode === "card" ? "default" : "outline"}
-                      className={viewMode === "table" ? "bg-input" : ""}
+                      className={
+                        viewMode === "table"
+                          ? (uiClassNames.toolbarInputButton ?? "bg-input")
+                          : ""
+                      }
                       size="icon-sm"
                       onClick={() => {
                         onViewModeChange("card");
@@ -366,7 +379,7 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
                       disabled={action.disabled}
                       aria-label={action.label}
                       title={action.iconOnly ? undefined : action.label}
-                      className="bg-input"
+                      className={uiClassNames.toolbarInputButton ?? "bg-input"}
                     >
                       {action.icon ? (
                         <action.icon

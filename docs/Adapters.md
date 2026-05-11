@@ -25,6 +25,16 @@
 @import "data-table-pro/styles.css";
 ```
 
+The HeroUI adapter adds a `.dtp-heroui` root class and supplies HeroUI slot classes for table containers, dividers, fields, muted text, pagination, empty states, dropdowns, and tooltips. It does not require shadcn-style tokens such as `--border`, `--card`, `--input`, or `--muted`.
+
+Override HeroUI slot styling in the host app only if you want a different visual treatment:
+
+```css
+.dtp-heroui {
+  --separator: color-mix(in oklch, var(--accent) 45%, transparent);
+}
+```
+
 ### The Gridcn
 
 ```css
@@ -65,6 +75,8 @@
 @import "@heroui/styles";
 @import "data-table-pro/styles.css";
 ```
+
+No shadcn token aliases are required for the HeroUI adapter.
 
 ### The Gridcn
 

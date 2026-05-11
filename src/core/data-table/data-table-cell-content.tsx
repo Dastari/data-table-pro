@@ -1,9 +1,11 @@
 import { flexRender, type CellContext } from "@tanstack/react-table";
 import { IconClock } from "@tabler/icons-react";
 import type { DataTableColumnDef } from "../types";
+import type { DataTableUiClassNames } from "../ui-kit";
 
 export function renderDataTableCellContent<TData>(
   context: CellContext<TData, unknown>,
+  classNames?: DataTableUiClassNames,
 ) {
   const column = context.column.columnDef as DataTableColumnDef<TData, unknown>;
   const meta = column.meta;
@@ -16,7 +18,7 @@ export function renderDataTableCellContent<TData>(
   if (meta?.type === "date" && !hasCustomCell) {
     return (
       <div className="inline-flex items-center justify-end gap-2">
-        <IconClock className="text-muted-foreground" />
+        <IconClock className={classNames?.mutedText ?? "text-muted-foreground"} />
         <span>{formatDateValue(value)}</span>
       </div>
     );
@@ -27,7 +29,7 @@ export function renderDataTableCellContent<TData>(
   }
 
   if (value == null || value === "") {
-    return <span className="text-muted-foreground">-</span>;
+    return <span className={classNames?.mutedText ?? "text-muted-foreground"}>-</span>;
   }
 
   return formatCellValue(value);

@@ -2,7 +2,34 @@ import type * as React from "react";
 
 type AnyComponent = React.ElementType;
 
+export type DataTableUiClassNames = {
+  card?: string;
+  cardOverlay?: string;
+  cardSelected?: string;
+  cardUnselected?: string;
+  cellBorder?: string;
+  dragActive?: string;
+  emptyState?: string;
+  footer?: string;
+  headerSortIcon?: string;
+  mutedText?: string;
+  paginationSelectTrigger?: string;
+  paginationTotal?: string;
+  pinnedColumn?: string;
+  pinnedUtilityColumn?: string;
+  resizeHandle?: string;
+  resizeHandleActive?: string;
+  row?: string;
+  rowSelected?: string;
+  tableContainer?: string;
+  tableStickyHeader?: string;
+  toolbarIconButton?: string;
+  toolbarInputButton?: string;
+};
+
 export type DataTableUiKit = {
+  rootClassName?: string;
+  classNames?: DataTableUiClassNames;
   TooltipProvider?: AnyComponent;
   Button: AnyComponent;
   ButtonGroup: AnyComponent;

@@ -69,7 +69,7 @@ const HeroButton = withClassName(
 );
 const HeroCard = withClassName(
   ShadcnCard,
-  "rounded-2xl border border-border bg-surface text-surface-foreground shadow-surface ring-0",
+  "rounded-2xl border border-separator bg-surface text-surface-foreground shadow-surface ring-0",
 );
 const HeroCardHeader = withClassName(
   ShadcnCardHeader,
@@ -85,7 +85,7 @@ const HeroCheckbox = withClassName(
 );
 const HeroDropdownMenuContent = withClassName(
   ShadcnDropdownMenuContent,
-  "rounded-2xl border border-border bg-overlay text-overlay-foreground shadow-overlay ring-0 before:hidden **:data-[slot$=-item]:focus:bg-default **:data-[slot$=-item]:data-highlighted:bg-default **:data-[slot$=-separator]:bg-separator **:data-[slot$=-trigger]:focus:bg-default",
+  "rounded-2xl border border-separator bg-overlay text-overlay-foreground shadow-overlay ring-0 before:hidden **:data-[slot$=-item]:focus:bg-default **:data-[slot$=-item]:data-highlighted:bg-default **:data-[slot$=-separator]:bg-separator **:data-[slot$=-trigger]:focus:bg-default",
 );
 const HeroDropdownMenuItem = withClassName(
   ShadcnDropdownMenuItem,
@@ -109,7 +109,7 @@ const HeroDropdownMenuSeparator = withClassName(
 );
 const HeroDropdownMenuSubContent = withClassName(
   ShadcnDropdownMenuSubContent,
-  "rounded-2xl border border-border bg-overlay text-overlay-foreground shadow-overlay ring-0 before:hidden",
+  "rounded-2xl border border-separator bg-overlay text-overlay-foreground shadow-overlay ring-0 before:hidden",
 );
 const HeroDropdownMenuSubTrigger = withClassName(
   ShadcnDropdownMenuSubTrigger,
@@ -161,7 +161,7 @@ const HeroScrollArea = withClassName(
 );
 const HeroScrollBar = withClassName(
   ShadcnScrollBar,
-  "[&>[data-slot=scroll-area-thumb]]:bg-muted",
+  "[&>[data-slot=scroll-area-thumb]]:bg-default-500",
 );
 const HeroSelectTrigger = withClassName(
   ShadcnSelectTrigger,
@@ -169,7 +169,7 @@ const HeroSelectTrigger = withClassName(
 );
 const HeroSelectContent = withClassName(
   ShadcnSelectContent,
-  "rounded-2xl border border-border bg-overlay text-overlay-foreground shadow-overlay ring-0 before:hidden",
+  "rounded-2xl border border-separator bg-overlay text-overlay-foreground shadow-overlay ring-0 before:hidden",
 );
 const HeroSelectItem = withClassName(
   ShadcnSelectItem,
@@ -198,11 +198,11 @@ const HeroTableFooter = withClassName(
 );
 const HeroTableHead = withClassName(
   ShadcnTableHead,
-  "h-11 text-muted font-semibold",
+  "h-11 border-separator text-muted font-semibold",
 );
 const HeroTableRow = withClassName(
   ShadcnTableRow,
-  "hover:bg-default data-[state=selected]:bg-accent-soft",
+  "border-separator hover:bg-default data-[state=selected]:bg-accent-soft",
 );
 const HeroTableCell = withClassName(
   ShadcnTableCell,
@@ -210,11 +210,11 @@ const HeroTableCell = withClassName(
 );
 const HeroTooltipContent = withClassName(
   ShadcnTooltipContent,
-  "rounded-xl bg-overlay text-overlay-foreground ring-1 ring-border shadow-overlay [&>svg]:bg-overlay [&>svg]:fill-overlay",
+  "rounded-xl bg-overlay text-overlay-foreground ring-1 ring-separator shadow-overlay [&>svg]:bg-overlay [&>svg]:fill-overlay",
 );
 const HeroEmpty = withClassName(
   ShadcnEmpty,
-  "rounded-2xl border-border bg-surface shadow-surface",
+  "rounded-2xl border-separator bg-surface shadow-surface",
 );
 const HeroEmptyHeader = withClassName(ShadcnEmptyHeader, "");
 const HeroEmptyMedia = withClassName(
@@ -233,6 +233,32 @@ const HeroEmptyContent = withClassName(ShadcnEmptyContent, "");
 
 export const heroUiKit: DataTableUiKit = {
   ...shadcnUiKit,
+  rootClassName: "dtp-heroui",
+  classNames: {
+    card: "hover:bg-default data-[state=selected]:bg-accent-soft",
+    cardOverlay: "from-surface/95 via-surface/85 to-transparent",
+    cardSelected: "bg-accent-soft ring-accent",
+    cardUnselected: "border-separator",
+    cellBorder: "border-separator/70",
+    dragActive: "rounded-2xl border-dashed border-accent",
+    emptyState: "border-separator bg-surface",
+    footer: "border-separator bg-surface text-surface-foreground",
+    headerSortIcon: "text-muted",
+    mutedText: "text-muted",
+    paginationSelectTrigger: "border-field-border bg-field",
+    paginationTotal: "bg-field text-muted",
+    pinnedColumn: "border-separator",
+    pinnedUtilityColumn: "bg-surface",
+    resizeHandle: "after:bg-separator hover:after:bg-accent",
+    resizeHandleActive: "after:bg-accent",
+    row: "hover:bg-default data-[state=selected]:!bg-accent-soft",
+    rowSelected: "!bg-accent-soft",
+    tableContainer: "border-separator bg-surface text-surface-foreground",
+    tableStickyHeader:
+      "sticky top-0 z-30 bg-surface/95 backdrop-blur [&_th]:border-separator [&_th]:bg-surface/95",
+    toolbarIconButton: "text-muted hover:text-foreground",
+    toolbarInputButton: "bg-field",
+  },
   Button: HeroButton,
   Card: HeroCard,
   CardContent: HeroCardContent,

@@ -54,6 +54,7 @@ Host app requirements:
 Migration notes:
 
 - remove assumptions that the table inherits shadcn-specific theme tokens
+- HeroUI table internals use HeroUI-compatible slot classes, so shadcn variables such as `--border`, `--card`, `--input`, and `--muted` are not required
 - keep the `DataTable` props unchanged
 - downstream app code should only change the import path and host style setup
 

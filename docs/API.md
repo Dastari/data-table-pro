@@ -100,6 +100,14 @@ HeroUI consumers must also import:
 @import "@heroui/styles";
 ```
 
+For the HeroUI adapter, the table root receives `.dtp-heroui` and internal table slots use HeroUI-compatible classes such as `border-separator`, `bg-surface`, `bg-field`, and `text-muted`. Host apps do not need to define shadcn-style variables such as `--border`, `--card`, `--input`, or `--muted`.
+
+```css
+.dtp-heroui {
+  --separator: color-mix(in oklch, var(--accent) 45%, transparent);
+}
+```
+
 ### Additional The Gridcn requirement
 
 The Gridcn consumers must also import a host-managed The Gridcn theme or token stylesheet.

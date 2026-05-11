@@ -20,7 +20,7 @@ import type {
   VisibilityState,
 } from "@tanstack/react-table";
 import type { DataTableColumnDef, DataTableProps } from "../types";
-import type { DataTableUiKit } from "../ui-kit";
+import type { DataTableUiClassNames, DataTableUiKit } from "../ui-kit";
 import { cn } from "../../lib/utils";
 import { renderDataTableCellContent } from "./data-table-cell-content";
 import { createDataTableCardView } from "./create-data-table-card-view";
@@ -48,7 +48,9 @@ type DataTableLoadingRow = {
 };
 
 export function createDataTable(ui: DataTableUiKit) {
+  const uiClassNames = ui.classNames ?? {};
   const {
+    rootClassName,
     Button,
     Checkbox,
     Input,
@@ -862,7 +864,10 @@ export function createDataTable(ui: DataTableUiKit) {
       <TooltipProvider>
       <div
         ref={containerRef}
-        className="@container/data-table data-table-container-query flex grow flex-col"
+        className={cn(
+          "@container/data-table data-table-container-query flex grow flex-col",
+          rootClassName,
+        )}
         onDragEnter={dragAndDrop?.onDragEnter}
         onDragOver={dragAndDrop?.onDragOver}
         onDragLeave={dragAndDrop?.onDragLeave}
@@ -920,7 +925,8 @@ export function createDataTable(ui: DataTableUiKit) {
                   className={cn(
                     "box-border h-full border-2 border-transparent transition-colors",
                     dragAndDrop?.isDragging &&
-                      "rounded-md border-dashed border-primary",
+                      (uiClassNames.dragActive ??
+                        "rounded-md border-dashed border-primary"),
                   )}
                 >
                   <ScrollArea className={cn("h-full", tableContainerClassName)}>
@@ -1003,13 +1009,15 @@ export function createDataTable(ui: DataTableUiKit) {
                   className={cn(
                     "box-border h-full border-2 border-transparent transition-colors",
                     dragAndDrop?.isDragging &&
-                      "rounded-md border-dashed border-primary",
+                      (uiClassNames.dragActive ??
+                        "rounded-md border-dashed border-primary"),
                   )}
                 >
                   <div ref={tableScrollContainerRef} className="h-full">
                     <ScrollArea
                       className={cn(
-                        "h-full rounded-md border border-border bg-card",
+                        "h-full rounded-md border",
+                        uiClassNames.tableContainer ?? "border-border bg-card",
                         tableContainerClassName,
                       )}
                     >
@@ -1083,7 +1091,8 @@ export function createDataTable(ui: DataTableUiKit) {
                           <TableHeader
                             className={cn(
                               stickyHeader
-                                ? "sticky top-0 z-30 bg-card/95 backdrop-blur [&_th]:border-border [&_th]:bg-card/95"
+                                ? (uiClassNames.tableStickyHeader ??
+                                  "sticky top-0 z-30 bg-card/95 backdrop-blur [&_th]:border-border [&_th]:bg-card/95")
                                 : undefined,
                             )}
                           >
@@ -1138,11 +1147,15 @@ export function createDataTable(ui: DataTableUiKit) {
                                         isSpacerColumn &&
                                           "border-b-1 bg-transparent p-0",
                                         fixedSide &&
-                                          getPinnedColumnClassName(fixedSide, {
-                                            isUtilityColumn:
-                                              isSelectionColumn ||
-                                              isActionsColumn,
-                                          }),
+                                          getPinnedColumnClassName(
+                                            fixedSide,
+                                            uiClassNames,
+                                            {
+                                              isUtilityColumn:
+                                                isSelectionColumn ||
+                                                isActionsColumn,
+                                            },
+                                          ),
                                         hideClassName,
                                         headerAlignClassName(
                                           header.getContext(),
@@ -1208,7 +1221,13 @@ export function createDataTable(ui: DataTableUiKit) {
                                               )}
                                             />
                                           ) : (
-                                            <IconSelector className="shrink-0 text-muted-foreground" />
+                                            <IconSelector
+                                              className={cn(
+                                                "shrink-0",
+                                                uiClassNames.headerSortIcon ??
+                                                  "text-muted-foreground",
+                                              )}
+                                            />
                                           )}
                                         </button>
                                       ) : (
@@ -1239,9 +1258,12 @@ export function createDataTable(ui: DataTableUiKit) {
                                             header.getResizeHandler()(event);
                                           }}
                                           className={cn(
-                                            "absolute inset-y-0 right-0 z-50 h-full w-3 translate-x-1/2 cursor-col-resize touch-none select-none after:absolute after:top-0 after:left-1/2 after:h-full after:w-px after:-translate-x-1/2 after:bg-border hover:after:bg-primary",
+                                            "absolute inset-y-0 right-0 z-50 h-full w-3 translate-x-1/2 cursor-col-resize touch-none select-none after:absolute after:top-0 after:left-1/2 after:h-full after:w-px after:-translate-x-1/2",
+                                            uiClassNames.resizeHandle ??
+                                              "after:bg-border hover:after:bg-primary",
                                             header.column.getIsResizing() &&
-                                              "after:bg-primary",
+                                              (uiClassNames.resizeHandleActive ??
+                                                "after:bg-primary"),
                                           )}
                                         />
                                       ) : null}
@@ -1306,7 +1328,11 @@ export function createDataTable(ui: DataTableUiKit) {
                                       className={cn(
                                         !isInitialLoadingRow &&
                                           getRowClassName?.(originalRow),
-                                        "hover:bg-muted/50 data-[state=selected]:!bg-primary/10",
+                                        uiClassNames.row ??
+                                          "hover:bg-muted/50 data-[state=selected]:!bg-primary/10",
+                                        row.getIsSelected() &&
+                                          !isInitialLoadingRow &&
+                                          uiClassNames.rowSelected,
                                         onRowClick &&
                                           !isInitialLoadingRow &&
                                           "cursor-pointer",
@@ -1409,7 +1435,9 @@ export function createDataTable(ui: DataTableUiKit) {
                                           <TableCell
                                             key={cell.id}
                                             className={cn(
-                                              "border-b border-border/40",
+                                              "border-b",
+                                              uiClassNames.cellBorder ??
+                                                "border-border/40",
                                               (isSelectionColumn ||
                                                 isActionsColumn) &&
                                                 "w-[50px] max-w-[50px] min-w-[50px] px-0",
@@ -1418,6 +1446,7 @@ export function createDataTable(ui: DataTableUiKit) {
                                               fixedSide &&
                                                 getPinnedColumnClassName(
                                                   fixedSide,
+                                                  uiClassNames,
                                                   {
                                                     isUtilityColumn:
                                                       isSelectionColumn ||
@@ -1499,9 +1528,10 @@ export function createDataTable(ui: DataTableUiKit) {
                                                       setDraftValues,
                                                       { Checkbox, Input },
                                                     )
-                                                  : renderDataTableCellContent(
-                                                      cellContext,
-                                                    )}
+                                            : renderDataTableCellContent(
+                                                cellContext,
+                                                uiClassNames,
+                                              )}
                                             </div>
                                           </TableCell>
                                         );
@@ -1753,12 +1783,17 @@ function getFixedSide<TData>(column: Column<TData>) {
 
 function getPinnedColumnClassName(
   side: "left" | "right",
+  uiClassNames: DataTableUiClassNames,
   options?: { isUtilityColumn?: boolean },
 ) {
   const isUtilityColumn = options?.isUtilityColumn ?? false;
   return cn(
-    "sticky border-border backdrop-blur box-border",
-    isUtilityColumn ? "bg-card" : "border-dotted",
+    "sticky backdrop-blur box-border",
+    uiClassNames.pinnedColumn ?? "border-border",
+    !isUtilityColumn && "border-dotted",
+    isUtilityColumn
+      ? (uiClassNames.pinnedUtilityColumn ?? "bg-card")
+      : undefined,
     side === "left" ? "border-r-1" : "right-0 border-l",
   );
 }

@@ -13,6 +13,7 @@ type DataTablePaginationProps = {
 };
 
 export function createDataTablePagination(ui: DataTableUiKit) {
+  const uiClassNames = ui.classNames ?? {};
   const {
     Pagination,
     PaginationContent,
@@ -50,7 +51,9 @@ export function createDataTablePagination(ui: DataTableUiKit) {
 
     return (
       <div className="flex flex-row items-center justify-between gap-4">
-        <div className="flex flex-1 items-center gap-3 text-sm text-muted-foreground">
+        <div
+          className={`flex flex-1 items-center gap-3 text-sm ${uiClassNames.mutedText ?? "text-muted-foreground"}`}
+        >
           <span className="hidden @md/data-table:inline">Records per page</span>
           <Select
             value={String(pageSize)}
@@ -58,7 +61,9 @@ export function createDataTablePagination(ui: DataTableUiKit) {
               onPageSizeChange(Number(value));
             }}
           >
-            <SelectTrigger className="w-22 border-border bg-input">
+            <SelectTrigger
+              className={`w-22 ${uiClassNames.paginationSelectTrigger ?? "border-border bg-input"}`}
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -75,7 +80,7 @@ export function createDataTablePagination(ui: DataTableUiKit) {
 
         <div className="flex shrink-0 items-center justify-center">
           <div
-            className="inline-flex items-center gap-2 rounded-lg bg-input px-2.5 py-1.5 text-sm text-muted-foreground"
+            className={`inline-flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm ${uiClassNames.paginationTotal ?? "bg-input text-muted-foreground"}`}
             aria-label={`Total records: ${totalRowCount ?? 0}`}
           >
             <IconDatabase className="size-4" />
@@ -87,7 +92,9 @@ export function createDataTablePagination(ui: DataTableUiKit) {
         </div>
 
         <div className="flex flex-1 items-center justify-end gap-4">
-          <div className="hidden text-sm text-muted-foreground @md/data-table:inline">
+          <div
+            className={`hidden text-sm @md/data-table:inline ${uiClassNames.mutedText ?? "text-muted-foreground"}`}
+          >
             Page {pageIndex + 1} of {Math.max(1, pageCount)}
           </div>
           <Pagination className="mx-0 w-auto justify-end">
@@ -207,7 +214,9 @@ export function createDataTablePagination(ui: DataTableUiKit) {
 
   function DataTableFooter(props: DataTablePaginationProps) {
     return (
-      <div className="rounded-md border border-border bg-card px-2 py-1">
+      <div
+        className={`rounded-md border px-2 py-1 ${uiClassNames.footer ?? "border-border bg-card"}`}
+      >
         <DataTablePagination {...props} />
       </div>
     );
