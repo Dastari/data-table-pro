@@ -63,6 +63,7 @@ export function createDataTable(ui: DataTableUiKit) {
     TableRow,
     Tooltip,
     TooltipContent,
+    TooltipProvider = React.Fragment,
     TooltipTrigger,
   } = ui;
   const DataTableEmptyState = createDataTableEmptyState(ui);
@@ -858,6 +859,7 @@ export function createDataTable(ui: DataTableUiKit) {
     );
 
     return (
+      <TooltipProvider>
       <div
         ref={containerRef}
         className="@container/data-table data-table-container-query flex grow flex-col"
@@ -1581,6 +1583,7 @@ export function createDataTable(ui: DataTableUiKit) {
           </div>
         </div>
       </div>
+      </TooltipProvider>
     );
   };
 }

@@ -76,6 +76,20 @@ const suites = [
   },
 ] as const;
 
+describe("DataTable adapter providers", () => {
+  it("renders the HeroUI entry without a host TooltipProvider", () => {
+    expect(() => {
+      render(
+        <HeroDataTable
+          columns={columns}
+          data={rows}
+          getRowId={(row) => row.id}
+        />,
+      );
+    }).not.toThrow();
+  });
+});
+
 beforeAll(() => {
   vi.stubGlobal("ResizeObserver", ResizeObserverMock);
   vi.stubGlobal("IntersectionObserver", IntersectionObserverMock);
