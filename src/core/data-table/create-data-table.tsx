@@ -929,7 +929,13 @@ export function createDataTable(ui: DataTableUiKit) {
                         "rounded-md border-dashed border-primary"),
                   )}
                 >
-                  <ScrollArea className={cn("h-full", tableContainerClassName)}>
+                  <ScrollArea
+                    className={cn(
+                      "h-full",
+                      uiClassNames.cardScrollArea,
+                      tableContainerClassName,
+                    )}
+                  >
                     {shouldRenderInitialLoading ? (
                       <DataTableCardView
                         rows={[]}
@@ -1018,6 +1024,7 @@ export function createDataTable(ui: DataTableUiKit) {
                       className={cn(
                         "h-full rounded-md border",
                         uiClassNames.tableContainer ?? "border-border bg-card",
+                        uiClassNames.tableScrollArea,
                         tableContainerClassName,
                       )}
                     >

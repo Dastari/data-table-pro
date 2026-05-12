@@ -157,7 +157,7 @@ const HeroPaginationLast = withClassName(
 );
 const HeroScrollArea = withClassName(
   ShadcnScrollArea,
-  "rounded-2xl bg-surface",
+  "rounded-2xl",
 );
 const HeroScrollBar = withClassName(
   ShadcnScrollBar,
@@ -237,6 +237,7 @@ export const heroUiKit: DataTableUiKit = {
   classNames: {
     card: "hover:bg-default data-[state=selected]:bg-accent-soft",
     cardOverlay: "from-surface/95 via-surface/85 to-transparent",
+    cardScrollArea: "bg-transparent",
     cardSelected: "bg-accent-soft ring-accent",
     cardUnselected: "border-separator",
     cellBorder: "border-separator/70",
@@ -254,6 +255,7 @@ export const heroUiKit: DataTableUiKit = {
     row: "hover:bg-default data-[state=selected]:!bg-accent-soft",
     rowSelected: "!bg-accent-soft",
     tableContainer: "border-separator bg-surface text-surface-foreground",
+    tableScrollArea: "bg-surface",
     tableStickyHeader:
       "sticky top-0 z-30 bg-surface/95 backdrop-blur [&_th]:border-separator [&_th]:bg-surface/95",
     toolbarIconButton: "text-muted hover:text-foreground",

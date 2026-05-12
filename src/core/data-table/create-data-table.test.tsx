@@ -104,6 +104,22 @@ describe("DataTable adapter providers", () => {
     expect(scrollArea?.className).not.toContain("border-border");
     expect(scrollArea?.className).not.toContain("bg-card");
   });
+
+  it("uses a transparent HeroUI scroll area in card mode", () => {
+    const { container } = render(
+      <HeroDataTable
+        columns={columns}
+        data={rows}
+        getRowId={(row) => row.id}
+        viewMode="card"
+        cardRenderer={({ row }) => <div>{row.name}</div>}
+      />,
+    );
+    const scrollArea = container.querySelector('[data-slot="scroll-area"]');
+
+    expect(scrollArea?.className).toContain("bg-transparent");
+    expect(scrollArea?.className).not.toContain("bg-surface");
+  });
 });
 
 beforeAll(() => {

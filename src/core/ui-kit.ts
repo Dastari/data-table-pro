@@ -6,6 +6,7 @@ export type DataTableUiClassNames = {
   card?: string;
   cardOverlay?: string;
   cardSelected?: string;
+  cardScrollArea?: string;
   cardUnselected?: string;
   cellBorder?: string;
   dragActive?: string;
@@ -22,6 +23,7 @@ export type DataTableUiClassNames = {
   row?: string;
   rowSelected?: string;
   tableContainer?: string;
+  tableScrollArea?: string;
   tableStickyHeader?: string;
   toolbarIconButton?: string;
   toolbarInputButton?: string;
