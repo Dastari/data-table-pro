@@ -168,6 +168,28 @@ function DataTable<TData>(props: DataTableProps<TData>): React.ReactElement;
 | `className` | `string` | `undefined` | Outer layout wrapper class. |
 | `tableClassName` | `string` | `undefined` | Applied to the `<table>` element in table mode. |
 | `tableContainerClassName` | `string` | `undefined` | Applied to the scroll container in table or card mode. |
+| `cardGridClassName` | `string` | responsive auto-fit grid | Applied to the card grid wrapper in card mode. Use this for explicit card density such as `grid-cols-1 sm:grid-cols-2 xl:grid-cols-3`. |
+| `cardClassName` | `string` | `undefined` | Applied to each card item wrapper in card mode. |
+
+### Layout requirements
+
+`DataTable` defaults to `flexGrow={true}`. For full-height table or card views, place it inside a constrained flex content region:
+
+```tsx
+<main className="flex h-full min-h-0 flex-col">
+  <section className="flex min-h-0 flex-1 flex-col">
+    <DataTable flexGrow />
+  </section>
+</main>
+```
+
+The library applies the internal constrained flex chain itself:
+
+- root: `flex h-full min-h-0 flex-1 flex-col`
+- toolbar/header: `shrink-0`
+- central table/card content: `flex min-h-0 flex-1 flex-col`
+- scroll area/viewport wrappers: `min-h-0 flex-1`
+- footer: `shrink-0`
 
 ### Search props
 
@@ -226,6 +248,8 @@ function DataTable<TData>(props: DataTableProps<TData>): React.ReactElement;
 | `onViewModeChange` | `(viewMode: DataTableViewMode) => void` | `undefined` | View-mode change callback. |
 | `enableViewToggle` | `boolean` | `false` | Shows the toolbar view switcher when `cardRenderer` is present. |
 | `cardRenderer` | `(props: DataTableCardRendererProps<TData>) => React.ReactNode` | `undefined` | Required for card mode rendering. |
+| `cardGridClassName` | `string` | responsive auto-fit grid | Supported grid slot for card mode. Prefer this over app CSS selectors against internal scroll/card wrappers. |
+| `cardClassName` | `string` | `undefined` | Supported item slot for card mode card wrappers. |
 
 ### Empty and loading props
 

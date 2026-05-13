@@ -11,6 +11,8 @@ import { cn } from "../../lib/utils";
 type DataTableCardViewProps<TData> = {
   rows: Array<Row<TData>>;
   cardRenderer: (props: DataTableCardRendererProps<TData>) => React.ReactNode;
+  cardGridClassName?: string;
+  cardClassName?: string;
   rowActions: Array<DataTableRowAction<TData>>;
   editableRows?: DataTableEditableRowsConfig<TData>;
   hasCardTitle: boolean;
@@ -55,6 +57,8 @@ export function createDataTableCardView(
   return function DataTableCardView<TData>({
     rows,
     cardRenderer,
+    cardGridClassName,
+    cardClassName,
     rowActions,
     editableRows,
     hasCardTitle,
@@ -71,14 +75,31 @@ export function createDataTableCardView(
     isLoading = false,
     loadingRowCount = 5,
   }: DataTableCardViewProps<TData>) {
+    const resolvedCardGridClassName =
+      cardGridClassName ??
+      "grid-cols-[repeat(auto-fit,minmax(min(18rem,100%),1fr))]";
+    const cardGridClasses = cn(
+      "grid min-h-0 w-full gap-4 p-1",
+      uiClassNames.cardGrid,
+      resolvedCardGridClassName,
+    );
+    const cardItemClasses = (stateClassName?: string) =>
+      cn(
+        "relative min-w-0 gap-0 py-0",
+        uiClassNames.cardItem,
+        cardClassName,
+        stateClassName,
+      );
+
     if (isLoading) {
       return (
-        <div className="flex flex-wrap gap-4 p-1">
+        <div data-dtp-slot="data-table-card-grid" className={cardGridClasses}>
           {Array.from({ length: Math.max(1, loadingRowCount) }, (_, index) => (
             <Card
               key={`loading-card-${index}`}
               aria-hidden="true"
-              className="relative min-h-52 min-w-72 flex-1 basis-72 gap-0 py-0"
+              data-dtp-slot="data-table-card-item"
+              className={cardItemClasses("min-h-52")}
             >
               {hasCardTitle ? (
                 <CardHeader className="px-4 pt-4 pb-3">
@@ -101,7 +122,7 @@ export function createDataTableCardView(
     }
 
     return (
-      <div className="flex flex-wrap gap-4 p-1">
+      <div data-dtp-slot="data-table-card-grid" className={cardGridClasses}>
         {rows.map((row) => {
           const rowId = row.id;
           const originalRow = row.original;
@@ -116,16 +137,20 @@ export function createDataTableCardView(
             <Card
               key={rowId}
               draggable={getRowDraggable?.(originalRow) ?? false}
+              data-dtp-slot="data-table-card-item"
               data-state={isSelected ? "selected" : undefined}
-              className={cn(
-                [getRowClassName?.(originalRow)].filter(Boolean).join(" "),
-                "relative gap-0 py-0 transition transition-colors hover:scale-101 data-[state=selected]:scale-101",
-                uiClassNames.card ??
-                  "hover:bg-muted/50 data-[state=selected]:bg-primary/10",
-                onRowClick && "cursor-pointer",
-                isSelected
-                  ? (uiClassNames.cardSelected ?? "bg-primary/10 ring-primary")
-                  : (uiClassNames.cardUnselected ?? "border-default"),
+              className={cardItemClasses(
+                cn(
+                  [getRowClassName?.(originalRow)].filter(Boolean).join(" "),
+                  "transition transition-colors hover:scale-101 data-[state=selected]:scale-101",
+                  uiClassNames.card ??
+                    "hover:bg-muted/50 data-[state=selected]:bg-primary/10",
+                  onRowClick && "cursor-pointer",
+                  isSelected
+                    ? (uiClassNames.cardSelected ??
+                      "bg-primary/10 ring-primary")
+                    : (uiClassNames.cardUnselected ?? "border-default"),
+                ),
               )}
               onClick={(event: React.MouseEvent<HTMLDivElement>) => {
                 const target = event.target as HTMLElement | null;

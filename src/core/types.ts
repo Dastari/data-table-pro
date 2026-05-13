@@ -219,6 +219,8 @@ export type DataTableProps<TData> = {
   selectionActions?: Array<DataTableSelectionAction<TData>>;
   rowActions?: Array<DataTableRowAction<TData>>;
   cardRenderer?: (props: DataTableCardRendererProps<TData>) => React.ReactNode;
+  cardGridClassName?: string;
+  cardClassName?: string;
   viewMode?: DataTableViewMode;
   onViewModeChange?: (viewMode: DataTableViewMode) => void;
   enableViewToggle?: boolean;

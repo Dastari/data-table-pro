@@ -298,6 +298,138 @@ for (const suite of suites) {
       ).toBeGreaterThan(0);
     });
 
+    it("uses a constrained flex chain for flexGrow table mode", () => {
+      const { container } = render(
+        <div className="flex h-96 min-h-0 flex-col">
+          <TooltipProvider>
+            <DataTable
+              columns={columns}
+              data={rows}
+              getRowId={(row) => row.id}
+              flexGrow
+            />
+          </TooltipProvider>
+        </div>,
+      );
+
+      const root = container.querySelector(
+        '[data-dtp-slot="data-table-root"]',
+      );
+      const layout = container.querySelector(
+        '[data-dtp-slot="data-table-layout"]',
+      );
+      const toolbar = container.querySelector(
+        '[data-dtp-slot="data-table-toolbar"]',
+      );
+      const content = container.querySelector(
+        '[data-dtp-slot="data-table-content"]',
+      );
+      const tableShell = container.querySelector(
+        '[data-dtp-slot="data-table-table-shell"]',
+      );
+      const scrollArea = container.querySelector('[data-slot="scroll-area"]');
+      const footer = container.querySelector(
+        '[data-dtp-slot="data-table-footer"]',
+      );
+
+      expect(root?.className).toContain("h-full");
+      expect(root?.className).toContain("min-h-0");
+      expect(root?.className).toContain("flex-1");
+      expect(layout?.className).toContain("min-h-0");
+      expect(layout?.className).toContain("flex-1");
+      expect(toolbar?.className).toContain("shrink-0");
+      expect(content?.className).toContain("min-h-0");
+      expect(content?.className).toContain("flex-1");
+      expect(tableShell?.className).toContain("min-h-0");
+      expect(tableShell?.className).toContain("flex-1");
+      expect(scrollArea?.className).toContain("min-h-0");
+      expect(scrollArea?.className).toContain("flex-1");
+      expect(footer?.className).toContain("shrink-0");
+    });
+
+    it("uses a constrained flex chain for flexGrow card mode", () => {
+      const { container } = render(
+        <div className="flex h-96 min-h-0 flex-col">
+          <TooltipProvider>
+            <DataTable
+              columns={columns}
+              data={rows}
+              getRowId={(row) => row.id}
+              flexGrow
+              viewMode="card"
+              cardRenderer={({ row }) => <div>{row.name}</div>}
+            />
+          </TooltipProvider>
+        </div>,
+      );
+
+      const content = container.querySelector(
+        '[data-dtp-slot="data-table-content"]',
+      );
+      const cardShell = container.querySelector(
+        '[data-dtp-slot="data-table-card-shell"]',
+      );
+      const cardViewport = container.querySelector(
+        '[data-dtp-slot="data-table-card-viewport"]',
+      );
+      const scrollArea = container.querySelector('[data-slot="scroll-area"]');
+      const footer = container.querySelector(
+        '[data-dtp-slot="data-table-footer"]',
+      );
+
+      expect(content?.className).toContain("min-h-0");
+      expect(content?.className).toContain("flex-1");
+      expect(cardShell?.className).toContain("min-h-0");
+      expect(cardShell?.className).toContain("flex-1");
+      expect(scrollArea?.className).toContain("min-h-0");
+      expect(scrollArea?.className).toContain("flex-1");
+      expect(cardViewport?.className).toContain("min-h-0");
+      expect(cardViewport?.className).toContain("flex-1");
+      expect(footer?.className).toContain("shrink-0");
+    });
+
+    it("applies supported card grid classes for dense card layouts", () => {
+      const { container } = renderTable({
+        viewMode: "card",
+        cardRenderer: ({ row }) => <div>{row.name}</div>,
+        cardGridClassName:
+          "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6",
+      });
+
+      const grid = container.querySelector(
+        '[data-dtp-slot="data-table-card-grid"]',
+      );
+      const card = container.querySelector(
+        '[data-dtp-slot="data-table-card-item"]',
+      );
+
+      expect(grid?.className).toContain("grid");
+      expect(grid?.className).toContain("grid-cols-2");
+      expect(grid?.className).toContain("sm:grid-cols-3");
+      expect(grid?.className).toContain("md:grid-cols-4");
+      expect(grid?.className).toContain("lg:grid-cols-5");
+      expect(grid?.className).toContain("xl:grid-cols-6");
+      expect(card?.className).toContain("min-w-0");
+      expect(card?.className).not.toContain("min-w-72");
+      expect(card?.className).not.toContain("basis-72");
+    });
+
+    it("applies supported card grid classes for wide card layouts", () => {
+      const { container } = renderTable({
+        viewMode: "card",
+        cardRenderer: ({ row }) => <div>{row.name}</div>,
+        cardGridClassName: "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3",
+      });
+
+      const grid = container.querySelector(
+        '[data-dtp-slot="data-table-card-grid"]',
+      );
+
+      expect(grid?.className).toContain("grid-cols-1");
+      expect(grid?.className).toContain("sm:grid-cols-2");
+      expect(grid?.className).toContain("xl:grid-cols-3");
+    });
+
     it("still renders the empty state when there are no rows and loading is false", () => {
       renderTable({
         data: [],

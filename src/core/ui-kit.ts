@@ -4,10 +4,13 @@ type AnyComponent = React.ElementType;
 
 export type DataTableUiClassNames = {
   card?: string;
+  cardGrid?: string;
+  cardItem?: string;
   cardOverlay?: string;
   cardSelected?: string;
   cardScrollArea?: string;
   cardUnselected?: string;
+  cardViewport?: string;
   cellBorder?: string;
   dragActive?: string;
   emptyState?: string;

@@ -236,10 +236,13 @@ export const heroUiKit: DataTableUiKit = {
   rootClassName: "dtp-heroui",
   classNames: {
     card: "hover:bg-default data-[state=selected]:bg-accent-soft",
+    cardGrid: "bg-transparent",
+    cardItem: "min-w-0",
     cardOverlay: "from-surface/95 via-surface/85 to-transparent",
     cardScrollArea: "bg-transparent",
     cardSelected: "bg-accent-soft ring-accent",
     cardUnselected: "border-separator",
+    cardViewport: "bg-transparent",
     cellBorder: "border-separator/70",
     dragActive: "rounded-2xl border-dashed border-accent",
     emptyState: "border-separator bg-surface",

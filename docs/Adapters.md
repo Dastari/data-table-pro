@@ -51,6 +51,28 @@ Override HeroUI slot styling in the host app only if you want a different visual
 - The package does not ship HeroUI theme tokens.
 - The package does not ship The Gridcn theme tokens.
 
+## Full-Height Layout
+
+`DataTable` defaults to `flexGrow={true}`. Put it in a constrained flex content region and let the package handle internal sizing:
+
+```tsx
+<main className="flex h-full min-h-0 flex-col">
+  <section className="flex min-h-0 flex-1 flex-col">
+    <DataTable flexGrow />
+  </section>
+</main>
+```
+
+Card mode supports explicit grid density without targeting internals:
+
+```tsx
+<DataTable
+  viewMode="card"
+  cardRenderer={renderCard}
+  cardGridClassName="grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"
+/>
+```
+
 ## Known Non-Goals
 
 - no runtime adapter prop

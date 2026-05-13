@@ -78,6 +78,30 @@ It does not provide:
 - HeroUI theme tokens
 - The Gridcn theme tokens
 
+## Layout Requirements
+
+`DataTable` defaults to `flexGrow={true}` and is designed to fill the remaining height of a constrained flex region. Consumers should only need to place it inside a normal `flex-1 min-h-0` content area:
+
+```tsx
+<main className="flex h-full min-h-0 flex-col">
+  <section className="flex min-h-0 flex-1 flex-col">
+    <DataTable flexGrow />
+  </section>
+</main>
+```
+
+The package owns the internal flex chain between root, toolbar, table/card viewport, scroll area, and footer. Toolbar and footer areas are `shrink-0`; the central table/card viewport and scroll area are `min-h-0 flex-1`.
+
+For card mode, use `cardGridClassName` instead of targeting internal DOM:
+
+```tsx
+<DataTable
+  viewMode="card"
+  cardRenderer={renderCard}
+  cardGridClassName="grid-cols-1 sm:grid-cols-2 xl:grid-cols-3"
+/>
+```
+
 ## Adapter Requirements
 
 ### `data-table-pro`
