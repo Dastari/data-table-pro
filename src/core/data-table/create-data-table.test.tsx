@@ -120,6 +120,53 @@ describe("DataTable adapter providers", () => {
     expect(scrollArea?.className).toContain("bg-transparent");
     expect(scrollArea?.className).not.toContain("bg-surface");
   });
+
+  it("clips complete HeroUI card renderers with absolute overlays", () => {
+    const { container } = render(
+      <HeroDataTable
+        columns={columns}
+        data={rows}
+        getRowId={(row) => row.id}
+        flexGrow
+        viewMode="card"
+        cardGridClassName="grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"
+        cardRenderer={({ row }) => (
+          <div
+            data-testid="poster-card"
+            className="relative aspect-[2/3] overflow-hidden"
+          >
+            <div
+              data-testid="poster-overlay"
+              className="absolute right-0 bottom-0 left-0 bg-black/50"
+            >
+              {row.name}
+            </div>
+          </div>
+        )}
+      />,
+    );
+    const item = container.querySelector(
+      '[data-dtp-slot="data-table-card-item"]',
+    );
+    const renderer = container.querySelector(
+      '[data-dtp-slot="data-table-card-renderer"]',
+    );
+
+    expect(item?.className).toContain("overflow-hidden");
+    expect(item?.className).toContain("bg-transparent");
+    expect(item?.className).toContain("p-0");
+    expect(item?.className).not.toContain("bg-surface");
+    expect(renderer?.className).toContain("overflow-hidden");
+    expect(renderer?.className).toContain("rounded-[inherit]");
+    expect(renderer?.className).toContain("[&>*]:w-full");
+    expect(renderer?.className).toContain("[&>*]:min-w-0");
+    expect(screen.getByTestId("poster-card").className).toContain(
+      "aspect-[2/3]",
+    );
+    expect(screen.getByTestId("poster-overlay").className).toContain(
+      "absolute",
+    );
+  });
 });
 
 beforeAll(() => {
@@ -462,9 +509,13 @@ for (const suite of suites) {
 
       expect(item?.className).toContain("w-full");
       expect(item?.className).toContain("min-w-0");
+      expect(item?.className).toContain("overflow-hidden");
+      expect(item?.className).toContain("p-0");
       expect(renderer?.className).toContain("w-full");
       expect(renderer?.className).toContain("min-w-0");
       expect(renderer?.className).toContain("flex-1");
+      expect(renderer?.className).toContain("overflow-hidden");
+      expect(renderer?.className).toContain("rounded-[inherit]");
       expect(renderer?.className).toContain("[&>*]:w-full");
       expect(customCard.className).toContain("aspect-2/3");
     });
