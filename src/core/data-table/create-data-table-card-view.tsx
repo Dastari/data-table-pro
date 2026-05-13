@@ -85,7 +85,7 @@ export function createDataTableCardView(
     );
     const cardItemClasses = (stateClassName?: string) =>
       cn(
-        "relative min-w-0 gap-0 py-0",
+        "relative w-full min-w-0 gap-0 py-0",
         uiClassNames.cardItem,
         cardClassName,
         stateClassName,
@@ -180,7 +180,10 @@ export function createDataTableCardView(
                   )}
                 />
               ) : null}
-              <div className="flex min-h-full grow">
+              <div
+                data-dtp-slot="data-table-card-renderer"
+                className="flex min-h-0 w-full min-w-0 flex-1 [&>*]:w-full"
+              >
                 {cardRenderer({
                   row: originalRow,
                   rowId,

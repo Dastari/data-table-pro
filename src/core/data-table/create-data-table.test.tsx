@@ -410,6 +410,7 @@ for (const suite of suites) {
       expect(grid?.className).toContain("lg:grid-cols-5");
       expect(grid?.className).toContain("xl:grid-cols-6");
       expect(card?.className).toContain("min-w-0");
+      expect(card?.className).toContain("w-full");
       expect(card?.className).not.toContain("min-w-72");
       expect(card?.className).not.toContain("basis-72");
     });
@@ -428,6 +429,44 @@ for (const suite of suites) {
       expect(grid?.className).toContain("grid-cols-1");
       expect(grid?.className).toContain("sm:grid-cols-2");
       expect(grid?.className).toContain("xl:grid-cols-3");
+    });
+
+    it("gives aspect-ratio custom card renderers the grid cell width", () => {
+      const { container } = render(
+        <div className="flex h-96 min-h-0 flex-col">
+          <TooltipProvider>
+            <DataTable
+              columns={columns}
+              data={rows}
+              getRowId={(row) => row.id}
+              flexGrow
+              viewMode="card"
+              cardGridClassName="grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"
+              cardRenderer={({ row }) => (
+                <div data-testid="aspect-card" className="aspect-2/3">
+                  {row.name}
+                </div>
+              )}
+            />
+          </TooltipProvider>
+        </div>,
+      );
+
+      const item = container.querySelector(
+        '[data-dtp-slot="data-table-card-item"]',
+      );
+      const renderer = container.querySelector(
+        '[data-dtp-slot="data-table-card-renderer"]',
+      );
+      const customCard = screen.getByTestId("aspect-card");
+
+      expect(item?.className).toContain("w-full");
+      expect(item?.className).toContain("min-w-0");
+      expect(renderer?.className).toContain("w-full");
+      expect(renderer?.className).toContain("min-w-0");
+      expect(renderer?.className).toContain("flex-1");
+      expect(renderer?.className).toContain("[&>*]:w-full");
+      expect(customCard.className).toContain("aspect-2/3");
     });
 
     it("still renders the empty state when there are no rows and loading is false", () => {
