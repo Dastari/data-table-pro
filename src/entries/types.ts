@@ -1,5 +1,3 @@
-export { DataTable } from "../../index";
-export { useDataTableUrlState } from "../../core/data-table/use-data-table-url-state";
 export type {
   DataTableAlign,
   DataTableCardRendererProps,
@@ -24,4 +22,4 @@ export type {
   DataTableToolbarVisibility,
   DataTableVirtualizationConfig,
   DataTableViewMode,
-} from "../../core/types";
+} from "../core/types";

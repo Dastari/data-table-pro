@@ -6,6 +6,17 @@
 
 Choose the migration path that matches the UI stack of the host app.
 
+## 2.0.1 Breaking Changes
+
+Projects upgrading to `2.0.1` must make these API changes:
+
+1. Move `useDataTableUrlState` imports to `data-table-pro/url-state`.
+2. Rename `searchValue` to `toolbarQueryValue`.
+3. Rename `onSearchValueChange` to `onToolbarQueryValueChange`.
+4. Rename `searchPlaceholder` to `toolbarQueryPlaceholder`.
+5. Rename `searchDebounceMs` to `toolbarQueryDebounceMs`.
+6. Update custom empty-state render functions to read `toolbarQueryValue`.
+
 ## 1. Stay on shadcn/default
 
 No import-path change is required.
@@ -50,6 +61,7 @@ Host app requirements:
 - React 19
 - Tailwind CSS v4
 - HeroUI style import in the app
+- `@heroui/styles` installed in the host app
 
 Migration notes:
 
@@ -85,9 +97,67 @@ Migration notes:
 - no 3D or showcase-only The Gridcn setup is required
 - keep the `DataTable` props unchanged
 
+## Required upgrade steps
+
+### Move `useDataTableUrlState` to the dedicated subpath
+
+Before:
+
+```ts
+import { useDataTableUrlState } from "data-table-pro";
+```
+
+After:
+
+```ts
+import { useDataTableUrlState } from "data-table-pro/url-state";
+```
+
+The same change applies if the hook was previously imported from `data-table-pro/heroui` or `data-table-pro/thegridcn`.
+
+### Move from `search*` props to `toolbarQuery*`
+
+Before:
+
+```tsx
+<DataTable
+  searchValue={query}
+  onSearchValueChange={setQuery}
+  searchPlaceholder="Search people"
+  searchDebounceMs={150}
+/>
+```
+
+After:
+
+```tsx
+<DataTable
+  toolbarQueryValue={query}
+  onToolbarQueryValueChange={setQuery}
+  toolbarQueryPlaceholder="Search people"
+  toolbarQueryDebounceMs={150}
+/>
+```
+
+### Update custom empty-state render functions
+
+Before:
+
+```tsx
+emptyState={({ searchValue }) => <div>No matches for {searchValue}</div>}
+```
+
+After:
+
+```tsx
+emptyState={({ toolbarQueryValue }) => (
+  <div>No matches for {toolbarQueryValue}</div>
+)}
+```
+
 ## What did not change
 
-- `DataTable` runtime props
-- `useDataTableUrlState`
-- public exported types
-- root import path for existing shadcn/default consumers
+- `DataTable` import paths
+- adapter entrypoints
+- public exported types through `data-table-pro/types`
+- layout and styling integration requirements

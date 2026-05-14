@@ -27,6 +27,8 @@
 
 The HeroUI adapter adds a `.dtp-heroui` root class and supplies HeroUI slot classes for table containers, dividers, fields, muted text, pagination, empty states, dropdowns, and tooltips. It does not require shadcn-style tokens such as `--border`, `--card`, `--input`, or `--muted`.
 
+The host app should install `@heroui/styles` itself. `data-table-pro` only references that stylesheet in documentation and does not bundle it for consumers.
+
 Override HeroUI slot styling in the host app only if you want a different visual treatment:
 
 ```css
@@ -62,6 +64,8 @@ Override HeroUI slot styling in the host app only if you want a different visual
   </section>
 </main>
 ```
+
+One host layout constraint remains: an ancestor still needs to establish the actual height boundary with `h-full`, `h-screen`, or a fixed-height container plus `min-h-0`.
 
 Card mode supports explicit grid density without targeting internals:
 

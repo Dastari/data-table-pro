@@ -86,10 +86,10 @@ export function createDataTable(ui: DataTableUiKit) {
     children,
     title,
     description,
-    searchValue = "",
-    onSearchValueChange,
-    searchPlaceholder = "Search rows...",
-    searchDebounceMs = 250,
+    toolbarQueryValue,
+    onToolbarQueryValueChange,
+    toolbarQueryPlaceholder,
+    toolbarQueryDebounceMs,
     customToolbar,
     rowsPerPageOptions = [10, 20, 50, 100],
     totalRowCount,
@@ -156,7 +156,14 @@ export function createDataTable(ui: DataTableUiKit) {
     >({});
     const [localColumnVisibility, setLocalColumnVisibility] =
       React.useState<VisibilityState>({});
-    const [localSearchValue, setLocalSearchValue] = React.useState(searchValue);
+    const resolvedToolbarQueryValue = toolbarQueryValue ?? "";
+    const resolvedToolbarQueryPlaceholder =
+      toolbarQueryPlaceholder ?? "Search rows...";
+    const resolvedToolbarQueryDebounceMs = toolbarQueryDebounceMs ?? 250;
+    const resolvedOnToolbarQueryValueChange = onToolbarQueryValueChange;
+    const [localSearchValue, setLocalSearchValue] = React.useState(
+      resolvedToolbarQueryValue,
+    );
     const [editingRowId, setEditingRowId] = React.useState<string | null>(null);
     const [draftValues, setDraftValues] = React.useState<
       Record<string, unknown>
@@ -165,24 +172,26 @@ export function createDataTable(ui: DataTableUiKit) {
     const containerWidth = useDataTableContainerWidth(containerRef);
     const { viewportElement: tableScrollElement, viewportHeight } =
       useDataTableScrollViewport(tableScrollContainerRef, viewMode);
-    const hasOnSearchValueChange = Boolean(onSearchValueChange);
-    const lastReportedSearchValueRef = React.useRef(searchValue);
-    const onSearchValueChangeEvent = React.useEffectEvent((value: string) => {
-      lastReportedSearchValueRef.current = value;
-      onSearchValueChange?.(value);
-    });
+    const hasOnSearchValueChange = Boolean(resolvedOnToolbarQueryValueChange);
+    const lastReportedSearchValueRef = React.useRef(resolvedToolbarQueryValue);
+    const onToolbarQueryValueChangeEvent = React.useEffectEvent(
+      (value: string) => {
+        lastReportedSearchValueRef.current = value;
+        resolvedOnToolbarQueryValueChange?.(value);
+      },
+    );
 
     React.useEffect(() => {
-      lastReportedSearchValueRef.current = searchValue;
-      setLocalSearchValue(searchValue);
-    }, [searchValue]);
+      lastReportedSearchValueRef.current = resolvedToolbarQueryValue;
+      setLocalSearchValue(resolvedToolbarQueryValue);
+    }, [resolvedToolbarQueryValue]);
 
     React.useEffect(() => {
       if (!hasOnSearchValueChange) {
         return;
       }
 
-      if (localSearchValue === searchValue) {
+      if (localSearchValue === resolvedToolbarQueryValue) {
         return;
       }
 
@@ -191,8 +200,8 @@ export function createDataTable(ui: DataTableUiKit) {
       }
 
       const timeout = window.setTimeout(() => {
-        onSearchValueChangeEvent(localSearchValue);
-      }, searchDebounceMs);
+        onToolbarQueryValueChangeEvent(localSearchValue);
+      }, resolvedToolbarQueryDebounceMs);
 
       return () => {
         window.clearTimeout(timeout);
@@ -200,8 +209,8 @@ export function createDataTable(ui: DataTableUiKit) {
     }, [
       hasOnSearchValueChange,
       localSearchValue,
-      searchDebounceMs,
-      searchValue,
+      resolvedToolbarQueryDebounceMs,
+      resolvedToolbarQueryValue,
     ]);
 
     const currentSorting = sorting ?? localSorting;
@@ -847,7 +856,10 @@ export function createDataTable(ui: DataTableUiKit) {
 
     const emptyNode =
       typeof emptyState === "function"
-        ? emptyState({ rows: visibleData, searchValue })
+      ? emptyState({
+          rows: visibleData,
+          toolbarQueryValue: localSearchValue,
+        })
         : emptyState;
 
     const handleRowClick = React.useCallback(
@@ -914,9 +926,9 @@ export function createDataTable(ui: DataTableUiKit) {
                   <DataTableToolbar
                     title={title}
                     description={description}
-                    searchValue={localSearchValue}
-                    searchPlaceholder={searchPlaceholder}
-                    onSearchValueChange={setLocalSearchValue}
+                    toolbarQueryValue={localSearchValue}
+                    toolbarQueryPlaceholder={resolvedToolbarQueryPlaceholder}
+                    onToolbarQueryValueChange={setLocalSearchValue}
                     customToolbar={customToolbar}
                     viewMode={viewMode}
                     onViewModeChange={onViewModeChange}
@@ -949,8 +961,7 @@ export function createDataTable(ui: DataTableUiKit) {
                     "box-border border-2 border-transparent transition-colors",
                     flexGrow ? "flex min-h-0 flex-1 flex-col" : "h-full",
                     dragAndDrop?.isDragging &&
-                      (uiClassNames.dragActive ??
-                        "rounded-md border-dashed border-primary"),
+                      (uiClassNames.dragActive ?? "rounded-md border-dashed"),
                   )}
                 >
                   <ScrollArea
@@ -1055,8 +1066,7 @@ export function createDataTable(ui: DataTableUiKit) {
                     "box-border border-2 border-transparent transition-colors",
                     flexGrow ? "flex min-h-0 flex-1 flex-col" : "h-full",
                     dragAndDrop?.isDragging &&
-                      (uiClassNames.dragActive ??
-                        "rounded-md border-dashed border-primary"),
+                      (uiClassNames.dragActive ?? "rounded-md border-dashed"),
                   )}
                 >
                   <div
@@ -1069,7 +1079,7 @@ export function createDataTable(ui: DataTableUiKit) {
                       className={cn(
                         "rounded-md border",
                         flexGrow ? "min-h-0 flex-1" : "h-full",
-                        uiClassNames.tableContainer ?? "border-border bg-card",
+                        uiClassNames.tableContainer,
                         uiClassNames.tableScrollArea,
                         tableContainerClassName,
                       )}
@@ -1145,7 +1155,7 @@ export function createDataTable(ui: DataTableUiKit) {
                             className={cn(
                               stickyHeader
                                 ? (uiClassNames.tableStickyHeader ??
-                                  "sticky top-0 z-30 bg-card/95 backdrop-blur [&_th]:border-border [&_th]:bg-card/95")
+                                  "sticky top-0 z-30 backdrop-blur")
                                 : undefined,
                             )}
                           >
@@ -1278,7 +1288,7 @@ export function createDataTable(ui: DataTableUiKit) {
                                               className={cn(
                                                 "shrink-0",
                                                 uiClassNames.headerSortIcon ??
-                                                  "text-muted-foreground",
+                                                  "opacity-70",
                                               )}
                                             />
                                           )}
@@ -1313,10 +1323,10 @@ export function createDataTable(ui: DataTableUiKit) {
                                           className={cn(
                                             "absolute inset-y-0 right-0 z-50 h-full w-3 translate-x-1/2 cursor-col-resize touch-none select-none after:absolute after:top-0 after:left-1/2 after:h-full after:w-px after:-translate-x-1/2",
                                             uiClassNames.resizeHandle ??
-                                              "after:bg-border hover:after:bg-primary",
+                                              "after:bg-current after:opacity-20 hover:after:opacity-70",
                                             header.column.getIsResizing() &&
                                               (uiClassNames.resizeHandleActive ??
-                                                "after:bg-primary"),
+                                                "after:opacity-100"),
                                           )}
                                         />
                                       ) : null}
@@ -1381,8 +1391,7 @@ export function createDataTable(ui: DataTableUiKit) {
                                       className={cn(
                                         !isInitialLoadingRow &&
                                           getRowClassName?.(originalRow),
-                                        uiClassNames.row ??
-                                          "hover:bg-muted/50 data-[state=selected]:!bg-primary/10",
+                                        uiClassNames.row,
                                         row.getIsSelected() &&
                                           !isInitialLoadingRow &&
                                           uiClassNames.rowSelected,
@@ -1489,8 +1498,7 @@ export function createDataTable(ui: DataTableUiKit) {
                                             key={cell.id}
                                             className={cn(
                                               "border-b",
-                                              uiClassNames.cellBorder ??
-                                                "border-border/40",
+                                              uiClassNames.cellBorder,
                                               (isSelectionColumn ||
                                                 isActionsColumn) &&
                                                 "w-[50px] max-w-[50px] min-w-[50px] px-0",
@@ -1842,10 +1850,10 @@ function getPinnedColumnClassName(
   const isUtilityColumn = options?.isUtilityColumn ?? false;
   return cn(
     "sticky backdrop-blur box-border",
-    uiClassNames.pinnedColumn ?? "border-border",
+    uiClassNames.pinnedColumn,
     !isUtilityColumn && "border-dotted",
     isUtilityColumn
-      ? (uiClassNames.pinnedUtilityColumn ?? "bg-card")
+      ? uiClassNames.pinnedUtilityColumn
       : undefined,
     side === "left" ? "border-r-1" : "right-0 border-l",
   );

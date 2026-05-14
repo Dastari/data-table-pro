@@ -1,4 +1,3 @@
-export { useDataTableUrlState } from "./use-data-table-url-state";
 export type {
   DataTableAlign,
   DataTableCardRendererProps,

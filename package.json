@@ -1,7 +1,7 @@
 {
   "name": "data-table-pro",
-  "version": "0.1.11",
-  "description": "Standalone shadcn-compatible data table components built on TanStack Table.",
+  "version": "2.0.1",
+  "description": "Reusable React data table library with shadcn, HeroUI, and The Gridcn adapters.",
   "type": "module",
   "license": "MIT",
   "homepage": "https://github.com/Dastari/data-table-pro#readme",
@@ -39,6 +39,16 @@
       "import": "./dist/thegridcn.js",
       "require": "./dist/thegridcn.cjs"
     },
+    "./url-state": {
+      "types": "./dist/url-state.d.ts",
+      "import": "./dist/url-state.js",
+      "require": "./dist/url-state.cjs"
+    },
+    "./types": {
+      "types": "./dist/types.d.ts",
+      "import": "./dist/types.js",
+      "require": "./dist/types.cjs"
+    },
     "./styles.css": {
       "style": "./styles.css",
       "default": "./styles.css"
@@ -67,12 +77,16 @@
     "component-library"
   ],
   "peerDependencies": {
+    "@heroui/styles": "^3.0.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
+  "peerDependenciesMeta": {
+    "@heroui/styles": {
+      "optional": true
+    }
+  },
   "dependencies": {
-    "@heroui/react": "^3.0.3",
-    "@heroui/styles": "^3.0.3",
     "@tabler/icons-react": "^3.41.1",
     "@tanstack/react-table": "^8.21.3",
     "@tanstack/react-virtual": "^3.13.24",

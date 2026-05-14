@@ -16,10 +16,18 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
+import * as RootEntry from "../../index";
 import { DataTable as ShadcnDataTable } from "../../index";
+import * as HeroEntry from "../../entries/heroui";
 import { DataTable as HeroDataTable } from "../../entries/heroui";
+import * as GridEntry from "../../entries/thegridcn";
 import { DataTable as GridDataTable } from "../../entries/thegridcn";
+import { useDataTableUrlState as useDataTableUrlStateEntry } from "../../entries/url-state";
 import type { DataTableColumnDef, DataTableProps } from "../../index";
+import type {
+  DataTableEmptyStateContext,
+  DataTableProps as DataTablePropsFromEntry,
+} from "../../entries/types";
 import { shadcnUiKit } from "../../adapters/shadcn";
 import { heroUiKit } from "../../adapters/heroui";
 import { theGridcnUiKit } from "../../adapters/thegridcn";
@@ -37,6 +45,30 @@ const columns: Array<DataTableColumnDef<TestRow, unknown>> = [
 ];
 
 const rows: Array<TestRow> = [{ id: "1", name: "Ada" }];
+const forbiddenNonShadcnTokens = [
+  "border-border",
+  "bg-card",
+  "bg-muted",
+  "text-muted-foreground",
+  "bg-input",
+  "bg-background",
+  "text-card-foreground",
+  "border-input",
+] as const;
+
+const _typecheckPropsEntry: DataTablePropsFromEntry<TestRow> = {
+  columns,
+  data: rows,
+  getRowId: (row) => row.id,
+};
+
+void _typecheckPropsEntry;
+
+function expectNoForbiddenNonShadcnTokens(markup: string) {
+  for (const token of forbiddenNonShadcnTokens) {
+    expect(markup).not.toContain(token);
+  }
+}
 
 class ResizeObserverMock {
   observe() {}
@@ -105,6 +137,48 @@ describe("DataTable adapter providers", () => {
     expect(scrollArea?.className).not.toContain("bg-card");
   });
 
+  it("keeps HeroUI output free of shadcn token aliases across table and card mode", () => {
+    const tableView = render(
+      <HeroDataTable
+        columns={columns}
+        data={rows}
+        getRowId={(row) => row.id}
+        enableRowSelection
+        rowActions={[
+          {
+            key: "open",
+            label: "Open",
+            onClick: vi.fn(),
+          },
+        ]}
+      />,
+    );
+
+    expectNoForbiddenNonShadcnTokens(tableView.container.innerHTML);
+
+    tableView.unmount();
+
+    const cardView = render(
+      <HeroDataTable
+        columns={columns}
+        data={rows}
+        getRowId={(row) => row.id}
+        viewMode="card"
+        enableRowSelection
+        rowActions={[
+          {
+            key: "open",
+            label: "Open",
+            onClick: vi.fn(),
+          },
+        ]}
+        cardRenderer={({ row }) => <div>{row.name}</div>}
+      />,
+    );
+
+    expectNoForbiddenNonShadcnTokens(cardView.container.innerHTML);
+  });
+
   it("uses a transparent HeroUI scroll area in card mode", () => {
     const { container } = render(
       <HeroDataTable
@@ -119,6 +193,36 @@ describe("DataTable adapter providers", () => {
 
     expect(scrollArea?.className).toContain("bg-transparent");
     expect(scrollArea?.className).not.toContain("bg-surface");
+  });
+
+  it("keeps The Gridcn output free of shadcn token aliases", () => {
+    const { container } = render(
+      <GridDataTable
+        columns={columns}
+        data={rows}
+        getRowId={(row) => row.id}
+        enableRowSelection
+        rowActions={[
+          {
+            key: "open",
+            label: "Open",
+            onClick: vi.fn(),
+          },
+        ]}
+      />,
+    );
+
+    expectNoForbiddenNonShadcnTokens(container.innerHTML);
+  });
+
+  it("exposes the URL-state hook from the dedicated subpath entry", () => {
+    expect(typeof useDataTableUrlStateEntry).toBe("function");
+  });
+
+  it("does not expose the URL-state hook from component entrypoints anymore", () => {
+    expect("useDataTableUrlState" in RootEntry).toBe(false);
+    expect("useDataTableUrlState" in HeroEntry).toBe(false);
+    expect("useDataTableUrlState" in GridEntry).toBe(false);
   });
 
   it("clips complete HeroUI card renderers with absolute overlays", () => {
@@ -196,18 +300,18 @@ for (const suite of suites) {
             columns={columns}
             data={rows}
             getRowId={(row, _index) => row.id}
-            searchDebounceMs={100}
+            toolbarQueryDebounceMs={100}
             {...props}
           />
         </TooltipProvider>,
       );
     }
 
-    it("debounces user-entered search changes", () => {
+    it("debounces user-entered toolbar query changes", () => {
       vi.useFakeTimers();
-      const onSearchValueChange = vi.fn();
+      const onToolbarQueryValueChange = vi.fn();
 
-      renderTable({ onSearchValueChange });
+      renderTable({ onToolbarQueryValueChange });
 
       fireEvent.change(screen.getByPlaceholderText("Search rows..."), {
         target: { value: "Ada" },
@@ -217,23 +321,23 @@ for (const suite of suites) {
         vi.advanceTimersByTime(99);
       });
 
-      expect(onSearchValueChange).not.toHaveBeenCalled();
+      expect(onToolbarQueryValueChange).not.toHaveBeenCalled();
 
       act(() => {
         vi.advanceTimersByTime(1);
       });
 
-      expect(onSearchValueChange).toHaveBeenCalledTimes(1);
-      expect(onSearchValueChange).toHaveBeenLastCalledWith("Ada");
+      expect(onToolbarQueryValueChange).toHaveBeenCalledTimes(1);
+      expect(onToolbarQueryValueChange).toHaveBeenCalledWith("Ada");
     });
 
     it("does not loop for controlled parents that create a fresh callback each render", () => {
       vi.useFakeTimers();
-      const onSearchValueChange = vi.fn();
+      const onToolbarQueryValueChange = vi.fn();
 
       function ControlledHarness() {
         const [tableState, setTableState] = React.useState({
-          searchValue: "",
+          toolbarQueryValue: "",
         });
 
         return (
@@ -242,13 +346,13 @@ for (const suite of suites) {
               columns={columns}
               data={rows}
               getRowId={(row, _index) => row.id}
-              searchValue={tableState.searchValue}
-              searchDebounceMs={100}
-              onSearchValueChange={(value) => {
-                onSearchValueChange(value);
+              toolbarQueryValue={tableState.toolbarQueryValue}
+              toolbarQueryDebounceMs={100}
+              onToolbarQueryValueChange={(value) => {
+                onToolbarQueryValueChange(value);
                 setTableState((current) => ({
                   ...current,
-                  searchValue: value,
+                  toolbarQueryValue: value,
                 }));
               }}
             />
@@ -266,23 +370,23 @@ for (const suite of suites) {
         vi.advanceTimersByTime(100);
       });
 
-      expect(onSearchValueChange).toHaveBeenCalledTimes(1);
-      expect(onSearchValueChange).toHaveBeenLastCalledWith("Ada");
+      expect(onToolbarQueryValueChange).toHaveBeenCalledTimes(1);
+      expect(onToolbarQueryValueChange).toHaveBeenLastCalledWith("Ada");
 
       act(() => {
         vi.advanceTimersByTime(1000);
       });
 
-      expect(onSearchValueChange).toHaveBeenCalledTimes(1);
+      expect(onToolbarQueryValueChange).toHaveBeenCalledTimes(1);
     });
 
     it("does not echo controlled prop updates back through the debounced callback", () => {
       vi.useFakeTimers();
-      const onSearchValueChange = vi.fn();
+      const onToolbarQueryValueChange = vi.fn();
 
       const view = renderTable({
-        searchValue: "",
-        onSearchValueChange,
+        toolbarQueryValue: "",
+        onToolbarQueryValueChange,
       });
 
       view.rerender(
@@ -291,9 +395,9 @@ for (const suite of suites) {
             columns={columns}
             data={rows}
             getRowId={(row, _index) => row.id}
-            searchValue="Ada"
-            searchDebounceMs={100}
-            onSearchValueChange={onSearchValueChange}
+            toolbarQueryValue="Ada"
+            toolbarQueryDebounceMs={100}
+            onToolbarQueryValueChange={onToolbarQueryValueChange}
           />
         </TooltipProvider>,
       );
@@ -302,7 +406,7 @@ for (const suite of suites) {
         vi.advanceTimersByTime(1000);
       });
 
-      expect(onSearchValueChange).not.toHaveBeenCalled();
+      expect(onToolbarQueryValueChange).not.toHaveBeenCalled();
     });
 
     it("renders synthetic table skeleton rows instead of the empty state", () => {
@@ -325,6 +429,29 @@ for (const suite of suites) {
 
       expect(screen.queryByText("No rows yet")).toBeNull();
       expect(screen.getAllByText("Loading name cell")).toHaveLength(2);
+    });
+
+    it("passes the current toolbar query value to empty-state render functions", () => {
+      const emptyState = vi.fn(
+        ({ toolbarQueryValue }: DataTableEmptyStateContext<TestRow>) => (
+          <div>No matches for {toolbarQueryValue}</div>
+        ),
+      );
+
+      renderTable({
+        data: [],
+        emptyState,
+      });
+
+      fireEvent.change(screen.getByPlaceholderText("Search rows..."), {
+        target: { value: "Ada" },
+      });
+
+      expect(screen.getByText("No matches for Ada")).not.toBeNull();
+      expect(emptyState).toHaveBeenLastCalledWith({
+        rows: [],
+        toolbarQueryValue: "Ada",
+      });
     });
 
     it("renders skeleton cards while initially loading with no rows", () => {
@@ -518,6 +645,88 @@ for (const suite of suites) {
       expect(renderer?.className).toContain("rounded-[inherit]");
       expect(renderer?.className).toContain("[&>*]:w-full");
       expect(customCard.className).toContain("aspect-2/3");
+    });
+
+    it("adds an accessible name to card selection controls and cleans false selections", () => {
+      const onRowSelectionChange = vi.fn();
+
+      const { container } = renderTable({
+        viewMode: "card",
+        cardRenderer: ({ row }) => <div>{row.name}</div>,
+        enableRowSelection: true,
+        rowSelection: { "1": true },
+        onRowSelectionChange,
+      });
+
+      fireEvent.click(screen.getByRole("checkbox", { name: "Select row 1" }));
+
+      const cardGrid = container.querySelector(
+        '[data-dtp-slot="data-table-card-grid"]',
+      );
+      const cardItems = container.querySelectorAll(
+        '[data-dtp-slot="data-table-card-item"]',
+      );
+
+      expect(cardGrid?.getAttribute("role")).toBe("list");
+      expect(Array.from(cardItems, (item) => item.getAttribute("role"))).toEqual(
+        ["listitem"],
+      );
+      expect(onRowSelectionChange).toHaveBeenCalledWith({});
+    });
+
+    it("marks the active view-toggle button as pressed", () => {
+      renderTable({
+        viewMode: "card",
+        cardRenderer: ({ row }) => <div>{row.name}</div>,
+        enableViewToggle: true,
+        onViewModeChange: vi.fn(),
+      });
+
+      expect(
+        screen
+          .getByRole("button", { name: "Switch to table view" })
+          .getAttribute("aria-pressed"),
+      ).toBe("false");
+      expect(
+        screen
+          .getByRole("button", { name: "Switch to card view" })
+          .getAttribute("aria-pressed"),
+      ).toBe("true");
+    });
+
+    it("supports keyboard activation for clickable cards without moving button semantics to the list item", () => {
+      const onRowClick = vi.fn();
+      const { container } = renderTable({
+        viewMode: "card",
+        cardRenderer: ({ row }) => <div>{row.name}</div>,
+        onRowClick,
+      });
+
+      const cardItem = container.querySelector(
+        '[data-dtp-slot="data-table-card-item"]',
+      );
+      const renderer = container.querySelector(
+        '[data-dtp-slot="data-table-card-renderer"]',
+      );
+
+      expect(cardItem?.getAttribute("role")).toBe("listitem");
+      expect(renderer?.getAttribute("role")).toBe("button");
+      expect(renderer?.getAttribute("data-dtp-slot")).toBe(
+        "data-table-card-renderer",
+      );
+
+      if (!renderer) {
+        throw new Error("Expected card renderer to be present");
+      }
+
+      fireEvent.keyDown(renderer, { key: "Enter" });
+      fireEvent.keyDown(renderer, { key: " " });
+
+      expect(onRowClick).toHaveBeenCalledTimes(2);
+      expect(onRowClick).toHaveBeenNthCalledWith(1, {
+        row: rows[0],
+        rowId: "1",
+      });
     });
 
     it("still renders the empty state when there are no rows and loading is false", () => {

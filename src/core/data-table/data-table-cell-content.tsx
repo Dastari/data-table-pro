@@ -18,7 +18,7 @@ export function renderDataTableCellContent<TData>(
   if (meta?.type === "date" && !hasCustomCell) {
     return (
       <div className="inline-flex items-center justify-end gap-2">
-        <IconClock className={classNames?.mutedText ?? "text-muted-foreground"} />
+        <IconClock className={classNames?.mutedText ?? "opacity-70"} />
         <span>{formatDateValue(value)}</span>
       </div>
     );
@@ -29,7 +29,7 @@ export function renderDataTableCellContent<TData>(
   }
 
   if (value == null || value === "") {
-    return <span className={classNames?.mutedText ?? "text-muted-foreground"}>-</span>;
+    return <span className={classNames?.mutedText ?? "opacity-70"}>-</span>;
   }
 
   return formatCellValue(value);

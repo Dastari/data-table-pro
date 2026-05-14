@@ -18,7 +18,7 @@ function InputGroup({
       role="group"
       data-slot="input-group"
       className={cn(
-        "group/input-group flex w-full min-w-0 items-stretch rounded-lg border border-border bg-input transition-colors outline-none focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50 has-[>[data-slot=input-group-addon][data-align=block-start]]:flex-col has-[>[data-slot=input-group-addon][data-align=block-end]]:flex-col has-[>[data-slot=input-group-control][aria-invalid=true]]:border-destructive has-[>[data-slot=input-group-control][aria-invalid=true]]:ring-3 has-[>[data-slot=input-group-control][aria-invalid=true]]:ring-destructive/20 has-[>[data-slot=input-group-control]:disabled]:cursor-not-allowed has-[>[data-slot=input-group-control]:disabled]:bg-input/50 has-[>[data-slot=input-group-control]:disabled]:opacity-50 dark:bg-input/30 dark:has-[>[data-slot=input-group-control][aria-invalid=true]]:border-destructive/50 dark:has-[>[data-slot=input-group-control][aria-invalid=true]]:ring-destructive/40 dark:has-[>[data-slot=input-group-control]:disabled]:bg-input/80",
+        "group/input-group flex w-full min-w-0 items-stretch rounded-lg border transition-colors outline-none focus-within:outline-none has-[>[data-slot=input-group-addon][data-align=block-start]]:flex-col has-[>[data-slot=input-group-addon][data-align=block-end]]:flex-col has-[>[data-slot=input-group-control]:disabled]:cursor-not-allowed has-[>[data-slot=input-group-control]:disabled]:opacity-50",
         className,
       )}
       {...props}
@@ -37,7 +37,7 @@ const InputGroupInput = React.forwardRef<
       type={props.type}
       className={cn(
         inputClassName,
-        "flex-1 rounded-none border-0 bg-transparent shadow-none focus-visible:border-0 focus-visible:ring-0 aria-invalid:border-0 aria-invalid:ring-0 dark:bg-transparent",
+        "flex-1 rounded-none border-0 bg-transparent shadow-none focus-visible:border-0 focus-visible:ring-0",
         className,
       )}
       {...props}
@@ -59,13 +59,13 @@ function InputGroupAddon({
       data-slot="input-group-addon"
       data-align={align}
       className={cn(
-        "flex shrink-0 items-center gap-1.5 text-muted-foreground [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4",
+        "flex shrink-0 items-center gap-1.5 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4",
         align === "inline-start" && "order-first pl-2.5 pr-1",
         align === "inline-end" && "order-last pl-1 pr-2.5",
         align === "block-start" &&
-          "order-first w-full justify-between border-b border-border px-2.5 py-1.5 text-sm",
+          "order-first w-full justify-between border-b px-2.5 py-1.5 text-sm",
         align === "block-end" &&
-          "order-last w-full justify-between border-t border-border px-2.5 py-1.5 text-sm",
+          "order-last w-full justify-between border-t px-2.5 py-1.5 text-sm",
         className,
       )}
       {...props}

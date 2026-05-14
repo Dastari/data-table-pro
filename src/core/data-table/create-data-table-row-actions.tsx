@@ -106,16 +106,11 @@ export function createDataTableRowActions(ui: DataTableUiKit) {
             <DropdownMenuGroup>
               {actions.map((action) => {
                 const Icon = action.icon;
-                const destructive = action.variant === "destructive";
                 return (
                   <DropdownMenuItem
                     key={action.key}
                     disabled={action.disabled?.(row)}
-                    className={
-                      destructive
-                        ? "text-destructive focus:text-destructive"
-                        : undefined
-                    }
+                    variant={action.variant === "destructive" ? "destructive" : undefined}
                     onClick={(event: React.MouseEvent<HTMLElement>) => {
                       event.stopPropagation();
                       void action.onClick(row);

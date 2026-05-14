@@ -154,7 +154,7 @@ export type DataTableHiddenRowsConfig<TData> = {
 
 export type DataTableEmptyStateContext<TData> = {
   rows: Array<TData>;
-  searchValue: string;
+  toolbarQueryValue: string;
 };
 
 export type DataTableDragAndDropConfig<TData> = {
@@ -196,10 +196,10 @@ export type DataTableProps<TData> = {
   children?: React.ReactNode;
   title?: string;
   description?: string;
-  searchValue?: string;
-  onSearchValueChange?: (value: string) => void;
-  searchPlaceholder?: string;
-  searchDebounceMs?: number;
+  toolbarQueryValue?: string;
+  onToolbarQueryValueChange?: (value: string) => void;
+  toolbarQueryPlaceholder?: string;
+  toolbarQueryDebounceMs?: number;
   customToolbar?: React.ReactNode;
   rowsPerPageOptions?: Array<number>;
   totalRowCount?: number;

@@ -3,7 +3,6 @@ import { createDataTable } from "../core/data-table/create-data-table";
 
 export const DataTable = createDataTable(theGridcnUiKit);
 
-export { useDataTableUrlState } from "../core/data-table/use-data-table-url-state";
 export type {
   DataTableAlign,
   DataTableCardRendererProps,

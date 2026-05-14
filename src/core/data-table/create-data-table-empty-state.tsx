@@ -21,7 +21,7 @@ export function createDataTableEmptyState(ui: DataTableUiKit) {
   }) {
     return (
       <Empty
-        className={`min-h-60 rounded-2xl ${uiClassNames.emptyState ?? "border-border/60 bg-background/70"}`}
+        className={`min-h-60 rounded-2xl ${uiClassNames.emptyState ?? "border bg-transparent"}`}
       >
         <EmptyHeader>
           <EmptyMedia variant="icon">

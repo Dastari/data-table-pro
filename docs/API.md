@@ -4,17 +4,19 @@ This document describes the public API exported by `data-table-pro`.
 
 ## Package Entry Points
 
-All entrypoints export the same runtime and type API.
+Adapter entrypoints export the table component and public types. Dedicated subpaths expose the URL-state hook and types directly.
 
 ### Shadcn default
 
 ```ts
 import {
   DataTable,
-  useDataTableUrlState,
   type DataTableProps,
   type DataTableColumnDef,
 } from "data-table-pro";
+
+import { useDataTableUrlState } from "data-table-pro/url-state";
+import type { DataTableProps as DataTablePropsFromSubpath } from "data-table-pro/types";
 ```
 
 ### HeroUI
@@ -22,7 +24,6 @@ import {
 ```ts
 import {
   DataTable,
-  useDataTableUrlState,
   type DataTableProps,
   type DataTableColumnDef,
 } from "data-table-pro/heroui";
@@ -33,7 +34,6 @@ import {
 ```ts
 import {
   DataTable,
-  useDataTableUrlState,
   type DataTableProps,
   type DataTableColumnDef,
 } from "data-table-pro/thegridcn";
@@ -100,6 +100,8 @@ HeroUI consumers must also import:
 @import "@heroui/styles";
 ```
 
+`@heroui/styles` should be installed by the consuming app when using `data-table-pro/heroui`.
+
 For the HeroUI adapter, the table root receives `.dtp-heroui` and internal table slots use HeroUI-compatible classes such as `border-separator`, `bg-surface`, `bg-field`, and `text-muted`. Host apps do not need to define shadcn-style variables such as `--border`, `--card`, `--input`, or `--muted`.
 
 ```css
@@ -115,9 +117,11 @@ The Gridcn consumers must also import a host-managed The Gridcn theme or token s
 ## Runtime Exports
 
 - `DataTable`
-- `useDataTableUrlState`
+- `data-table-pro/url-state` exports `useDataTableUrlState`
 
 ## Type Exports
+
+These are exported from the adapter entrypoints and from `data-table-pro/types`.
 
 - `DataTableAlign`
 - `DataTableCardRendererProps`
@@ -191,15 +195,24 @@ The library applies the internal constrained flex chain itself:
 - scroll area/viewport wrappers: `min-h-0 flex-1`
 - footer: `shrink-0`
 
-### Search props
+One parent requirement remains unavoidable: the nearest containing layout must establish a constrained height boundary and `min-h-0` chain. Without that, neither table mode nor card mode can infer available height.
+
+### Toolbar query props
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `searchValue` | `string` | `""` | Controlled search string. |
-| `onSearchValueChange` | `(value: string) => void` | `undefined` | Called after the debounce window. |
-| `searchPlaceholder` | `string` | `"Search rows..."` | Search input placeholder. |
-| `searchDebounceMs` | `number` | `250` | Debounce delay for `onSearchValueChange`. |
+| `toolbarQueryValue` | `string` | `""` | Controlled toolbar query string. |
+| `onToolbarQueryValueChange` | `(value: string) => void` | `undefined` | Called after the debounce window. This updates the toolbar input state only; row filtering remains consumer-owned. |
+| `toolbarQueryPlaceholder` | `string` | `"Search rows..."` | Toolbar input placeholder. |
+| `toolbarQueryDebounceMs` | `number` | `250` | Debounce delay for `onToolbarQueryValueChange`. |
 | `customToolbar` | `React.ReactNode` | `undefined` | Optional secondary toolbar row rendered below the main toolbar. |
+
+Removed in `2.0.1`:
+
+- `searchValue`
+- `onSearchValueChange`
+- `searchPlaceholder`
+- `searchDebounceMs`
 
 ### Sorting props
 

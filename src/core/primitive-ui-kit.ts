@@ -1,13 +1,10 @@
-import {
-  Button,
-  buttonVariants,
-} from "./ui/button";
+import type { DataTableUiKit } from "./ui-kit";
+import { Button } from "../components/ui/button";
 import {
   ButtonGroup,
   ButtonGroupSeparator,
   ButtonGroupText,
-  buttonGroupVariants,
-} from "./ui/button-group";
+} from "../components/ui/button-group";
 import {
   Card,
   CardAction,
@@ -16,8 +13,8 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "./ui/card";
-import { Checkbox } from "./ui/checkbox";
+} from "../components/ui/card";
+import { Checkbox } from "../components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -34,7 +31,7 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
-} from "./ui/dropdown-menu";
+} from "../components/ui/dropdown-menu";
 import {
   Empty,
   EmptyContent,
@@ -42,14 +39,14 @@ import {
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
-} from "./ui/empty";
-import { Input } from "./ui/input";
+} from "../components/ui/empty";
+import { Input } from "../components/ui/input";
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
   InputGroupText,
-} from "./ui/input-group";
+} from "../components/ui/input-group";
 import {
   Pagination,
   PaginationContent,
@@ -60,8 +57,8 @@ import {
   PaginationLink,
   PaginationNext,
   PaginationPrevious,
-} from "./ui/pagination";
-import { ScrollArea, ScrollBar } from "./ui/scroll-area";
+} from "../components/ui/pagination";
+import { ScrollArea, ScrollBar } from "../components/ui/scroll-area";
 import {
   Select,
   SelectContent,
@@ -73,9 +70,9 @@ import {
   SelectSeparator,
   SelectTrigger,
   SelectValue,
-} from "./ui/select";
-import { Separator } from "./ui/separator";
-import { Skeleton } from "./ui/skeleton";
+} from "../components/ui/select";
+import { Separator } from "../components/ui/separator";
+import { Skeleton } from "../components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -85,15 +82,15 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "./ui/table";
+} from "../components/ui/table";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "./ui/tooltip";
+} from "../components/ui/tooltip";
 
-export const shadcnUiKit: DataTableUiKit = {
+export const primitiveUiKit: DataTableUiKit = {
   Button,
   ButtonGroup,
   ButtonGroupSeparator,
@@ -243,7 +240,4 @@ export {
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-  buttonGroupVariants,
-  buttonVariants,
 };
-import type { DataTableUiKit } from "../../core/ui-kit";

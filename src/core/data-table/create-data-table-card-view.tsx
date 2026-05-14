@@ -93,10 +93,15 @@ export function createDataTableCardView(
 
     if (isLoading) {
       return (
-        <div data-dtp-slot="data-table-card-grid" className={cardGridClasses}>
+        <div
+          role="list"
+          data-dtp-slot="data-table-card-grid"
+          className={cardGridClasses}
+        >
           {Array.from({ length: Math.max(1, loadingRowCount) }, (_, index) => (
             <Card
               key={`loading-card-${index}`}
+              role="listitem"
               aria-hidden="true"
               data-dtp-slot="data-table-card-item"
               className={cardItemClasses("min-h-52")}
@@ -122,7 +127,11 @@ export function createDataTableCardView(
     }
 
     return (
-      <div data-dtp-slot="data-table-card-grid" className={cardGridClasses}>
+      <div
+        role="list"
+        data-dtp-slot="data-table-card-grid"
+        className={cardGridClasses}
+      >
         {rows.map((row) => {
           const rowId = row.id;
           const originalRow = row.original;
@@ -132,10 +141,18 @@ export function createDataTableCardView(
           const showCardGradient =
             enableRowSelection || hasCardActions || hasCardTitle;
           const showCardOverlayControls = enableRowSelection || hasCardActions;
+          const handleCardActivate = () => {
+            if (!onRowClick) {
+              return;
+            }
+
+            void onRowClick({ row: originalRow, rowId });
+          };
 
           return (
             <Card
               key={rowId}
+              role="listitem"
               draggable={getRowDraggable?.(originalRow) ?? false}
               data-dtp-slot="data-table-card-item"
               data-state={isSelected ? "selected" : undefined}
@@ -143,26 +160,12 @@ export function createDataTableCardView(
                 cn(
                   [getRowClassName?.(originalRow)].filter(Boolean).join(" "),
                   "transition transition-colors hover:scale-101 data-[state=selected]:scale-101",
-                  uiClassNames.card ??
-                    "hover:bg-muted/50 data-[state=selected]:bg-primary/10",
-                  onRowClick && "cursor-pointer",
+                  uiClassNames.card,
                   isSelected
-                    ? (uiClassNames.cardSelected ??
-                      "bg-primary/10 ring-primary")
-                    : (uiClassNames.cardUnselected ?? "border-default"),
+                    ? uiClassNames.cardSelected
+                    : uiClassNames.cardUnselected,
                 ),
               )}
-              onClick={(event: React.MouseEvent<HTMLDivElement>) => {
-                const target = event.target as HTMLElement | null;
-                if (
-                  !onRowClick ||
-                  target?.closest("[data-row-click-ignore='true']")
-                ) {
-                  return;
-                }
-
-                void onRowClick({ row: originalRow, rowId });
-              }}
               onDragStart={(event: React.DragEvent<HTMLElement>) => {
                 onRowDragStart?.({ row: originalRow, rowId, event });
               }}
@@ -176,23 +179,46 @@ export function createDataTableCardView(
                   className={cn(
                     "pointer-events-none absolute inset-x-0 top-0 z-10 h-24 bg-linear-to-b opacity-0 transition-opacity group-hover/card:opacity-100",
                     uiClassNames.cardOverlay ??
-                      "from-background/95 via-background/85 to-transparent",
+                      "from-transparent via-transparent to-transparent",
                   )}
                 />
               ) : null}
               <div
                 data-dtp-slot="data-table-card-renderer"
-                className="flex min-h-0 w-full min-w-0 flex-1 overflow-hidden rounded-[inherit] [&>*]:w-full [&>*]:min-w-0"
+                role={onRowClick ? "button" : undefined}
+                tabIndex={onRowClick ? 0 : undefined}
+                className={cn(
+                  "flex min-h-0 w-full min-w-0 flex-1 overflow-hidden rounded-[inherit] [&>*]:w-full [&>*]:min-w-0",
+                  onRowClick && "cursor-pointer focus-visible:outline-none",
+                )}
+                onClick={(event: React.MouseEvent<HTMLDivElement>) => {
+                  const target = event.target as HTMLElement | null;
+                  if (target?.closest("[data-row-click-ignore='true']")) {
+                    return;
+                  }
+
+                  handleCardActivate();
+                }}
+                onKeyDown={(event: React.KeyboardEvent<HTMLDivElement>) => {
+                  const target = event.target as HTMLElement | null;
+                  if (target?.closest("[data-row-click-ignore='true']")) {
+                    return;
+                  }
+
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    handleCardActivate();
+                  }
+                }}
               >
                 {cardRenderer({
                   row: originalRow,
                   rowId,
                   isSelected,
                   onSelectedChange: (nextValue) => {
-                    onRowSelectionChange({
-                      ...rowSelection,
-                      [rowId]: nextValue,
-                    });
+                    onRowSelectionChange(
+                      updateRowSelection(rowSelection, rowId, nextValue),
+                    );
                   },
                   actions: rowActions,
                   isEditing,
@@ -213,11 +239,15 @@ export function createDataTableCardView(
                     >
                       <Checkbox
                         checked={isSelected}
+                        aria-label={`Select row ${rowId}`}
                         onCheckedChange={(checked: boolean | "indeterminate") => {
-                          onRowSelectionChange({
-                            ...rowSelection,
-                            [rowId]: checked === true,
-                          });
+                          onRowSelectionChange(
+                            updateRowSelection(
+                              rowSelection,
+                              rowId,
+                              checked === true,
+                            ),
+                          );
                         }}
                       />
                     </div>
@@ -250,4 +280,25 @@ export function createDataTableCardView(
       </div>
     );
   };
+}
+
+function updateRowSelection(
+  rowSelection: Record<string, boolean>,
+  rowId: string,
+  isSelected: boolean,
+) {
+  if (isSelected) {
+    return {
+      ...rowSelection,
+      [rowId]: true,
+    };
+  }
+
+  if (!rowSelection[rowId]) {
+    return rowSelection;
+  }
+
+  const nextSelection = { ...rowSelection };
+  delete nextSelection[rowId];
+  return nextSelection;
 }

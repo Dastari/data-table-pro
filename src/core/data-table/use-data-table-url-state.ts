@@ -116,8 +116,8 @@ export function useDataTableUrlState({
   );
 
   return {
-    searchValue: state.query,
-    setSearchValue: setQuery,
+    toolbarQueryValue: state.query,
+    setToolbarQueryValue: setQuery,
     pageIndex: Math.max(0, state.page - 1),
     setPageIndex,
     pageSize: state.pageSize,

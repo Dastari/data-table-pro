@@ -17,9 +17,9 @@ import type { DataTableUiKit } from "../ui-kit";
 type DataTableToolbarProps<TData> = {
   title?: string;
   description?: string;
-  searchValue: string;
-  searchPlaceholder: string;
-  onSearchValueChange: (value: string) => void;
+  toolbarQueryValue: string;
+  toolbarQueryPlaceholder: string;
+  onToolbarQueryValueChange: (value: string) => void;
   customToolbar?: React.ReactNode;
   viewMode: DataTableViewMode;
   onViewModeChange?: (viewMode: DataTableViewMode) => void;
@@ -60,9 +60,9 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
   return function DataTableToolbar<TData>({
     title,
     description,
-    searchValue,
-    searchPlaceholder,
-    onSearchValueChange,
+    toolbarQueryValue,
+    toolbarQueryPlaceholder,
+    onToolbarQueryValueChange,
     customToolbar,
     viewMode,
     onViewModeChange,
@@ -130,7 +130,7 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
             ) : null}
             {description ? (
               <p
-                className={`max-w-3xl text-sm ${uiClassNames.mutedText ?? "text-muted-foreground"}`}
+                className={`max-w-3xl text-sm ${uiClassNames.mutedText ?? "opacity-70"}`}
               >
                 {description}
               </p>
@@ -144,22 +144,22 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
               <div className="min-w-0 grow max-w-md">
                 <InputGroup>
                   <InputGroupInput
-                    value={searchValue}
+                    value={toolbarQueryValue}
                     onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-                      onSearchValueChange(event.target.value);
+                      onToolbarQueryValueChange(event.target.value);
                     }}
-                    placeholder={searchPlaceholder}
+                    placeholder={toolbarQueryPlaceholder}
                   />
                   <InputGroupAddon align="inline-start" aria-hidden="true">
                     <IconSearch />
                   </InputGroupAddon>
-                  {searchValue ? (
+                  {toolbarQueryValue ? (
                     <InputGroupAddon align="inline-end">
                       <button
                         type="button"
-                        className={`inline-flex size-5 items-center justify-center rounded-md transition-colors focus-visible:outline-none ${uiClassNames.toolbarIconButton ?? "text-muted-foreground hover:text-foreground"}`}
+                        className={`inline-flex size-5 items-center justify-center rounded-md transition-colors focus-visible:outline-none ${uiClassNames.toolbarIconButton ?? "opacity-70 hover:opacity-100"}`}
                         onClick={() => {
-                          onSearchValueChange("");
+                          onToolbarQueryValueChange("");
                         }}
                         aria-label="Clear search"
                         title="Clear search"
@@ -220,7 +220,7 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
             <div className="block grow md:hidden" />
             {selectedRows.length ? (
               <div
-                className={`hidden text-sm @md/data-table:block ${uiClassNames.mutedText ?? "text-muted-foreground"}`}
+                className={`hidden text-sm @md/data-table:block ${uiClassNames.mutedText ?? "opacity-70"}`}
               >
                 {selectedRowCountLabel}
               </div>
@@ -264,7 +264,7 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
                     variant="outline"
                     size="icon-sm"
                     aria-label="Show table options"
-                    className={uiClassNames.toolbarInputButton ?? "bg-input"}
+                    className={uiClassNames.toolbarInputButton}
                     title="Show table options"
                   >
                     <IconAdjustmentsHorizontal />
@@ -322,10 +322,11 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
                     <Button
                       type="button"
                       variant={viewMode === "table" ? "default" : "outline"}
+                      aria-pressed={viewMode === "table"}
                       className={
                         viewMode === "table"
                           ? ""
-                          : (uiClassNames.toolbarInputButton ?? "bg-input")
+                          : uiClassNames.toolbarInputButton
                       }
                       size="icon-sm"
                       onClick={() => {
@@ -343,9 +344,10 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
                     <Button
                       type="button"
                       variant={viewMode === "card" ? "default" : "outline"}
+                      aria-pressed={viewMode === "card"}
                       className={
                         viewMode === "table"
-                          ? (uiClassNames.toolbarInputButton ?? "bg-input")
+                          ? uiClassNames.toolbarInputButton
                           : ""
                       }
                       size="icon-sm"
@@ -379,7 +381,7 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
                       disabled={action.disabled}
                       aria-label={action.label}
                       title={action.iconOnly ? undefined : action.label}
-                      className={uiClassNames.toolbarInputButton ?? "bg-input"}
+                      className={uiClassNames.toolbarInputButton}
                     >
                       {action.icon ? (
                         <action.icon
