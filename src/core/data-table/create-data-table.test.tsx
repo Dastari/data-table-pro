@@ -1,5 +1,6 @@
 import * as React from "react";
 import { act } from "react";
+import { IconDownload } from "@tabler/icons-react";
 import {
   afterAll,
   afterEach,
@@ -936,6 +937,43 @@ for (const suite of suites) {
 
       expect(screen.getByText("1 record selected")).not.toBeNull();
     });
+
+    if (suite.name === "shadcn") {
+      it("uses border-border and bg-input defaults for shadcn controls", () => {
+        const { container } = renderTable({
+          toolbarActions: [
+            {
+              key: "export",
+              label: "Export",
+              icon: IconDownload,
+              onClick: vi.fn(),
+            },
+          ],
+        });
+
+        const searchGroup = container.querySelector('[data-slot="input-group"]');
+        const pageSizeTrigger = container.querySelector(
+          '[data-slot="select-trigger"]',
+        );
+
+        expect(searchGroup?.className).toContain("border-border");
+        expect(searchGroup?.className).toContain("bg-input");
+        expect(pageSizeTrigger?.className).toContain("border-border");
+        expect(pageSizeTrigger?.className).toContain("bg-input");
+        expect(
+          screen.getByRole("button", { name: "Search table" }).className,
+        ).toContain("border-border");
+        expect(
+          screen.getByRole("button", { name: "Search table" }).className,
+        ).toContain("bg-input");
+        expect(screen.getByRole("button", { name: "Export" }).className).toContain(
+          "border-border",
+        );
+        expect(screen.getByRole("button", { name: "Export" }).className).toContain(
+          "bg-input",
+        );
+      });
+    }
 
     it("renders a compact search trigger and opens the compact search row", () => {
       const { container } = renderTable();
