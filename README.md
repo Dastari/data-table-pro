@@ -202,6 +202,47 @@ Toolbar query note:
 - `toolbarQueryValue` and `onToolbarQueryValueChange` control the toolbar search input only
 - filtering remains consumer-owned unless you pass already-filtered `data`
 
+Mobile toolbar note:
+
+- built-in toolbar controls compact automatically in narrow container widths
+- use `compactToolbar` to supply icon-only custom filter/action content for the collapsed toolbar strip
+- `customToolbar` remains the desktop secondary toolbar row
+- if `compactToolbar` is omitted, `customToolbar` is reused in the compact row as a fallback
+
+Example:
+
+```tsx
+<DataTable
+  columns={columns}
+  data={rows}
+  getRowId={(row) => row.id}
+  toolbarQueryValue={query}
+  onToolbarQueryValueChange={setQuery}
+  customToolbar={
+    <>
+      <Button type="button" variant="outline">
+        Status
+      </Button>
+      <Button type="button" variant="outline">
+        Reset Filters
+      </Button>
+    </>
+  }
+  compactToolbar={
+    <>
+      <Button type="button" variant="outline" size="icon-sm" aria-label="Status filters">
+        <IconFilter />
+      </Button>
+      <Button type="button" variant="outline" size="icon-sm" aria-label="Reset filters">
+        <IconRefresh />
+      </Button>
+    </>
+  }
+/>
+```
+
+Use `compactToolbar` when the desktop toolbar content is too wide or too text-heavy for the collapsed mobile toolbar strip.
+
 ## Migration Notes
 
 - Existing shadcn consumers can keep importing from `data-table-pro`.

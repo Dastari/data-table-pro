@@ -206,6 +206,58 @@ One parent requirement remains unavoidable: the nearest containing layout must e
 | `toolbarQueryPlaceholder` | `string` | `"Search rows..."` | Toolbar input placeholder. |
 | `toolbarQueryDebounceMs` | `number` | `250` | Debounce delay for `onToolbarQueryValueChange`. |
 | `customToolbar` | `React.ReactNode` | `undefined` | Optional secondary toolbar row rendered below the main toolbar. |
+| `compactToolbar` | `React.ReactNode` | `undefined` | Optional mobile compact-toolbar content rendered inline with the collapsed toolbar control strip. Use this for icon-only filter/action controls in narrow container widths. |
+
+Built-in toolbar controls automatically compact in narrow container widths:
+
+- the search input collapses to a search button and can expand inline on demand
+- built-in toolbar actions collapse to icon-first controls
+- `compactToolbar` is the package-level hook for consumer-defined mobile filter/action content
+
+`compactToolbar` behavior:
+
+- it renders only in narrow container widths, inside the main collapsed toolbar control row
+- `customToolbar` still renders as the separate desktop toolbar row on wider container widths
+- if `compactToolbar` is omitted but `customToolbar` is provided, the package reuses `customToolbar` in the compact row as a fallback
+- the intended use is icon-only or very compact controls; the package does not automatically convert arbitrary desktop JSX into mobile icon buttons
+
+Example:
+
+```tsx
+<DataTable
+  columns={columns}
+  data={rows}
+  getRowId={(row) => row.id}
+  toolbarQueryValue={query}
+  onToolbarQueryValueChange={setQuery}
+  customToolbar={
+    <>
+      <Button type="button" variant="outline">
+        Status
+      </Button>
+      <Button type="button" variant="outline">
+        Reset Filters
+      </Button>
+    </>
+  }
+  compactToolbar={
+    <>
+      <Button type="button" variant="outline" size="icon-sm" aria-label="Status filters">
+        <IconFilter />
+      </Button>
+      <Button type="button" variant="outline" size="icon-sm" aria-label="Reset filters">
+        <IconRefresh />
+      </Button>
+    </>
+  }
+/>
+```
+
+In that setup:
+
+- desktop/wide containers show the normal search input and the `customToolbar` row
+- mobile/narrow containers show the built-in compact toolbar strip plus the `compactToolbar` icons on the same line
+- the search field reduces to a search icon and expands inline when activated
 
 Removed in `2.0.1`:
 

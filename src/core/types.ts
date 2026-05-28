@@ -201,6 +201,7 @@ export type DataTableProps<TData> = {
   toolbarQueryPlaceholder?: string;
   toolbarQueryDebounceMs?: number;
   customToolbar?: React.ReactNode;
+  compactToolbar?: React.ReactNode;
   rowsPerPageOptions?: Array<number>;
   totalRowCount?: number;
   sorting?: SortingState;

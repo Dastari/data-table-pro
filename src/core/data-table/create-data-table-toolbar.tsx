@@ -1,3 +1,4 @@
+import * as React from "react";
 import {
   IconAdjustmentsHorizontal,
   IconLayoutGrid,
@@ -21,6 +22,7 @@ type DataTableToolbarProps<TData> = {
   toolbarQueryPlaceholder: string;
   onToolbarQueryValueChange: (value: string) => void;
   customToolbar?: React.ReactNode;
+  compactToolbar?: React.ReactNode;
   viewMode: DataTableViewMode;
   onViewModeChange?: (viewMode: DataTableViewMode) => void;
   enableViewToggle: boolean;
@@ -64,6 +66,7 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
     toolbarQueryPlaceholder,
     onToolbarQueryValueChange,
     customToolbar,
+    compactToolbar,
     viewMode,
     onViewModeChange,
     enableViewToggle,
@@ -79,6 +82,9 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
     toolbarVisibility,
     openFileDialog,
   }: DataTableToolbarProps<TData>) {
+    const compactSearchInputRef = React.useRef<HTMLInputElement | null>(null);
+    const [isCompactSearchVisible, setIsCompactSearchVisible] =
+      React.useState(false);
     const primaryActions = toolbarActions.filter(
       (action) => (action.placement ?? "primary") === "primary",
     );
@@ -106,7 +112,17 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
     const hasVisibleTrailingActions =
       showTrailingActions && trailingActions.length > 0;
     const hasVisibleCustomToolbar = showCustomToolbar && Boolean(customToolbar);
+    const hasVisibleCompactToolbar =
+      showCustomToolbar && Boolean(compactToolbar ?? customToolbar);
     const selectedRowCountLabel = `${selectedRows.length} record${selectedRows.length === 1 ? "" : "s"} selected`;
+
+    React.useEffect(() => {
+      if (!isCompactSearchVisible) {
+        return;
+      }
+
+      compactSearchInputRef.current?.focus();
+    }, [isCompactSearchVisible]);
 
     if (
       !hasVisibleTitle &&
@@ -116,7 +132,8 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
       !hasVisibleOptions &&
       !hasVisibleViewToggle &&
       !hasVisibleTrailingActions &&
-      !hasVisibleCustomToolbar
+      !hasVisibleCustomToolbar &&
+      !hasVisibleCompactToolbar
     ) {
       return null;
     }
@@ -138,48 +155,82 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
           </div>
         ) : null}
 
-        <div className="flex flex-col gap-4 md:flex-row xl:items-center xl:justify-between">
-          <div className="flex flex-1 flex-row gap-3 md:flex-row md:items-center px-1">
+        <div className="flex flex-col gap-3">
+          <div
+            data-dtp-slot="data-table-toolbar-controls"
+            className="flex items-center gap-2 overflow-x-auto px-1 @md/data-table:gap-3 @md/data-table:overflow-visible"
+          >
             {showSearch ? (
-              <div className="min-w-0 grow max-w-md">
-                <InputGroup>
-                  <InputGroupInput
-                    value={toolbarQueryValue}
-                    onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-                      onToolbarQueryValueChange(event.target.value);
-                    }}
-                    placeholder={toolbarQueryPlaceholder}
-                  />
-                  <InputGroupAddon align="inline-start" aria-hidden="true">
-                    <IconSearch />
-                  </InputGroupAddon>
-                  {toolbarQueryValue ? (
-                    <InputGroupAddon align="inline-end">
-                      <button
-                        type="button"
-                        className={`inline-flex size-5 items-center justify-center rounded-md transition-colors focus-visible:outline-none ${uiClassNames.toolbarIconButton ?? "opacity-70 hover:opacity-100"}`}
-                        onClick={() => {
-                          onToolbarQueryValueChange("");
-                        }}
-                        aria-label="Clear search"
-                        title="Clear search"
-                      >
-                        <IconX />
-                      </button>
+              <>
+                <div className="hidden min-w-0 grow max-w-md @md/data-table:block">
+                  <InputGroup className="min-w-0">
+                    <InputGroupInput
+                      value={toolbarQueryValue}
+                      onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                        onToolbarQueryValueChange(event.target.value);
+                      }}
+                      placeholder={toolbarQueryPlaceholder}
+                    />
+                    <InputGroupAddon align="inline-start" aria-hidden="true">
+                      <IconSearch />
                     </InputGroupAddon>
-                  ) : null}
-                </InputGroup>
-              </div>
+                    {toolbarQueryValue ? (
+                      <InputGroupAddon align="inline-end">
+                        <button
+                          type="button"
+                          className={`inline-flex size-5 items-center justify-center rounded-md transition-colors focus-visible:outline-none ${uiClassNames.toolbarIconButton ?? "opacity-70 hover:opacity-100"}`}
+                          onClick={() => {
+                            onToolbarQueryValueChange("");
+                          }}
+                          aria-label="Clear search"
+                          title="Clear search"
+                        >
+                          <IconX />
+                        </button>
+                      </InputGroupAddon>
+                    ) : null}
+                  </InputGroup>
+                </div>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      variant={
+                        isCompactSearchVisible || toolbarQueryValue
+                          ? "secondary"
+                          : "outline"
+                      }
+                      size="icon-sm"
+                      aria-label="Search table"
+                      aria-pressed={isCompactSearchVisible}
+                      className={`shrink-0 @md/data-table:hidden ${uiClassNames.toolbarInputButton ?? ""}`}
+                      onClick={() => {
+                        setIsCompactSearchVisible((current) => !current);
+                      }}
+                    >
+                      <IconSearch />
+                      <span className="sr-only">Search table</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Search table</TooltipContent>
+                </Tooltip>
+              </>
             ) : null}
 
             {showActions ? (
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex shrink-0 items-center gap-2">
                 {primaryActions.map((action) => {
+                  const collapsesToIcon =
+                    !action.iconOnly && Boolean(action.icon);
                   const button = (
                     <Button
                       key={action.key}
                       type="button"
-                      className="size-7 @md/data-table:w-fit @md/data-table:h-8 "
+                      className={
+                        collapsesToIcon
+                          ? "size-7 shrink-0 px-0 @md/data-table:h-8 @md/data-table:w-fit @md/data-table:px-2.5"
+                          : "size-7 shrink-0 @md/data-table:h-8 @md/data-table:w-fit"
+                      }
                       variant={action.variant ?? "outline"}
                       size={action.iconOnly ? "icon" : "default"}
                       onClick={() => {
@@ -195,10 +246,12 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
                       {action.icon ? <action.icon /> : null}
                       {action.iconOnly ? (
                         <span className="sr-only">{action.label}</span>
-                      ) : (
+                      ) : collapsesToIcon ? (
                         <span className="hidden @md/data-table:inline">
                           {action.label}
                         </span>
+                      ) : (
+                        <span>{action.label}</span>
                       )}
                     </Button>
                   );
@@ -214,205 +267,265 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
                 })}
               </div>
             ) : null}
-          </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="block grow md:hidden" />
-            {selectedRows.length ? (
+            {hasVisibleCompactToolbar ? (
               <div
-                className={`hidden text-sm @md/data-table:block ${uiClassNames.mutedText ?? "opacity-70"}`}
+                data-dtp-slot="data-table-toolbar-compact-custom"
+                className="flex shrink-0 items-center gap-2 @md/data-table:hidden"
               >
-                {selectedRowCountLabel}
+                {compactToolbar ?? customToolbar}
               </div>
             ) : null}
-            {selectedRows.length
-              ? selectionActions.map((action) => {
-                  const Icon = action.icon;
-                  const disabled =
-                    typeof action.disabled === "function"
-                      ? action.disabled(selectedRows)
-                      : action.disabled;
 
-                  return (
-                    <Tooltip key={action.key}>
-                      <TooltipTrigger asChild>
-                        <Button
-                          type="button"
-                          variant={action.variant ?? "secondary"}
-                          size="icon-sm"
-                          disabled={disabled}
-                          onClick={() => {
-                            void action.onClick({ rows: selectedRows });
+            <div className="block grow @md/data-table:hidden" />
+
+            <div className="flex shrink-0 items-center gap-2">
+              {selectedRows.length ? (
+                <div
+                  className={`hidden text-sm @md/data-table:block ${uiClassNames.mutedText ?? "opacity-70"}`}
+                >
+                  {selectedRowCountLabel}
+                </div>
+              ) : null}
+              {selectedRows.length
+                ? selectionActions.map((action) => {
+                    const Icon = action.icon;
+                    const disabled =
+                      typeof action.disabled === "function"
+                        ? action.disabled(selectedRows)
+                        : action.disabled;
+
+                    return (
+                      <Tooltip key={action.key}>
+                        <TooltipTrigger asChild>
+                          <Button
+                            type="button"
+                            variant={action.variant ?? "secondary"}
+                            size="icon-sm"
+                            disabled={disabled}
+                            onClick={() => {
+                              void action.onClick({ rows: selectedRows });
+                            }}
+                            aria-label={action.label}
+                          >
+                            {Icon ? <Icon /> : null}
+                            <span className="sr-only">{action.label}</span>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>{action.label}</TooltipContent>
+                      </Tooltip>
+                    );
+                  })
+                : null}
+
+              {hasVisibleOptions ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon-sm"
+                      aria-label="Show table options"
+                      className={uiClassNames.toolbarInputButton}
+                      title="Show table options"
+                    >
+                      <IconAdjustmentsHorizontal />
+                      <span className="sr-only">Show table options</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuLabel>Table options</DropdownMenuLabel>
+                    <DropdownMenuGroup>
+                      {onShowHiddenRowsChange && hiddenRowsLabel ? (
+                        <DropdownMenuCheckboxItem
+                          checked={showHiddenRows}
+                          onCheckedChange={(
+                            checked: boolean | "indeterminate",
+                          ) => {
+                            onShowHiddenRowsChange(checked === true);
                           }}
-                          aria-label={action.label}
                         >
-                          {Icon ? <Icon /> : null}
-                          <span className="sr-only">{action.label}</span>
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>{action.label}</TooltipContent>
-                    </Tooltip>
-                  );
-                })
-              : null}
+                          Show {hiddenRowsLabel}
+                        </DropdownMenuCheckboxItem>
+                      ) : null}
+                    </DropdownMenuGroup>
+                    {columnVisibilityOptions.some((column) => column.canHide) ? (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuLabel>Columns</DropdownMenuLabel>
+                        <DropdownMenuGroup>
+                          {columnVisibilityOptions
+                            .filter((column) => column.canHide)
+                            .map((column) => (
+                              <DropdownMenuCheckboxItem
+                                key={column.id}
+                                checked={column.visible}
+                                onCheckedChange={(
+                                  checked: boolean | "indeterminate",
+                                ) => {
+                                  onColumnVisibilityChange?.(
+                                    column.id,
+                                    checked === true,
+                                  );
+                                }}
+                              >
+                                {column.label}
+                              </DropdownMenuCheckboxItem>
+                            ))}
+                        </DropdownMenuGroup>
+                      </>
+                    ) : null}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : null}
 
-            {hasVisibleOptions ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon-sm"
-                    aria-label="Show table options"
-                    className={uiClassNames.toolbarInputButton}
-                    title="Show table options"
-                  >
-                    <IconAdjustmentsHorizontal />
-                    <span className="sr-only">Show table options</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel>Table options</DropdownMenuLabel>
-                  <DropdownMenuGroup>
-                    {onShowHiddenRowsChange && hiddenRowsLabel ? (
-                      <DropdownMenuCheckboxItem
-                        checked={showHiddenRows}
-                        onCheckedChange={(checked: boolean | "indeterminate") => {
-                          onShowHiddenRowsChange(checked === true);
+              {showViewToggle && enableViewToggle && onViewModeChange ? (
+                <ButtonGroup>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button"
+                        variant={viewMode === "table" ? "default" : "outline"}
+                        aria-pressed={viewMode === "table"}
+                        className={
+                          viewMode === "table"
+                            ? ""
+                            : uiClassNames.toolbarInputButton
+                        }
+                        size="icon-sm"
+                        onClick={() => {
+                          onViewModeChange("table");
                         }}
                       >
-                        Show {hiddenRowsLabel}
-                      </DropdownMenuCheckboxItem>
-                    ) : null}
-                  </DropdownMenuGroup>
-                  {columnVisibilityOptions.some((column) => column.canHide) ? (
-                    <>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuLabel>Columns</DropdownMenuLabel>
-                      <DropdownMenuGroup>
-                        {columnVisibilityOptions
-                          .filter((column) => column.canHide)
-                          .map((column) => (
-                            <DropdownMenuCheckboxItem
-                              key={column.id}
-                              checked={column.visible}
-                              onCheckedChange={(
-                                checked: boolean | "indeterminate",
-                              ) => {
-                                onColumnVisibilityChange?.(
-                                  column.id,
-                                  checked === true,
-                                );
-                              }}
-                            >
-                              {column.label}
-                            </DropdownMenuCheckboxItem>
-                          ))}
-                      </DropdownMenuGroup>
-                    </>
-                  ) : null}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : null}
+                        <IconList />
+                        <span className="sr-only">Switch to table view</span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Table view</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button"
+                        variant={viewMode === "card" ? "default" : "outline"}
+                        aria-pressed={viewMode === "card"}
+                        className={
+                          viewMode === "table"
+                            ? uiClassNames.toolbarInputButton
+                            : ""
+                        }
+                        size="icon-sm"
+                        onClick={() => {
+                          onViewModeChange("card");
+                        }}
+                      >
+                        <IconLayoutGrid />
+                        <span className="sr-only">Switch to card view</span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Card view</TooltipContent>
+                  </Tooltip>
+                </ButtonGroup>
+              ) : null}
 
-            {showViewToggle && enableViewToggle && onViewModeChange ? (
-              <ButtonGroup>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      type="button"
-                      variant={viewMode === "table" ? "default" : "outline"}
-                      aria-pressed={viewMode === "table"}
-                      className={
-                        viewMode === "table"
-                          ? ""
-                          : uiClassNames.toolbarInputButton
-                      }
-                      size="icon-sm"
-                      onClick={() => {
-                        onViewModeChange("table");
-                      }}
-                    >
-                      <IconList />
-                      <span className="sr-only">Switch to table view</span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Table view</TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      type="button"
-                      variant={viewMode === "card" ? "default" : "outline"}
-                      aria-pressed={viewMode === "card"}
-                      className={
-                        viewMode === "table"
-                          ? uiClassNames.toolbarInputButton
-                          : ""
-                      }
-                      size="icon-sm"
-                      onClick={() => {
-                        onViewModeChange("card");
-                      }}
-                    >
-                      <IconLayoutGrid />
-                      <span className="sr-only">Switch to card view</span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Card view</TooltipContent>
-                </Tooltip>
-              </ButtonGroup>
-            ) : null}
+              {showTrailingActions
+                ? trailingActions.map((action) => {
+                    const collapsesToIcon =
+                      !action.iconOnly && Boolean(action.icon);
+                    const button = (
+                      <Button
+                        key={action.key}
+                        type="button"
+                        variant={action.variant ?? "outline"}
+                        size={action.iconOnly ? "icon-sm" : "default"}
+                        onClick={() => {
+                          void action.onClick({
+                            rows: allRows,
+                            openFileDialog,
+                          });
+                        }}
+                        disabled={action.disabled}
+                        aria-label={action.label}
+                        title={action.iconOnly ? undefined : action.label}
+                        className={`size-7 shrink-0 ${collapsesToIcon ? "px-0 @md/data-table:px-2.5" : ""} @md/data-table:h-8 @md/data-table:w-fit ${uiClassNames.toolbarInputButton ?? ""}`}
+                      >
+                        {action.icon ? (
+                          <action.icon
+                            data-icon={
+                              action.iconOnly ? undefined : "inline-start"
+                            }
+                          />
+                        ) : null}
+                        {action.iconOnly ? (
+                          <span className="sr-only">{action.label}</span>
+                        ) : collapsesToIcon ? (
+                          <span className="hidden @md/data-table:inline">
+                            {action.label}
+                          </span>
+                        ) : (
+                          <span>{action.label}</span>
+                        )}
+                      </Button>
+                    );
 
-            {showTrailingActions
-              ? trailingActions.map((action) => {
-                  const button = (
-                    <Button
-                      key={action.key}
-                      type="button"
-                      variant={action.variant ?? "outline"}
-                      size={action.iconOnly ? "icon-sm" : "default"}
-                      onClick={() => {
-                        void action.onClick({
-                          rows: allRows,
-                          openFileDialog,
-                        });
-                      }}
-                      disabled={action.disabled}
-                      aria-label={action.label}
-                      title={action.iconOnly ? undefined : action.label}
-                      className={uiClassNames.toolbarInputButton}
-                    >
-                      {action.icon ? (
-                        <action.icon
-                          data-icon={action.iconOnly ? undefined : "inline-start"}
-                        />
-                      ) : null}
-                      {action.iconOnly ? (
-                        <span className="sr-only">{action.label}</span>
-                      ) : (
-                        <span className="hidden @3xl/data-table:inline">
-                          {action.label}
-                        </span>
-                      )}
-                    </Button>
-                  );
-
-                  return action.iconOnly ? (
-                    <Tooltip key={action.key}>
-                      <TooltipTrigger asChild>{button}</TooltipTrigger>
-                      <TooltipContent>{action.label}</TooltipContent>
-                    </Tooltip>
-                  ) : (
-                    button
-                  );
-                })
-              : null}
+                    return action.iconOnly ? (
+                      <Tooltip key={action.key}>
+                        <TooltipTrigger asChild>{button}</TooltipTrigger>
+                        <TooltipContent>{action.label}</TooltipContent>
+                      </Tooltip>
+                    ) : (
+                      button
+                    );
+                  })
+                : null}
+            </div>
           </div>
+
+          {showSearch && isCompactSearchVisible ? (
+            <div
+              data-dtp-slot="data-table-toolbar-compact-search"
+              className="min-w-0 @md/data-table:hidden"
+            >
+              <InputGroup>
+                <InputGroupInput
+                  ref={compactSearchInputRef}
+                  value={toolbarQueryValue}
+                  onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                    onToolbarQueryValueChange(event.target.value);
+                  }}
+                  placeholder={toolbarQueryPlaceholder}
+                />
+                <InputGroupAddon align="inline-start" aria-hidden="true">
+                  <IconSearch />
+                </InputGroupAddon>
+                {toolbarQueryValue ? (
+                  <InputGroupAddon align="inline-end">
+                    <button
+                      type="button"
+                      className={`inline-flex size-5 items-center justify-center rounded-md transition-colors focus-visible:outline-none ${uiClassNames.toolbarIconButton ?? "opacity-70 hover:opacity-100"}`}
+                      onClick={() => {
+                        onToolbarQueryValueChange("");
+                      }}
+                      aria-label="Clear search"
+                      title="Clear search"
+                    >
+                      <IconX />
+                    </button>
+                  </InputGroupAddon>
+                ) : null}
+              </InputGroup>
+            </div>
+          ) : null}
+
         </div>
 
         {showCustomToolbar && customToolbar ? (
-          <div className="flex flex-row items-center gap-3">{customToolbar}</div>
+          <div
+            data-dtp-slot="data-table-toolbar-desktop-custom"
+            className="hidden flex-row items-center gap-3 @md/data-table:flex"
+          >
+            {customToolbar}
+          </div>
         ) : null}
       </div>
     );

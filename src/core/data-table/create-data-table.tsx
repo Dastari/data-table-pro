@@ -91,6 +91,7 @@ export function createDataTable(ui: DataTableUiKit) {
     toolbarQueryPlaceholder,
     toolbarQueryDebounceMs,
     customToolbar,
+    compactToolbar,
     rowsPerPageOptions = [10, 20, 50, 100],
     totalRowCount,
     sorting,
@@ -930,6 +931,7 @@ export function createDataTable(ui: DataTableUiKit) {
                     toolbarQueryPlaceholder={resolvedToolbarQueryPlaceholder}
                     onToolbarQueryValueChange={setLocalSearchValue}
                     customToolbar={customToolbar}
+                    compactToolbar={compactToolbar}
                     viewMode={viewMode}
                     onViewModeChange={onViewModeChange}
                     enableViewToggle={enableViewToggle && Boolean(cardRenderer)}

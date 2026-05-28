@@ -936,5 +936,38 @@ for (const suite of suites) {
 
       expect(screen.getByText("1 record selected")).not.toBeNull();
     });
+
+    it("renders a compact search trigger and opens the compact search row", () => {
+      const { container } = renderTable();
+
+      expect(
+        screen.getByRole("button", { name: "Search table" }),
+      ).not.toBeNull();
+      expect(
+        container.querySelector('[data-dtp-slot="data-table-toolbar-compact-search"]'),
+      ).toBeNull();
+
+      fireEvent.click(screen.getByRole("button", { name: "Search table" }));
+
+      expect(
+        container.querySelector('[data-dtp-slot="data-table-toolbar-compact-search"]'),
+      ).not.toBeNull();
+    });
+
+    it("renders compact toolbar content in the mobile control row and customToolbar in the desktop row", () => {
+      const { container } = renderTable({
+        compactToolbar: <button type="button">Compact Filters</button>,
+        customToolbar: <button type="button">Desktop Filters</button>,
+      });
+
+      expect(
+        container.querySelector('[data-dtp-slot="data-table-toolbar-compact-custom"]')
+          ?.textContent,
+      ).toContain("Compact Filters");
+      expect(
+        container.querySelector('[data-dtp-slot="data-table-toolbar-desktop-custom"]')
+          ?.textContent,
+      ).toContain("Desktop Filters");
+    });
   });
 }
