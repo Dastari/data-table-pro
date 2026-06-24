@@ -53,6 +53,25 @@ Override HeroUI slot styling in the host app only if you want a different visual
 - The package does not ship HeroUI theme tokens.
 - The package does not ship The Gridcn theme tokens.
 
+## Adapter Class Hooks
+
+Adapter implementations can override specific table surfaces through `ui.classNames`.
+
+Compact toolbar icon buttons now have a dedicated hook:
+
+- `toolbarCompactIconButton`: applied to compact toolbar icon controls such as the collapsed search trigger, options button, view toggle buttons, icon-only selection actions, and icon-only/collapsed toolbar actions
+
+Example:
+
+```ts
+classNames: {
+  ...shadcnUiKit.classNames,
+  toolbarCompactIconButton: "size-8",
+}
+```
+
+Use that hook when a host design system wants compact toolbar icon buttons to be larger or smaller than the package defaults without targeting toolbar DOM structure directly.
+
 ## Full-Height Layout
 
 `DataTable` defaults to `flexGrow={true}`. Put it in a constrained flex content region and let the package handle internal sizing:

@@ -85,6 +85,8 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
     const compactSearchInputRef = React.useRef<HTMLInputElement | null>(null);
     const [isCompactSearchVisible, setIsCompactSearchVisible] =
       React.useState(false);
+    const compactToolbarIconButtonClassName =
+      uiClassNames.toolbarCompactIconButton ?? "";
     const primaryActions = toolbarActions.filter(
       (action) => (action.placement ?? "primary") === "primary",
     );
@@ -203,7 +205,7 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
                       size="icon-sm"
                       aria-label="Search table"
                       aria-pressed={isCompactSearchVisible}
-                      className={`shrink-0 @md/data-table:hidden ${uiClassNames.toolbarInputButton ?? ""}`}
+                      className={`shrink-0 @md/data-table:hidden ${compactToolbarIconButtonClassName} ${uiClassNames.toolbarInputButton ?? ""}`}
                       onClick={() => {
                         setIsCompactSearchVisible((current) => !current);
                       }}
@@ -228,8 +230,10 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
                       type="button"
                       className={
                         collapsesToIcon
-                          ? "size-7 shrink-0 px-0 @md/data-table:h-8 @md/data-table:w-fit @md/data-table:px-2.5"
-                          : "size-7 shrink-0 @md/data-table:h-8 @md/data-table:w-fit"
+                          ? `size-7 shrink-0 px-0 @md/data-table:h-8 @md/data-table:w-fit @md/data-table:px-2.5 ${compactToolbarIconButtonClassName}`
+                          : action.iconOnly
+                            ? `size-7 shrink-0 @md/data-table:h-8 @md/data-table:w-fit ${compactToolbarIconButtonClassName}`
+                            : "size-7 shrink-0 @md/data-table:h-8 @md/data-table:w-fit"
                       }
                       variant={action.variant ?? "outline"}
                       size={action.iconOnly ? "icon" : "default"}
@@ -271,7 +275,7 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
             {hasVisibleCompactToolbar ? (
               <div
                 data-dtp-slot="data-table-toolbar-compact-custom"
-                className="flex shrink-0 items-center gap-2 @md/data-table:hidden"
+                className="flex shrink-0 items-center gap-2 @lg/data-table:hidden"
               >
                 {compactToolbar ?? customToolbar}
               </div>
@@ -302,6 +306,7 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
                             type="button"
                             variant={action.variant ?? "secondary"}
                             size="icon-sm"
+                            className={compactToolbarIconButtonClassName}
                             disabled={disabled}
                             onClick={() => {
                               void action.onClick({ rows: selectedRows });
@@ -326,7 +331,7 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
                       variant="outline"
                       size="icon-sm"
                       aria-label="Show table options"
-                      className={uiClassNames.toolbarInputButton}
+                      className={`${compactToolbarIconButtonClassName} ${uiClassNames.toolbarInputButton ?? ""}`}
                       title="Show table options"
                     >
                       <IconAdjustmentsHorizontal />
@@ -389,8 +394,8 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
                         aria-pressed={viewMode === "table"}
                         className={
                           viewMode === "table"
-                            ? ""
-                            : uiClassNames.toolbarInputButton
+                            ? compactToolbarIconButtonClassName
+                            : `${compactToolbarIconButtonClassName} ${uiClassNames.toolbarInputButton ?? ""}`
                         }
                         size="icon-sm"
                         onClick={() => {
@@ -411,8 +416,8 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
                         aria-pressed={viewMode === "card"}
                         className={
                           viewMode === "table"
-                            ? uiClassNames.toolbarInputButton
-                            : ""
+                            ? `${compactToolbarIconButtonClassName} ${uiClassNames.toolbarInputButton ?? ""}`
+                            : compactToolbarIconButtonClassName
                         }
                         size="icon-sm"
                         onClick={() => {
@@ -447,7 +452,7 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
                         disabled={action.disabled}
                         aria-label={action.label}
                         title={action.iconOnly ? undefined : action.label}
-                        className={`size-7 shrink-0 ${collapsesToIcon ? "px-0 @md/data-table:px-2.5" : ""} @md/data-table:h-8 @md/data-table:w-fit ${uiClassNames.toolbarInputButton ?? ""}`}
+                        className={`size-7 shrink-0 ${collapsesToIcon ? "px-0 @md/data-table:px-2.5" : ""} @md/data-table:h-8 @md/data-table:w-fit ${action.iconOnly || collapsesToIcon ? compactToolbarIconButtonClassName : ""} ${uiClassNames.toolbarInputButton ?? ""}`}
                       >
                         {action.icon ? (
                           <action.icon
@@ -522,7 +527,7 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
         {showCustomToolbar && customToolbar ? (
           <div
             data-dtp-slot="data-table-toolbar-desktop-custom"
-            className="hidden flex-row items-center gap-3 @md/data-table:flex"
+            className="hidden flex-row items-center gap-3 @lg/data-table:flex"
           >
             {customToolbar}
           </div>

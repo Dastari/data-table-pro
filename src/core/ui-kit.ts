@@ -28,6 +28,7 @@ export type DataTableUiClassNames = {
   tableContainer?: string;
   tableScrollArea?: string;
   tableStickyHeader?: string;
+  toolbarCompactIconButton?: string;
   toolbarIconButton?: string;
   toolbarInputButton?: string;
 };

@@ -198,6 +198,7 @@ export const shadcnUiKit: DataTableUiKit = {
     tableContainer: "border-border bg-card text-card-foreground",
     tableStickyHeader:
       "sticky top-0 z-30 bg-card/95 backdrop-blur [&_th]:border-border [&_th]:bg-card/95",
+    toolbarCompactIconButton: "size-7",
     toolbarIconButton: "text-muted-foreground hover:text-foreground",
     toolbarInputButton: "border-border bg-input",
   },

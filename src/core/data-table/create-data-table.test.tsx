@@ -17,6 +17,7 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
+import { createDataTable } from "./create-data-table";
 import * as RootEntry from "../../index";
 import { DataTable as ShadcnDataTable } from "../../index";
 import * as HeroEntry from "../../entries/heroui";
@@ -224,6 +225,44 @@ describe("DataTable adapter providers", () => {
     expect("useDataTableUrlState" in RootEntry).toBe(false);
     expect("useDataTableUrlState" in HeroEntry).toBe(false);
     expect("useDataTableUrlState" in GridEntry).toBe(false);
+  });
+
+  it("applies toolbarCompactIconButton class overrides to compact toolbar controls", () => {
+    const CustomDataTable = createDataTable({
+      ...shadcnUiKit,
+      classNames: {
+        ...shadcnUiKit.classNames,
+        toolbarCompactIconButton: "toolbar-compact-size-8",
+      },
+    });
+
+    render(
+      <CustomDataTable
+        columns={columns}
+        data={rows}
+        getRowId={(row) => row.id}
+        toolbarActions={[
+          {
+            key: "refresh",
+            label: "Refresh",
+            icon: IconDownload,
+            iconOnly: true,
+            placement: "trailing",
+            onClick: vi.fn(),
+          },
+        ]}
+      />,
+    );
+
+    expect(
+      screen.getByRole("button", { name: "Search table" }).className,
+    ).toContain("toolbar-compact-size-8");
+    expect(
+      screen.getByRole("button", { name: "Show table options" }).className,
+    ).toContain("toolbar-compact-size-8");
+    expect(
+      screen.getByRole("button", { name: "Refresh" }).className,
+    ).toContain("toolbar-compact-size-8");
   });
 
   it("clips complete HeroUI card renderers with absolute overlays", () => {
@@ -1006,6 +1045,14 @@ for (const suite of suites) {
         container.querySelector('[data-dtp-slot="data-table-toolbar-desktop-custom"]')
           ?.textContent,
       ).toContain("Desktop Filters");
+      expect(
+        container.querySelector('[data-dtp-slot="data-table-toolbar-compact-custom"]')
+          ?.className,
+      ).toContain("@lg/data-table:hidden");
+      expect(
+        container.querySelector('[data-dtp-slot="data-table-toolbar-desktop-custom"]')
+          ?.className,
+      ).toContain("@lg/data-table:flex");
     });
   });
 }

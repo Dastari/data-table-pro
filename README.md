@@ -206,7 +206,8 @@ Mobile toolbar note:
 
 - built-in toolbar controls compact automatically in narrow container widths
 - use `compactToolbar` to supply icon-only custom filter/action content for the collapsed toolbar strip
-- `customToolbar` remains the desktop secondary toolbar row
+- `compactToolbar` stays inline through small and medium container widths
+- `customToolbar` becomes the separate desktop secondary toolbar row from the large container breakpoint upward
 - if `compactToolbar` is omitted, `customToolbar` is reused in the compact row as a fallback
 
 Example:
@@ -241,7 +242,7 @@ Example:
 />
 ```
 
-Use `compactToolbar` when the desktop toolbar content is too wide or too text-heavy for the collapsed mobile toolbar strip.
+Use `compactToolbar` when the desktop toolbar content is too wide or too text-heavy for the collapsed small/medium toolbar strip.
 
 ## Migration Notes
 

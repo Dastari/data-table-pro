@@ -216,8 +216,8 @@ Built-in toolbar controls automatically compact in narrow container widths:
 
 `compactToolbar` behavior:
 
-- it renders only in narrow container widths, inside the main collapsed toolbar control row
-- `customToolbar` still renders as the separate desktop toolbar row on wider container widths
+- it renders inline inside the main toolbar control row until the container reaches the large (`@lg`) breakpoint
+- `customToolbar` renders as the separate desktop toolbar row only from the large (`@lg`) breakpoint upward
 - if `compactToolbar` is omitted but `customToolbar` is provided, the package reuses `customToolbar` in the compact row as a fallback
 - the intended use is icon-only or very compact controls; the package does not automatically convert arbitrary desktop JSX into mobile icon buttons
 
@@ -255,8 +255,8 @@ Example:
 
 In that setup:
 
-- desktop/wide containers show the normal search input and the `customToolbar` row
-- mobile/narrow containers show the built-in compact toolbar strip plus the `compactToolbar` icons on the same line
+- large/wide containers show the normal search input and the separate `customToolbar` row
+- small/medium containers keep the built-in compact toolbar strip plus the `compactToolbar` icons on the same line
 - the search field reduces to a search icon and expands inline when activated
 
 Removed in `2.0.1`:

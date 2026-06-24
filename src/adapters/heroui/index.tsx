@@ -234,6 +234,7 @@ export const heroUiKit: DataTableUiKit = {
     tableScrollArea: "bg-surface",
     tableStickyHeader:
       "sticky top-0 z-30 bg-surface/95 backdrop-blur [&_th]:border-separator [&_th]:bg-surface/95",
+    toolbarCompactIconButton: "size-7",
     toolbarIconButton: "text-muted hover:text-foreground",
     toolbarInputButton: "bg-field",
   },

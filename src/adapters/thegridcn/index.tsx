@@ -220,6 +220,7 @@ export const theGridcnUiKit: DataTableUiKit = {
     tableScrollArea: "bg-black/72",
     tableStickyHeader:
       "sticky top-0 z-30 bg-black/90 backdrop-blur [&_th]:border-cyan-400/45 [&_th]:bg-black/90",
+    toolbarCompactIconButton: "size-7",
     toolbarIconButton: "text-cyan-100/70 hover:text-cyan-50",
     toolbarInputButton: "border-cyan-400/45 bg-black/70 text-cyan-50",
   },
