@@ -13,7 +13,6 @@ import {
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { IconChevronDown, IconDownload, IconSelector } from "../icons";
 import type {
-  CellContext,
   ColumnFiltersState,
   ColumnDef,
   ColumnOrderState,
@@ -29,7 +28,6 @@ import type {
 import type {
   DataTableColumnDef,
   DataTableColumnFixed,
-  DataTableColumnType,
   DataTableDensity,
   DataTableProps,
 } from "../types";
@@ -71,6 +69,7 @@ import {
 } from "./data-table-utils";
 import { useColumnLayout } from "./use-column-layout";
 import { useControllableState } from "./use-controllable-state";
+import { renderEditableCell, useRowEditing } from "./use-row-editing";
 import {
   cellAlignClassName,
   headerAlignClassName,
@@ -293,12 +292,19 @@ export function createDataTable(ui: DataTableUiKit) {
     const [localSearchValue, setLocalSearchValue] = React.useState(
       resolvedToolbarQueryValue,
     );
-    const [editingRowId, setEditingRowId] = React.useState<string | null>(null);
-    const [draftValues, setDraftValues] = React.useState<
-      Record<string, unknown>
-    >({});
-    const draftValuesRef = React.useRef(draftValues);
-    const [isSavingEdit, setIsSavingEdit] = React.useState(false);
+    const {
+      cancelEditing,
+      draftValues,
+      editingRowId,
+      isSavingEdit,
+      saveEdit,
+      setDraftValues,
+      setEditingRowId,
+      startEditingRow,
+    } = useRowEditing({
+      columns,
+      editableRows,
+    });
     const containerWidth = useDataTableContainerWidth(containerRef);
     const { viewportElement: tableScrollElement, viewportHeight } =
       useDataTableScrollViewport(tableScrollContainerRef, currentViewMode);
@@ -315,10 +321,6 @@ export function createDataTable(ui: DataTableUiKit) {
       lastReportedSearchValueRef.current = resolvedToolbarQueryValue;
       setLocalSearchValue(resolvedToolbarQueryValue);
     }, [resolvedToolbarQueryValue]);
-
-    React.useEffect(() => {
-      draftValuesRef.current = draftValues;
-    }, [draftValues]);
 
     React.useEffect(() => {
       if (!hasOnSearchValueChange) {
@@ -553,36 +555,6 @@ export function createDataTable(ui: DataTableUiKit) {
       });
     }, [columns, currentColumnPinning, effectiveColumnVisibility]);
 
-    const startEditingRow = React.useCallback(
-      (row: TData, rowId: string) => {
-        const initialValues =
-          editableRows?.getInitialValues?.(row) ??
-          defaultDraftValues(row, columns);
-        setDraftValues(initialValues);
-        setEditingRowId(rowId);
-      },
-      [columns, editableRows],
-    );
-
-    const saveEdit = React.useCallback(
-      async (row: TData) => {
-        if (!editableRows) {
-          return;
-        }
-
-        setIsSavingEdit(true);
-        try {
-          await editableRows.onSaveRow(row, draftValuesRef.current);
-          React.startTransition(() => {
-            setEditingRowId(null);
-            setDraftValues({});
-          });
-        } finally {
-          setIsSavingEdit(false);
-        }
-      },
-      [editableRows],
-    );
     const selectRowRange = React.useCallback(
       (targetRowId: string, selected: boolean) => {
         const tableInstance = tableRef.current;
@@ -748,10 +720,7 @@ export function createDataTable(ui: DataTableUiKit) {
                         type="button"
                         size="icon-sm"
                         variant="ghost"
-                        onClick={() => {
-                          setEditingRowId(null);
-                          setDraftValues({});
-                        }}
+                        onClick={cancelEditing}
                       >
                         <IconChevronDown className="rotate-45" />
                         <span className="sr-only">
@@ -786,6 +755,7 @@ export function createDataTable(ui: DataTableUiKit) {
 
       return defs;
     }, [
+      cancelEditing,
       columns,
       editableRows,
       editingRowId,
@@ -2162,138 +2132,4 @@ export function createDataTable(ui: DataTableUiKit) {
       </TooltipProvider>
     );
   };
-}
-
-function defaultDraftValues<TData>(
-  row: TData,
-  columns: Array<DataTableColumnDef<TData, unknown>>,
-) {
-  return columns.reduce<Record<string, unknown>>((draft, column) => {
-    if ("accessorKey" in column && typeof column.accessorKey === "string") {
-      draft[column.accessorKey] = (row as Record<string, unknown>)[
-        column.accessorKey
-      ];
-    }
-    return draft;
-  }, {});
-}
-
-function renderEditableCell<TData>(
-  context: CellContext<TData, unknown>,
-  draftValues: Record<string, unknown>,
-  setDraftValues: React.Dispatch<React.SetStateAction<Record<string, unknown>>>,
-  components: Pick<DataTableUiKit, "Checkbox" | "Input">,
-) {
-  const { Checkbox, Input } = components;
-  const column = context.column.columnDef as DataTableColumnDef<TData, unknown>;
-  const meta = column.meta;
-  const accessorKey =
-    "accessorKey" in column && typeof column.accessorKey === "string"
-      ? column.accessorKey
-      : context.column.id;
-  const draftValue = draftValues[accessorKey];
-  const setDraftValue = (value: unknown) => {
-    setDraftValues((current) => ({
-      ...current,
-      [accessorKey]: value,
-    }));
-  };
-
-  if (meta?.renderEditCell) {
-    return meta.renderEditCell({
-      cell: context,
-      row: context.row.original,
-      value: context.getValue(),
-      draftValue,
-      setDraftValue,
-    });
-  }
-
-  const inputType = getEditableInputType(meta?.type, draftValue);
-
-  if (typeof draftValue === "boolean") {
-    return (
-      <Checkbox
-        checked={draftValue}
-        onCheckedChange={(checked: boolean | "indeterminate") => {
-          setDraftValue(checked === true);
-        }}
-      />
-    );
-  }
-
-  return (
-    <Input
-      type={inputType}
-      value={
-        meta?.formatEditValue
-          ? meta.formatEditValue(draftValue, context)
-          : getEditableInputValue(draftValue, inputType)
-      }
-      onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-        const rawValue = event.target.value;
-        const parsedValue = meta?.parseEditValue
-          ? meta.parseEditValue(rawValue, context)
-          : parseEditableInputValue(rawValue, inputType, draftValue);
-        setDraftValue(parsedValue);
-      }}
-    />
-  );
-}
-
-function getEditableInputType(
-  type: DataTableColumnType | undefined,
-  value: unknown,
-) {
-  if (type === "numeric" || typeof value === "number") {
-    return "number";
-  }
-
-  if (type === "date" || value instanceof Date) {
-    return "datetime-local";
-  }
-
-  return "text";
-}
-
-function getEditableInputValue(value: unknown, inputType = "text") {
-  if (value == null) {
-    return "";
-  }
-
-  if (value instanceof Date) {
-    return inputType === "datetime-local"
-      ? value.toISOString().slice(0, 16)
-      : value.toISOString();
-  }
-
-  if (
-    typeof value === "string" ||
-    typeof value === "number" ||
-    typeof value === "boolean" ||
-    typeof value === "bigint"
-  ) {
-    return String(value);
-  }
-
-  return "";
-}
-
-function parseEditableInputValue(
-  value: string,
-  inputType: string,
-  previousValue: unknown,
-) {
-  if (inputType === "number") {
-    return value === "" ? null : Number(value);
-  }
-
-  if (inputType === "datetime-local") {
-    if (!value) {
-      return null;
-    }
-    return previousValue instanceof Date ? new Date(value) : value;
-  }
-
-  return value;
 }
