@@ -14,6 +14,11 @@ export type DataTableAlign = "start" | "center" | "end";
 export type DataTableColumnType = "text" | "numeric" | "date";
 export type DataTableColumnFixed = "left" | "right";
 export type DataTableContainerBreakpoint = "sm" | "md" | "lg" | "xl" | "2xl";
+export type DataTableCellOverflow =
+  | "truncate"
+  | "clip"
+  | "wrap"
+  | "visible";
 
 export const DATA_TABLE_CONTAINER_BREAKPOINT_WIDTHS: Record<
   DataTableContainerBreakpoint,
@@ -51,6 +56,12 @@ export type DataTableColumnMeta<TData, TValue> = {
   hideOn?: DataTableContainerBreakpoint | Array<DataTableContainerBreakpoint>;
   minWidth?: number;
   align?: DataTableAlign;
+  overflow?:
+    | DataTableCellOverflow
+    | ((args: {
+        row: TData;
+        value: TValue | undefined;
+      }) => DataTableCellOverflow | undefined);
   headerClassName?: string;
   cellClassName?:
     | string

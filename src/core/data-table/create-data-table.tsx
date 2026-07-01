@@ -670,6 +670,16 @@ export function createDataTable(ui: DataTableUiKit) {
 
       return widths;
     }, [columns]);
+    const explicitCustomCellColumnIds = React.useMemo(() => {
+      return new Set(
+        columns.flatMap((column, index) => {
+          return Object.prototype.hasOwnProperty.call(column, "cell") &&
+            typeof column.cell === "function"
+            ? [getColumnId(column, index)]
+            : [];
+        }),
+      );
+    }, [columns]);
     const visibleLeafColumnCount = visibleLeafColumns.length;
     const fillColumnId = React.useMemo(() => {
       if (layoutMode !== "fill") {
@@ -1562,6 +1572,7 @@ export function createDataTable(ui: DataTableUiKit) {
                                                   ? "true"
                                                   : undefined
                                               }
+                                              className="min-w-0 max-w-full"
                                             >
                                               {resolvedLoadingState?.isLoading
                                                 ? (meta?.skeleton?.(
@@ -1594,6 +1605,15 @@ export function createDataTable(ui: DataTableUiKit) {
                                             : renderDataTableCellContent(
                                                 cellContext,
                                                 uiClassNames,
+                                                {
+                                                  useCustomOverflowDefaults:
+                                                    explicitCustomCellColumnIds.has(
+                                                      cell.column.id,
+                                                    ) ||
+                                                    isSelectionColumn ||
+                                                    isActionsColumn ||
+                                                    isSpacerColumn,
+                                                },
                                               )}
                                             </div>
                                           </TableCell>

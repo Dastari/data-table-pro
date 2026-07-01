@@ -5,6 +5,7 @@ export const DataTable = createDataTable(shadcnUiKit);
 
 export type {
   DataTableAlign,
+  DataTableCellOverflow,
   DataTableCardRendererProps,
   DataTableColumnDef,
   DataTableColumnFixed,

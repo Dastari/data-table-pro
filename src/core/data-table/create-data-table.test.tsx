@@ -494,6 +494,158 @@ for (const suite of suites) {
       });
     });
 
+    it("defaults primitive cells to truncation-safe overflow wrappers", () => {
+      const longToken = "SUPERCALIFRAGILISTICEXPIALIDOCIOUS-UNBROKEN-TOKEN";
+      const longSentence =
+        "This is a very long sentence that should stay on one line and truncate by default.";
+      type OverflowRow = TestRow & { details: string };
+      const overflowColumns: Array<DataTableColumnDef<OverflowRow, unknown>> = [
+        {
+          accessorKey: "name",
+          header: "Name",
+        },
+        {
+          accessorKey: "details",
+          header: "Details",
+        },
+      ];
+      const overflowRows: Array<OverflowRow> = [
+        { id: "1", name: longToken, details: longSentence },
+      ];
+
+      render(
+        <TooltipProvider>
+          <DataTable
+            columns={overflowColumns}
+            data={overflowRows}
+            getRowId={(row) => row.id}
+            toolbarQueryDebounceMs={100}
+          />
+        </TooltipProvider>,
+      );
+
+      const tokenWrapper = screen
+        .getByText(longToken)
+        .closest('[data-dtp-slot="data-table-cell-content"]');
+      const sentenceWrapper = screen
+        .getByText(longSentence)
+        .closest('[data-dtp-slot="data-table-cell-content"]');
+
+      expect(tokenWrapper?.getAttribute("data-dtp-overflow")).toBe("truncate");
+      expect(tokenWrapper?.className).toContain("overflow-hidden");
+      expect(tokenWrapper?.className).toContain("text-ellipsis");
+      expect(tokenWrapper?.className).toContain("whitespace-nowrap");
+      expect(sentenceWrapper?.getAttribute("data-dtp-overflow")).toBe(
+        "truncate",
+      );
+      expect(sentenceWrapper?.className).toContain("overflow-hidden");
+      expect(sentenceWrapper?.className).toContain("text-ellipsis");
+      expect(sentenceWrapper?.className).toContain("whitespace-nowrap");
+    });
+
+    it("defaults custom cell renderers to clipped wrappers", () => {
+      renderTable({
+        columns: [
+          {
+            accessorKey: "name",
+            header: "Name",
+            cell: () => (
+              <div className="flex min-w-0">
+                <div>Very wide custom content</div>
+              </div>
+            ),
+          },
+        ],
+      });
+
+      const wrapper = screen
+        .getByText("Very wide custom content")
+        .closest('[data-dtp-slot="data-table-cell-content"]');
+
+      expect(wrapper?.getAttribute("data-dtp-overflow")).toBe("clip");
+      expect(wrapper?.className).toContain("overflow-hidden");
+      expect(wrapper?.className).toContain("whitespace-nowrap");
+      expect(wrapper?.className).toContain("[&>*]:max-w-full");
+      expect(wrapper?.className).toContain("[&>*]:min-w-0");
+    });
+
+    it("supports wrapping and visible overflow overrides", () => {
+      type OverflowModeRow = TestRow & {
+        wrapValue: string;
+        visibleValue: string;
+        conditionalValue: string;
+      };
+      const overflowModeColumns: Array<
+        DataTableColumnDef<OverflowModeRow, unknown>
+      > = [
+        {
+          accessorKey: "wrapValue",
+          header: "Wrap",
+          meta: {
+            overflow: "wrap",
+          },
+        },
+        {
+          accessorKey: "visibleValue",
+          header: "Visible",
+          meta: {
+            overflow: "visible",
+          },
+        },
+        {
+          accessorKey: "conditionalValue",
+          header: "Conditional",
+          meta: {
+            overflow: ({ row }) => (row.id === "1" ? "wrap" : "truncate"),
+          },
+        },
+      ];
+      const overflowModeRows: Array<OverflowModeRow> = [
+        {
+          id: "1",
+          name: "Ada",
+          wrapValue:
+            "This wrapped value should be allowed to break onto multiple lines.",
+          visibleValue: "Visible overflow content",
+          conditionalValue: "Conditional wrap content",
+        },
+      ];
+
+      render(
+        <TooltipProvider>
+          <DataTable
+            columns={overflowModeColumns}
+            data={overflowModeRows}
+            getRowId={(row) => row.id}
+            toolbarQueryDebounceMs={100}
+          />
+        </TooltipProvider>,
+      );
+
+      const wrapWrapper = screen
+        .getByText(
+          "This wrapped value should be allowed to break onto multiple lines.",
+        )
+        .closest('[data-dtp-slot="data-table-cell-content"]');
+      const visibleWrapper = screen
+        .getByText("Visible overflow content")
+        .closest('[data-dtp-slot="data-table-cell-content"]');
+      const conditionalWrapper = screen
+        .getByText("Conditional wrap content")
+        .closest('[data-dtp-slot="data-table-cell-content"]');
+
+      expect(wrapWrapper?.getAttribute("data-dtp-overflow")).toBe("wrap");
+      expect(wrapWrapper?.className).toContain("whitespace-normal");
+      expect(wrapWrapper?.className).toContain("break-words");
+      expect(visibleWrapper?.getAttribute("data-dtp-overflow")).toBe(
+        "visible",
+      );
+      expect(visibleWrapper?.className).toContain("overflow-visible");
+      expect(conditionalWrapper?.getAttribute("data-dtp-overflow")).toBe(
+        "wrap",
+      );
+    });
+
     it("renders skeleton cards while initially loading with no rows", () => {
       const cardRenderer = vi.fn(() => <div>Rendered card</div>);
       const { container } = renderTable({

@@ -364,6 +364,68 @@ Virtualization is intentionally disabled until the table scroll viewport has a m
 | `layoutMode` | `"fill" \| "fit"` | `"fill"` | `fill` stretches the table to the container; `fit` sizes to content width. |
 | `stickyHeader` | `boolean` | `true` | Makes the table header sticky inside the scroll area. |
 
+### Cell overflow defaults
+
+`DataTable` now applies a library-level overflow policy to body-cell content by default:
+
+- primitive text-like cells default to truncation with ellipsis
+- custom rendered cells default to clipped content inside the cell bounds
+- all cell-content wrappers apply `min-width: 0` and `max-width: 100%` so flex/grid children can shrink without expanding the column or table
+
+Use `column.meta.overflow` to override the default per column or per row:
+
+```ts
+type DataTableCellOverflow = "truncate" | "clip" | "wrap" | "visible";
+```
+
+Examples:
+
+```tsx
+const columns: Array<DataTableColumnDef<Row>> = [
+  {
+    accessorKey: "name",
+    header: "Name",
+    // default primitive behavior is already "truncate"
+  },
+  {
+    accessorKey: "summary",
+    header: "Summary",
+    meta: {
+      overflow: "wrap",
+    },
+  },
+  {
+    accessorKey: "preview",
+    header: "Preview",
+    cell: ({ row }) => <PreviewCard row={row.original} />,
+    // default custom-renderer behavior is already "clip"
+  },
+  {
+    accessorKey: "overlayTrigger",
+    header: "Overlay",
+    meta: {
+      overflow: "visible",
+    },
+    cell: () => <DatePickerTrigger />,
+  },
+  {
+    accessorKey: "status",
+    header: "Status",
+    meta: {
+      overflow: ({ row }) => (row.isExpanded ? "wrap" : "truncate"),
+    },
+  },
+];
+```
+
+Notes:
+
+- use `"truncate"` for single-line text with ellipsis
+- use `"clip"` when a custom renderer should stay bounded to the cell without wrapping
+- use `"wrap"` for multi-line body text
+- use `"visible"` only when visual overflow is intentional
+- overlay-style content such as menus, popovers, tooltips, and date pickers should render through a portal when possible; otherwise prefer `"visible"` for that column
+
 ### Toolbar presentation props
 
 | Prop | Type | Default | Description |

@@ -1,38 +1,127 @@
+import * as React from "react";
 import { flexRender, type CellContext } from "@tanstack/react-table";
 import { IconClock } from "@tabler/icons-react";
-import type { DataTableColumnDef } from "../types";
+import type {
+  DataTableCellOverflow,
+  DataTableColumnDef,
+} from "../types";
 import type { DataTableUiClassNames } from "../ui-kit";
+import { cn } from "../../lib/utils";
 
 export function renderDataTableCellContent<TData>(
   context: CellContext<TData, unknown>,
   classNames?: DataTableUiClassNames,
+  options?: {
+    useCustomOverflowDefaults?: boolean;
+  },
 ) {
   const column = context.column.columnDef as DataTableColumnDef<TData, unknown>;
   const meta = column.meta;
-  const hasCustomCell =
-    Object.prototype.hasOwnProperty.call(column, "cell") &&
-    typeof column.cell === "function";
-
   const value = context.getValue();
+  const renderedCellContent = column.cell
+    ? flexRender(column.cell, context)
+    : undefined;
+  const hasComplexRenderedContent = isComplexRenderedCellContent(
+    renderedCellContent,
+  );
+  const resolvedOverflow = resolveDataTableCellOverflow({
+    context,
+    useCustomOverflowDefaults: options?.useCustomOverflowDefaults ?? false,
+    value,
+  });
 
-  if (meta?.type === "date" && !hasCustomCell) {
+  if (meta?.type === "date" && !hasComplexRenderedContent) {
     return (
-      <div className="inline-flex items-center justify-end gap-2">
-        <IconClock className={classNames?.mutedText ?? "opacity-70"} />
-        <span>{formatDateValue(value)}</span>
+      <div
+        data-dtp-slot="data-table-cell-content"
+        data-dtp-overflow={resolvedOverflow}
+        className={cn(
+          getCellOverflowClassName(resolvedOverflow),
+          "flex w-full min-w-0 items-center justify-end gap-2",
+        )}
+      >
+        <IconClock
+          className={cn(
+            "shrink-0",
+            classNames?.mutedText ?? "opacity-70",
+          )}
+        />
+        <span className="min-w-0 truncate">{formatDateValue(value)}</span>
       </div>
     );
   }
 
-  if (column.cell) {
-    return flexRender(column.cell, context);
+  const content =
+    renderedCellContent !== undefined
+      ? renderedCellContent
+      : value == null || value === ""
+      ? <span className={classNames?.mutedText ?? "opacity-70"}>-</span>
+      : formatCellValue(value);
+
+  return (
+    <div
+      data-dtp-slot="data-table-cell-content"
+      data-dtp-overflow={resolvedOverflow}
+      className={cn(
+        getCellOverflowClassName(resolvedOverflow),
+        "w-full min-w-0 max-w-full",
+        hasComplexRenderedContent && "[&>*]:max-w-full [&>*]:min-w-0",
+      )}
+    >
+      {content}
+    </div>
+  );
+}
+
+function resolveDataTableCellOverflow<TData>({
+  context,
+  useCustomOverflowDefaults,
+  value,
+}: {
+  context: CellContext<TData, unknown>;
+  useCustomOverflowDefaults: boolean;
+  value: unknown;
+}): DataTableCellOverflow {
+  const column = context.column.columnDef as DataTableColumnDef<TData, unknown>;
+  const resolvedOverflow =
+    typeof column.meta?.overflow === "function"
+      ? column.meta.overflow({
+          row: context.row.original,
+          value,
+        })
+      : column.meta?.overflow;
+
+  if (resolvedOverflow) {
+    return resolvedOverflow;
   }
 
-  if (value == null || value === "") {
-    return <span className={classNames?.mutedText ?? "opacity-70"}>-</span>;
+  return useCustomOverflowDefaults ? "clip" : "truncate";
+}
+
+function getCellOverflowClassName(overflow: DataTableCellOverflow) {
+  switch (overflow) {
+    case "clip":
+      return "block overflow-hidden whitespace-nowrap";
+    case "wrap":
+      return "block overflow-hidden whitespace-normal break-words";
+    case "visible":
+      return "block overflow-visible whitespace-normal";
+    case "truncate":
+    default:
+      return "block overflow-hidden text-ellipsis whitespace-nowrap";
+  }
+}
+
+function isComplexRenderedCellContent(content: React.ReactNode) {
+  if (content == null) {
+    return false;
   }
 
-  return formatCellValue(value);
+  return (
+    React.isValidElement(content) ||
+    Array.isArray(content) ||
+    typeof content === "object"
+  );
 }
 
 function formatDateValue(value: unknown) {

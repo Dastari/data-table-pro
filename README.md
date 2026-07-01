@@ -202,6 +202,13 @@ Toolbar query note:
 - `toolbarQueryValue` and `onToolbarQueryValueChange` control the toolbar search input only
 - filtering remains consumer-owned unless you pass already-filtered `data`
 
+Cell overflow note:
+
+- primitive table cells now truncate with ellipsis by default
+- custom rendered table cells now clip to their cell bounds by default
+- override per column with `column.meta.overflow: "truncate" | "clip" | "wrap" | "visible"`
+- use `"visible"` for non-portaled overlay-style cell content when intentional visual overflow is required
+
 Mobile toolbar note:
 
 - built-in toolbar controls compact automatically in narrow container widths

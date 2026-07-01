@@ -1,5 +1,6 @@
 export type {
   DataTableAlign,
+  DataTableCellOverflow,
   DataTableCardRendererProps,
   DataTableColumnDef,
   DataTableColumnFixed,
