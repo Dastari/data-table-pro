@@ -70,6 +70,7 @@ import {
   startCase,
 } from "./data-table-utils";
 import { useColumnLayout } from "./use-column-layout";
+import { useControllableState } from "./use-controllable-state";
 import {
   cellAlignClassName,
   headerAlignClassName,
@@ -213,36 +214,77 @@ export function createDataTable(ui: DataTableUiKit) {
       () => resolveDataTableLabels(labels),
       [labels],
     );
-    const [localSorting, setLocalSorting] = React.useState<SortingState>([]);
     const [localPagination, setLocalPagination] =
       React.useState<PaginationState>({
         pageIndex: 0,
         pageSize: rowsPerPageOptions[0] ?? 20,
       });
-    const [localRowSelection, setLocalRowSelection] = React.useState<
-      Record<string, boolean>
-    >({});
-    const [localColumnVisibility, setLocalColumnVisibility] =
-      React.useState<VisibilityState>(() => persistedColumnPrefs.visibility ?? {});
-    const [localColumnFilters, setLocalColumnFilters] =
-      React.useState<ColumnFiltersState>([]);
-    const [localExpanded, setLocalExpanded] = React.useState<ExpandedState>({});
-    const [localColumnOrder, setLocalColumnOrder] =
-      React.useState<ColumnOrderState>(() => persistedColumnPrefs.order ?? []);
-    const [localColumnPinning, setLocalColumnPinning] =
-      React.useState<ColumnPinningState>(
-        () => persistedColumnPrefs.pinning ?? getInitialColumnPinning(columns),
-      );
     const [localColumnSizing, setLocalColumnSizing] =
       React.useState<ColumnSizingState>(() => persistedColumnPrefs.sizing ?? {});
-    const [localViewMode, setLocalViewMode] =
-      React.useState(() => viewMode ?? "table");
-    const [localShowHiddenRows, setLocalShowHiddenRows] = React.useState(
-      showHiddenRows ?? false,
-    );
-    const [localDensity, setLocalDensity] = React.useState<DataTableDensity>(
-      () => density ?? persistedColumnPrefs.density ?? "comfortable",
-    );
+    const [currentSorting, setCurrentSorting] =
+      useControllableState<SortingState>({
+        value: sorting,
+        onChange: onSortingChange,
+        defaultValue: [],
+      });
+    const [currentRowSelection, setCurrentRowSelection] = useControllableState<
+      Record<string, boolean>
+    >({
+      value: rowSelection,
+      onChange: onRowSelectionChange,
+      defaultValue: {},
+    });
+    const [currentColumnVisibility, setCurrentColumnVisibility] =
+      useControllableState<VisibilityState>({
+        value: columnVisibility,
+        onChange: onColumnVisibilityChange,
+        defaultValue: () => persistedColumnPrefs.visibility ?? {},
+      });
+    const [currentColumnFilters, setCurrentColumnFilters] =
+      useControllableState<ColumnFiltersState>({
+        value: columnFilters,
+        onChange: onColumnFiltersChange,
+        defaultValue: [],
+      });
+    const [currentExpanded, setCurrentExpanded] =
+      useControllableState<ExpandedState>({
+        value: expanded,
+        onChange: onExpandedChange,
+        defaultValue: {},
+      });
+    const [currentColumnOrder, setCurrentColumnOrder] =
+      useControllableState<ColumnOrderState>({
+        value: columnOrder,
+        onChange: onColumnOrderChange,
+        defaultValue: () => persistedColumnPrefs.order ?? [],
+      });
+    const [currentColumnPinning, setCurrentColumnPinning] =
+      useControllableState<ColumnPinningState>({
+        value: columnPinning,
+        onChange: onColumnPinningChange,
+        defaultValue: () =>
+          persistedColumnPrefs.pinning ?? getInitialColumnPinning(columns),
+      });
+    const [currentViewMode, setCurrentViewMode] = useControllableState<
+      "table" | "card"
+    >({
+      value: viewMode,
+      onChange: onViewModeChange,
+      defaultValue: () => viewMode ?? "table",
+    });
+    const [currentShowHiddenRows, setCurrentShowHiddenRows] =
+      useControllableState<boolean>({
+        value: showHiddenRows,
+        onChange: onShowHiddenRowsChange,
+        defaultValue: () => showHiddenRows ?? false,
+      });
+    const [currentDensity, setCurrentDensity] =
+      useControllableState<DataTableDensity>({
+        value: density,
+        onChange: onDensityChange,
+        defaultValue: () =>
+          density ?? persistedColumnPrefs.density ?? "comfortable",
+      });
     const resolvedToolbarQueryValue = toolbarQueryValue ?? "";
     const resolvedToolbarQueryPlaceholder =
       toolbarQueryPlaceholder ?? resolvedLabels.searchPlaceholder;
@@ -257,9 +299,6 @@ export function createDataTable(ui: DataTableUiKit) {
     >({});
     const draftValuesRef = React.useRef(draftValues);
     const [isSavingEdit, setIsSavingEdit] = React.useState(false);
-    const currentViewMode = viewMode ?? localViewMode;
-    const currentShowHiddenRows = showHiddenRows ?? localShowHiddenRows;
-    const currentDensity = density ?? localDensity;
     const containerWidth = useDataTableContainerWidth(containerRef);
     const { viewportElement: tableScrollElement, viewportHeight } =
       useDataTableScrollViewport(tableScrollContainerRef, currentViewMode);
@@ -308,7 +347,6 @@ export function createDataTable(ui: DataTableUiKit) {
       resolvedToolbarQueryValue,
     ]);
 
-    const currentSorting = sorting ?? localSorting;
     const currentPagination = React.useMemo<PaginationState>(
       () => ({
         pageIndex: pageIndex ?? localPagination.pageIndex,
@@ -325,40 +363,25 @@ export function createDataTable(ui: DataTableUiKit) {
       1,
       loadingRowCount ?? Math.min(5, currentPagination.pageSize),
     );
-    const currentRowSelection = rowSelection ?? localRowSelection;
-    const currentColumnVisibility = columnVisibility ?? localColumnVisibility;
-    const currentColumnFilters = columnFilters ?? localColumnFilters;
-    const currentExpanded = expanded ?? localExpanded;
-    const currentColumnOrder = columnOrder ?? localColumnOrder;
-    const currentColumnPinning = columnPinning ?? localColumnPinning;
     const currentColumnSizing = localColumnSizing;
     const globalFilterValue = "";
     const handleViewModeChange = React.useCallback(
       (nextViewMode: "table" | "card") => {
-        onViewModeChange?.(nextViewMode);
-        if (viewMode === undefined) {
-          setLocalViewMode(nextViewMode);
-        }
+        setCurrentViewMode(nextViewMode);
       },
-      [onViewModeChange, viewMode],
+      [setCurrentViewMode],
     );
     const handleShowHiddenRowsChange = React.useCallback(
       (nextShowHiddenRows: boolean) => {
-        onShowHiddenRowsChange?.(nextShowHiddenRows);
-        if (showHiddenRows === undefined) {
-          setLocalShowHiddenRows(nextShowHiddenRows);
-        }
+        setCurrentShowHiddenRows(nextShowHiddenRows);
       },
-      [onShowHiddenRowsChange, showHiddenRows],
+      [setCurrentShowHiddenRows],
     );
     const handleDensityChange = React.useCallback(
       (nextDensity: DataTableDensity) => {
-        onDensityChange?.(nextDensity);
-        if (density === undefined) {
-          setLocalDensity(nextDensity);
-        }
+        setCurrentDensity(nextDensity);
       },
-      [density, onDensityChange],
+      [setCurrentDensity],
     );
     const resetPageIndexForFilterChange = React.useCallback(() => {
       onPageIndexChange?.(0);
@@ -805,13 +828,9 @@ export function createDataTable(ui: DataTableUiKit) {
     );
     const handleSortingChange = React.useCallback<OnChangeFn<SortingState>>(
       (updater) => {
-        const nextValue = functionalUpdate(updater, currentSorting);
-        onSortingChange?.(nextValue);
-        if (!sorting) {
-          setLocalSorting(nextValue);
-        }
+        setCurrentSorting(updater);
       },
-      [currentSorting, onSortingChange, sorting],
+      [setCurrentSorting],
     );
     const handlePaginationChange = React.useCallback<
       OnChangeFn<PaginationState>
@@ -844,71 +863,47 @@ export function createDataTable(ui: DataTableUiKit) {
       OnChangeFn<Record<string, boolean>>
     >(
       (updater) => {
-        const nextValue = functionalUpdate(updater, currentRowSelection);
-        onRowSelectionChange?.(nextValue);
-        if (!rowSelection) {
-          setLocalRowSelection(nextValue);
-        }
+        setCurrentRowSelection(updater);
       },
-      [currentRowSelection, onRowSelectionChange, rowSelection],
+      [setCurrentRowSelection],
     );
     const handleColumnVisibilityChange = React.useCallback<
       OnChangeFn<VisibilityState>
     >(
       (updater) => {
-        const nextValue = functionalUpdate(updater, currentColumnVisibility);
-        onColumnVisibilityChange?.(nextValue);
-        if (!columnVisibility) {
-          setLocalColumnVisibility(nextValue);
-        }
+        setCurrentColumnVisibility(updater);
       },
-      [columnVisibility, currentColumnVisibility, onColumnVisibilityChange],
+      [setCurrentColumnVisibility],
     );
     const handleColumnFiltersChange = React.useCallback<
       OnChangeFn<ColumnFiltersState>
     >(
       (updater) => {
-        const nextValue = functionalUpdate(updater, currentColumnFilters);
-        onColumnFiltersChange?.(nextValue);
-        if (!columnFilters) {
-          setLocalColumnFilters(nextValue);
-        }
+        setCurrentColumnFilters(updater);
       },
-      [columnFilters, currentColumnFilters, onColumnFiltersChange],
+      [setCurrentColumnFilters],
     );
     const handleExpandedChange = React.useCallback<OnChangeFn<ExpandedState>>(
       (updater) => {
-        const nextValue = functionalUpdate(updater, currentExpanded);
-        onExpandedChange?.(nextValue);
-        if (!expanded) {
-          setLocalExpanded(nextValue);
-        }
+        setCurrentExpanded(updater);
       },
-      [currentExpanded, expanded, onExpandedChange],
+      [setCurrentExpanded],
     );
     const handleColumnOrderChange = React.useCallback<
       OnChangeFn<ColumnOrderState>
     >(
       (updater) => {
-        const nextValue = functionalUpdate(updater, currentColumnOrder);
-        onColumnOrderChange?.(nextValue);
-        if (!columnOrder) {
-          setLocalColumnOrder(nextValue);
-        }
+        setCurrentColumnOrder(updater);
       },
-      [columnOrder, currentColumnOrder, onColumnOrderChange],
+      [setCurrentColumnOrder],
     );
     const handleColumnPinningChange = React.useCallback<
       OnChangeFn<ColumnPinningState>
     >(
       (updater) => {
-        const nextValue = functionalUpdate(updater, currentColumnPinning);
-        onColumnPinningChange?.(nextValue);
-        if (!columnPinning) {
-          setLocalColumnPinning(nextValue);
-        }
+        setCurrentColumnPinning(updater);
       },
-      [columnPinning, currentColumnPinning, onColumnPinningChange],
+      [setCurrentColumnPinning],
     );
     const handleColumnSizingChange = React.useCallback<
       OnChangeFn<ColumnSizingState>
@@ -1405,12 +1400,7 @@ export function createDataTable(ui: DataTableUiKit) {
                           renderExpandedRow={renderExpandedRow}
                           hasCardTitle={hasCardTitle}
                           rowSelection={currentRowSelection}
-                          onRowSelectionChange={(nextValue) => {
-                            onRowSelectionChange?.(nextValue);
-                            if (!rowSelection) {
-                              setLocalRowSelection(nextValue);
-                            }
-                          }}
+                          onRowSelectionChange={setCurrentRowSelection}
                           enableRowSelection={enableRowSelection}
                           editingRowId={editingRowId}
                           onEditingRowIdChange={setEditingRowId}
@@ -1434,12 +1424,7 @@ export function createDataTable(ui: DataTableUiKit) {
                           renderExpandedRow={renderExpandedRow}
                           hasCardTitle={hasCardTitle}
                           rowSelection={currentRowSelection}
-                          onRowSelectionChange={(nextValue) => {
-                            onRowSelectionChange?.(nextValue);
-                            if (!rowSelection) {
-                              setLocalRowSelection(nextValue);
-                            }
-                          }}
+                          onRowSelectionChange={setCurrentRowSelection}
                           enableRowSelection={enableRowSelection}
                           editingRowId={editingRowId}
                           onEditingRowIdChange={setEditingRowId}
