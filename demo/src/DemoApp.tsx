@@ -10,7 +10,7 @@ import {
   IconSparkles,
   IconStar,
   IconUserCheck,
-} from "@tabler/icons-react";
+} from "../../src/core/icons";
 import { DataTable as ShadcnDataTable } from "data-table-pro";
 import { DataTable as HeroDataTable } from "data-table-pro/heroui";
 import { DataTable as GridDataTable } from "data-table-pro/thegridcn";
@@ -121,10 +121,6 @@ export function DemoApp() {
   const [adapter, setAdapter] = React.useState<AdapterKey>("shadcn");
   const [rows, setRows] = React.useState(() => generateEmployees(96));
   const [searchValue, setSearchValue] = React.useState("");
-  const [department, setDepartment] = React.useState("all");
-  const [status, setStatus] = React.useState("all");
-  const [priority, setPriority] = React.useState("all");
-  const [minimumScore, setMinimumScore] = React.useState(0);
   const [viewMode, setViewMode] = React.useState<DataTableViewMode>("table");
   const [rowSelection, setRowSelection] = React.useState<
     Record<string, boolean>
@@ -188,6 +184,10 @@ export function DemoApp() {
         size: 160,
         meta: {
           hideOn: "sm",
+          filter: {
+            type: "multi",
+            options: departments,
+          },
           renderEditCell: ({ draftValue, setDraftValue }) => (
             <select
               className="h-8 w-full rounded-lg border border-border bg-background px-2 text-sm"
@@ -226,6 +226,10 @@ export function DemoApp() {
           return <StatusBadge status={value} />;
         },
         meta: {
+          filter: {
+            type: "multi",
+            options: statuses,
+          },
           renderEditCell: ({ draftValue, setDraftValue }) => (
             <select
               className="h-8 w-full rounded-lg border border-border bg-background px-2 text-sm"
@@ -246,6 +250,12 @@ export function DemoApp() {
         cell: ({ getValue }) => {
           const value = getValue<Employee["priority"]>();
           return <PriorityBadge priority={value} />;
+        },
+        meta: {
+          filter: {
+            type: "multi",
+            options: priorities,
+          },
         },
       },
       {
@@ -289,42 +299,7 @@ export function DemoApp() {
     ];
   }, []);
 
-  const filteredRows = React.useMemo(() => {
-    const query = searchValue.trim().toLowerCase();
-    return rows.filter((row) => {
-      if (department !== "all" && row.department !== department) {
-        return false;
-      }
-      if (status !== "all" && row.status !== status) {
-        return false;
-      }
-      if (priority !== "all" && row.priority !== priority) {
-        return false;
-      }
-      if (row.score < minimumScore) {
-        return false;
-      }
-      if (!query) {
-        return true;
-      }
-      return [
-        row.name,
-        row.department,
-        row.role,
-        row.location,
-        row.status,
-        row.priority,
-        row.manager,
-      ]
-        .join(" ")
-        .toLowerCase()
-        .includes(query);
-    });
-  }, [department, minimumScore, priority, rows, searchValue, status]);
-
-  const tableRows = useInfiniteScroll
-    ? filteredRows.slice(0, visibleCount)
-    : filteredRows;
+  const tableRows = useInfiniteScroll ? rows.slice(0, visibleCount) : rows;
   const selectedRows = rows.filter((row) => rowSelection[row.id]);
   const hiddenRowsConfig = React.useMemo(
     () => ({
@@ -337,7 +312,7 @@ export function DemoApp() {
   React.useEffect(() => {
     setPageIndex(0);
     setVisibleCount(24);
-  }, [department, minimumScore, priority, searchValue, status]);
+  }, [searchValue]);
 
   function refreshRows() {
     setIsLoading(true);
@@ -392,12 +367,11 @@ export function DemoApp() {
               data={tableRows}
               getRowId={(row) => row.id}
               title={`${adapters[adapter].label} employees`}
-              description={`${filteredRows.length} matching rows, ${selectedRows.length} selected`}
-              searchValue={searchValue}
-              onSearchValueChange={setSearchValue}
-              searchPlaceholder="Search name, role, status, manager..."
+              description={`${rows.length} employees, ${selectedRows.length} selected`}
+              toolbarQueryValue={searchValue}
+              onToolbarQueryValueChange={setSearchValue}
+              toolbarQueryPlaceholder="Search name, role, status, manager..."
               rowsPerPageOptions={[5, 10, 20, 50]}
-              totalRowCount={filteredRows.length}
               sorting={sorting}
               onSortingChange={setSorting}
               pageIndex={pageIndex}
@@ -499,7 +473,36 @@ export function DemoApp() {
               viewMode={viewMode}
               onViewModeChange={setViewMode}
               enableViewToggle
-              emptyState={({ searchValue: query }) => (
+              renderExpandedRow={({ row }) => (
+                <div className="grid gap-2 p-3 text-sm md:grid-cols-3">
+                  <div>
+                    <span className="text-muted-foreground">Manager</span>
+                    <div>{row.manager}</div>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Budget</span>
+                    <div>{formatCurrency(row.budget)}</div>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Started</span>
+                    <div>{row.startDate}</div>
+                  </div>
+                </div>
+              )}
+              csvExport={{
+                filename: "employees.csv",
+                onExport: ({ rows: exportedRows }) => {
+                  setNotice(`Prepared ${exportedRows.length} rows for CSV`);
+                },
+              }}
+              enableDensityToggle
+              enableColumnPinning
+              enableColumnReordering
+              columnPrefsKey={`demo-${adapter}`}
+              labels={{
+                exportCsv: "Download CSV",
+              }}
+              emptyState={({ toolbarQueryValue: query }) => (
                 <div className="rounded-xl border border-dashed border-border bg-card p-8 text-center">
                   <div className="mx-auto mb-3 flex size-10 items-center justify-center rounded-lg bg-muted">
                     <IconBriefcase className="size-5" />
@@ -531,10 +534,10 @@ export function DemoApp() {
                 useInfiniteScroll
                   ? {
                       enabled: true,
-                      hasMore: visibleCount < filteredRows.length,
+                      hasMore: visibleCount < rows.length,
                       onLoadMore: () => {
                         setVisibleCount((current) =>
-                          Math.min(current + 16, filteredRows.length),
+                          Math.min(current + 16, rows.length),
                         );
                       },
                     }
@@ -594,54 +597,6 @@ export function DemoApp() {
               }
               customToolbar={
                 <div className="flex w-full flex-col gap-3">
-                  <div className="demo-filter-row grid gap-3 md:grid-cols-[repeat(5,minmax(0,1fr))]">
-                    <FilterSelect
-                      label="Department"
-                      value={department}
-                      onChange={setDepartment}
-                      options={["all", ...departments]}
-                    />
-                    <FilterSelect
-                      label="Status"
-                      value={status}
-                      onChange={setStatus}
-                      options={["all", ...statuses]}
-                    />
-                    <FilterSelect
-                      label="Priority"
-                      value={priority}
-                      onChange={setPriority}
-                      options={["all", ...priorities]}
-                    />
-                    <label className="flex min-w-0 flex-col gap-1 text-xs font-medium text-muted-foreground">
-                      Minimum score
-                      <input
-                        type="number"
-                        min={0}
-                        max={100}
-                        className="demo-native-control h-9 rounded-lg border border-border bg-background px-2 text-sm text-foreground"
-                        value={minimumScore}
-                        onChange={(event) =>
-                          setMinimumScore(Number(event.target.value))
-                        }
-                      />
-                    </label>
-                    <div className="flex items-end gap-2">
-                      <button
-                        type="button"
-                        className={buttonClass(false)}
-                        onClick={() => {
-                          setDepartment("all");
-                          setStatus("all");
-                          setPriority("all");
-                          setMinimumScore(0);
-                          setSearchValue("");
-                        }}
-                      >
-                        Reset filters
-                      </button>
-                    </div>
-                  </div>
                   <div className="flex w-full flex-wrap items-center gap-2">
                     <ToggleControl
                       label="Infinite"
@@ -696,35 +651,6 @@ export function DemoApp() {
         </div>
       </div>
     </main>
-  );
-}
-
-function FilterSelect({
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  options: Array<string>;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <label className="flex min-w-0 flex-col gap-1 text-xs font-medium text-muted-foreground">
-      {label}
-      <select
-        className="demo-native-control h-9 rounded-lg border border-border bg-background px-2 text-sm text-foreground"
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-      >
-        {options.map((item) => (
-          <option key={item} value={item}>
-            {startCase(item)}
-          </option>
-        ))}
-      </select>
-    </label>
   );
 }
 

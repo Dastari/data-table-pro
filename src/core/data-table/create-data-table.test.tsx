@@ -1,6 +1,6 @@
 import * as React from "react";
 import { act } from "react";
-import { IconDownload } from "@tabler/icons-react";
+import { IconDownload } from "../icons";
 import {
   afterAll,
   afterEach,
@@ -491,6 +491,195 @@ for (const suite of suites) {
       expect(emptyState).toHaveBeenLastCalledWith({
         rows: [],
         toolbarQueryValue: "Ada",
+      });
+    });
+
+    it("filters client-side rows with uncontrolled toolbar search by default", () => {
+      renderTable({
+        data: [
+          { id: "1", name: "Ada" },
+          { id: "2", name: "Grace" },
+        ],
+      });
+
+      fireEvent.change(screen.getByPlaceholderText("Search rows..."), {
+        target: { value: "Grace" },
+      });
+
+      expect(screen.queryByText("Ada")).toBeNull();
+      expect(screen.getByText("Grace")).not.toBeNull();
+    });
+
+    it("can opt out of toolbar-query client filtering", () => {
+      renderTable({
+        enableToolbarQueryFiltering: false,
+        data: [
+          { id: "1", name: "Ada" },
+          { id: "2", name: "Grace" },
+        ],
+      });
+
+      fireEvent.change(screen.getByPlaceholderText("Search rows..."), {
+        target: { value: "Grace" },
+      });
+
+      expect(screen.getByText("Ada")).not.toBeNull();
+      expect(screen.getByText("Grace")).not.toBeNull();
+    });
+
+    it("renders toolbar column filters from column meta", () => {
+      type FilterRow = TestRow & { status: string };
+      const filterColumns: Array<DataTableColumnDef<FilterRow, unknown>> = [
+        {
+          accessorKey: "name",
+          header: "Name",
+        },
+        {
+          accessorKey: "status",
+          header: "Status",
+          meta: {
+            filter: {
+              type: "text",
+            },
+          },
+        },
+      ];
+
+      render(
+        <TooltipProvider>
+          <DataTable
+            columns={filterColumns}
+            data={[
+              { id: "1", name: "Ada", status: "active" },
+              { id: "2", name: "Grace", status: "paused" },
+            ]}
+            getRowId={(row) => row.id}
+            toolbarQueryDebounceMs={100}
+          />
+        </TooltipProvider>,
+      );
+
+      fireEvent.change(screen.getByLabelText("Filters: Status"), {
+        target: { value: "paused" },
+      });
+
+      expect(screen.queryByText("Ada")).toBeNull();
+      expect(screen.getByText("Grace")).not.toBeNull();
+    });
+
+    it("renders expanded table detail rows", () => {
+      renderTable({
+        renderExpandedRow: ({ row }) => <div>Details for {row.name}</div>,
+      });
+
+      fireEvent.click(screen.getByRole("button", { name: "Expand row" }));
+
+      expect(screen.getByText("Details for Ada")).not.toBeNull();
+    });
+
+    it("exports filtered visible rows to CSV", async () => {
+      const onExport = vi.fn();
+
+      renderTable({
+        data: [
+          { id: "1", name: "Ada" },
+          { id: "2", name: "Grace" },
+        ],
+        csvExport: {
+          onExport,
+        },
+      });
+
+      fireEvent.change(screen.getByPlaceholderText("Search rows..."), {
+        target: { value: "Grace" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Export CSV" }));
+
+      await waitFor(() => {
+        expect(onExport).toHaveBeenCalledTimes(1);
+      });
+      const exportContext = onExport.mock.calls[0]?.[0] as
+        | { csv: string }
+        | undefined;
+      expect(exportContext?.csv).toContain("Name");
+      expect(exportContext?.csv).toContain("Grace");
+      expect(exportContext?.csv).not.toContain("Ada");
+    });
+
+    it("supports density changes from the table options menu", () => {
+      const { container } = renderTable({
+        enableDensityToggle: true,
+      });
+
+      fireEvent.pointerDown(
+        screen.getByRole("button", { name: "Show table options" }),
+      );
+      fireEvent.click(screen.getByText("Compact"));
+
+      expect(
+        container
+          .querySelector('[data-dtp-slot="data-table-root"]')
+          ?.getAttribute("data-density"),
+      ).toBe("compact");
+    });
+
+    it("activates clickable table rows with the keyboard", () => {
+      const onRowClick = vi.fn();
+      renderTable({ onRowClick });
+
+      fireEvent.keyDown(screen.getByRole("button", { name: "Ada" }), {
+        key: "Enter",
+      });
+      fireEvent.keyDown(screen.getByRole("button", { name: "Ada" }), {
+        key: " ",
+      });
+
+      expect(onRowClick).toHaveBeenCalledTimes(2);
+    });
+
+    it("supports keyboard column reordering", () => {
+      const onColumnOrderChange = vi.fn();
+
+      renderTable({
+        enableColumnReordering: true,
+        onColumnOrderChange,
+        columns: [
+          {
+            accessorKey: "name",
+            header: "Name",
+          },
+          {
+            id: "role",
+            header: "Role",
+            accessorFn: () => "Admin",
+          },
+        ],
+      });
+
+      fireEvent.keyDown(screen.getByRole("columnheader", { name: "Name" }), {
+        key: "ArrowRight",
+        altKey: true,
+      });
+
+      expect(onColumnOrderChange).toHaveBeenCalledWith(["role", "name"]);
+    });
+
+    it("supports pinning columns from table options", () => {
+      const onColumnPinningChange = vi.fn();
+
+      renderTable({
+        enableColumnPinning: true,
+        onColumnPinningChange,
+      });
+
+      fireEvent.pointerDown(
+        screen.getByRole("button", { name: "Show table options" }),
+      );
+      fireEvent.click(screen.getByRole("button", { name: "Pin left: Name" }));
+
+      expect(onColumnPinningChange).toHaveBeenCalledWith({
+        left: ["name"],
+        right: [],
       });
     });
 
@@ -1127,6 +1316,35 @@ for (const suite of suites) {
       });
 
       expect(screen.getByText("1 record selected")).not.toBeNull();
+    });
+
+    it("supports shift-click range row selection", () => {
+      const onRowSelectionChange = vi.fn();
+
+      renderTable({
+        enableRowSelection: true,
+        data: [
+          { id: "1", name: "Ada" },
+          { id: "2", name: "Grace" },
+          { id: "3", name: "Linus" },
+        ],
+        rowSelection: {},
+        onRowSelectionChange,
+        rowsPerPageOptions: [3],
+        pageSize: 3,
+      });
+
+      const rowCheckboxes = screen.getAllByRole("checkbox", {
+        name: "Select row",
+      });
+      fireEvent.click(rowCheckboxes[0]);
+      fireEvent.click(rowCheckboxes[2], { shiftKey: true });
+
+      expect(onRowSelectionChange).toHaveBeenLastCalledWith({
+        "1": true,
+        "2": true,
+        "3": true,
+      });
     });
 
     if (suite.name === "shadcn") {

@@ -1,6 +1,6 @@
 import * as React from "react";
 import { flexRender, type CellContext } from "@tanstack/react-table";
-import { IconClock } from "@tabler/icons-react";
+import { IconClock } from "../icons";
 import type {
   DataTableCellOverflow,
   DataTableColumnDef,
@@ -12,13 +12,15 @@ export function renderDataTableCellContent<TData>(
   context: CellContext<TData, unknown>,
   classNames?: DataTableUiClassNames,
   options?: {
+    hasCustomCell?: boolean;
     useCustomOverflowDefaults?: boolean;
   },
 ) {
   const column = context.column.columnDef as DataTableColumnDef<TData, unknown>;
   const meta = column.meta;
   const value = context.getValue();
-  const renderedCellContent = column.cell
+  const hasCustomCell = options?.hasCustomCell ?? false;
+  const renderedCellContent = hasCustomCell && column.cell
     ? flexRender(column.cell, context)
     : undefined;
   const hasComplexRenderedContent = isComplexRenderedCellContent(
@@ -30,7 +32,7 @@ export function renderDataTableCellContent<TData>(
     value,
   });
 
-  if (meta?.type === "date" && !hasComplexRenderedContent) {
+  if (meta?.type === "date" && !hasCustomCell) {
     return (
       <div
         data-dtp-slot="data-table-cell-content"
@@ -52,7 +54,9 @@ export function renderDataTableCellContent<TData>(
   }
 
   const content =
-    renderedCellContent !== undefined
+    renderedCellContent !== undefined &&
+    renderedCellContent !== null &&
+    renderedCellContent !== ""
       ? renderedCellContent
       : value == null || value === ""
       ? <span className={classNames?.mutedText ?? "opacity-70"}>-</span>

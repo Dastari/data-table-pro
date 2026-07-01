@@ -1,4 +1,4 @@
-import { IconInbox } from "@tabler/icons-react";
+import { IconInbox } from "../icons";
 import type { DataTableUiKit } from "../ui-kit";
 
 export function createDataTableEmptyState(ui: DataTableUiKit) {

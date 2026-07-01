@@ -1,5 +1,6 @@
 import * as React from "react";
-import { IconDatabase } from "@tabler/icons-react";
+import { IconDatabase } from "../icons";
+import type { DataTableLabels } from "../types";
 import type { DataTableUiKit } from "../ui-kit";
 
 type DataTablePaginationProps = {
@@ -10,6 +11,7 @@ type DataTablePaginationProps = {
   rowsPerPageOptions: Array<number>;
   onPageIndexChange: (pageIndex: number) => void;
   onPageSizeChange: (pageSize: number) => void;
+  labels: DataTableLabels;
 };
 
 export function createDataTablePagination(ui: DataTableUiKit) {
@@ -43,6 +45,7 @@ export function createDataTablePagination(ui: DataTableUiKit) {
     rowsPerPageOptions,
     onPageIndexChange,
     onPageSizeChange,
+    labels,
   }: DataTablePaginationProps) {
     const pages = getVisiblePages(pageIndex, Math.max(1, pageCount));
     const canGoPrevious = pageIndex > 0;
@@ -54,7 +57,9 @@ export function createDataTablePagination(ui: DataTableUiKit) {
         <div
           className={`flex flex-1 items-center gap-3 text-sm ${uiClassNames.mutedText ?? "opacity-70"}`}
         >
-          <span className="hidden @md/data-table:inline">Records per page</span>
+          <span className="hidden @md/data-table:inline">
+            {labels.recordsPerPage}
+          </span>
           <Select
             value={String(pageSize)}
             onValueChange={(value: string) => {
@@ -81,12 +86,12 @@ export function createDataTablePagination(ui: DataTableUiKit) {
         <div className="flex shrink-0 items-center justify-center">
           <div
             className={`inline-flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm ${uiClassNames.paginationTotal ?? ""}`}
-            aria-label={`Total records: ${totalRowCount ?? 0}`}
+            aria-label={labels.totalRecords(totalRowCount ?? 0)}
           >
             <IconDatabase className="size-4" />
             <span className="@md/data-table:hidden">{totalRowCount ?? 0}</span>
             <span className="hidden @md/data-table:inline">
-              Total Records {totalRowCount ?? 0}
+              {labels.totalRecords(totalRowCount ?? 0)}
             </span>
           </div>
         </div>
@@ -95,7 +100,7 @@ export function createDataTablePagination(ui: DataTableUiKit) {
           <div
             className={`hidden text-sm @md/data-table:inline ${uiClassNames.mutedText ?? "opacity-70"}`}
           >
-            Page {pageIndex + 1} of {Math.max(1, pageCount)}
+            {labels.pageStatus(pageIndex, Math.max(1, pageCount))}
           </div>
           <Pagination className="mx-0 w-auto justify-end">
             <PaginationContent>
@@ -117,7 +122,7 @@ export function createDataTablePagination(ui: DataTableUiKit) {
                       First
                     </PaginationFirst>
                   </TooltipTrigger>
-                  <TooltipContent>First page</TooltipContent>
+                  <TooltipContent>{labels.firstPage}</TooltipContent>
                 </Tooltip>
               </PaginationItem>
               <PaginationItem>
@@ -138,7 +143,7 @@ export function createDataTablePagination(ui: DataTableUiKit) {
                       Previous
                     </PaginationPrevious>
                   </TooltipTrigger>
-                  <TooltipContent>Previous page</TooltipContent>
+                  <TooltipContent>{labels.previousPage}</TooltipContent>
                 </Tooltip>
               </PaginationItem>
               {pages.map((item, index) => (
@@ -181,7 +186,7 @@ export function createDataTablePagination(ui: DataTableUiKit) {
                       Next
                     </PaginationNext>
                   </TooltipTrigger>
-                  <TooltipContent>Next page</TooltipContent>
+                  <TooltipContent>{labels.nextPage}</TooltipContent>
                 </Tooltip>
               </PaginationItem>
               <PaginationItem className="@md/data-table:hidden">
@@ -202,7 +207,7 @@ export function createDataTablePagination(ui: DataTableUiKit) {
                       Last
                     </PaginationLast>
                   </TooltipTrigger>
-                  <TooltipContent>Last page</TooltipContent>
+                  <TooltipContent>{labels.lastPage}</TooltipContent>
                 </Tooltip>
               </PaginationItem>
             </PaginationContent>

@@ -3,6 +3,8 @@ import type { Row } from "@tanstack/react-table";
 import type {
   DataTableCardRendererProps,
   DataTableEditableRowsConfig,
+  DataTableExpandedRowProps,
+  DataTableLabels,
   DataTableRowAction,
 } from "../types";
 import type { DataTableUiKit } from "../ui-kit";
@@ -15,6 +17,9 @@ type DataTableCardViewProps<TData> = {
   cardClassName?: string;
   rowActions: Array<DataTableRowAction<TData>>;
   editableRows?: DataTableEditableRowsConfig<TData>;
+  renderExpandedRow?: (
+    props: DataTableExpandedRowProps<TData>,
+  ) => React.ReactNode;
   hasCardTitle: boolean;
   rowSelection: Record<string, boolean>;
   onRowSelectionChange: (rowSelection: Record<string, boolean>) => void;
@@ -36,6 +41,7 @@ type DataTableCardViewProps<TData> = {
   }) => void;
   isLoading?: boolean;
   loadingRowCount?: number;
+  labels: DataTableLabels;
 };
 
 type DataTableRowActionsComponent = <TData>(props: {
@@ -45,6 +51,7 @@ type DataTableRowActionsComponent = <TData>(props: {
   isEditing: boolean;
   onStartEditing: () => void;
   onCancelEditing: () => void;
+  labels: DataTableLabels;
 }) => React.ReactElement | null;
 
 export function createDataTableCardView(
@@ -61,6 +68,7 @@ export function createDataTableCardView(
     cardClassName,
     rowActions,
     editableRows,
+    renderExpandedRow,
     hasCardTitle,
     rowSelection,
     onRowSelectionChange,
@@ -74,6 +82,7 @@ export function createDataTableCardView(
     onRowDragEnd,
     isLoading = false,
     loadingRowCount = 5,
+    labels,
   }: DataTableCardViewProps<TData>) {
     const resolvedCardGridClassName =
       cardGridClassName ??
@@ -229,6 +238,13 @@ export function createDataTableCardView(
                     onEditingRowIdChange(null);
                   },
                 })}
+                {isEditing || !renderExpandedRow || !row.getIsExpanded()
+                  ? null
+                  : renderExpandedRow({
+                      row: originalRow,
+                      rowId,
+                      tableRow: row,
+                    })}
               </div>
               {showCardOverlayControls ? (
                 <CardHeader className="absolute inset-x-0 top-0 z-20 flex flex-row items-center gap-3 space-y-0 px-4 pt-4 pb-8">
@@ -269,6 +285,7 @@ export function createDataTableCardView(
                         onCancelEditing={() => {
                           onEditingRowIdChange(null);
                         }}
+                        labels={labels}
                       />
                     </div>
                   ) : null}

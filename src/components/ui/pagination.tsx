@@ -8,7 +8,7 @@ import {
   IconChevronLeft,
   IconChevronRight,
   IconDots,
-} from "@tabler/icons-react";
+} from "../../core/icons";
 
 function Pagination({ className, ...props }: React.ComponentProps<"nav">) {
   return (

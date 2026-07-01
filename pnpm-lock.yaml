@@ -11,9 +11,6 @@ importers:
       '@heroui/styles':
         specifier: ^3.0.3
         version: 3.0.3(tailwind-merge@3.5.0)(tailwindcss@4.2.4)
-      '@tabler/icons-react':
-        specifier: ^3.41.1
-        version: 3.41.1(react@19.2.4)
       '@tanstack/react-table':
         specifier: ^8.21.3
         version: 8.21.3(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
@@ -33,10 +30,10 @@ importers:
         specifier: ^1.4.3
         version: 1.4.3(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       react:
-        specifier: ^19.0.0
+        specifier: ^19.2.0
         version: 19.2.4
       react-dom:
-        specifier: ^19.0.0
+        specifier: ^19.2.0
         version: 19.2.4(react@19.2.4)
       tailwind-merge:
         specifier: ^3.5.0
@@ -1592,14 +1589,6 @@ packages:
 
   '@standard-schema/spec@1.1.0':
     resolution: {integrity: sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==}
-
-  '@tabler/icons-react@3.41.1':
-    resolution: {integrity: sha512-kUgweE+DJtAlMZVIns1FTDdcbpRVnkK7ZpUOXmoxy3JAF0rSHj0TcP4VHF14+gMJGnF+psH2Zt26BLT6owetBA==}
-    peerDependencies:
-      react: '>= 16'
-
-  '@tabler/icons@3.41.1':
-    resolution: {integrity: sha512-OaRnVbRmH2nHtFeg+RmMJ/7m2oBIF9XCJAUD5gQnMrpK9f05ydj8MZrAf3NZQqOXyxGN1UBL0D5IKLLEUfr74Q==}
 
   '@tailwindcss/node@4.2.4':
     resolution: {integrity: sha512-Ai7+yQPxz3ddrDQzFfBKdHEVBg0w3Zl83jnjuwxnZOsnH9pGn93QHQtpU0p/8rYWxvbFZHneni6p1BSLK4DkGA==}
@@ -5268,13 +5257,6 @@ snapshots:
   '@standard-schema/spec@1.0.0': {}
 
   '@standard-schema/spec@1.1.0': {}
-
-  '@tabler/icons-react@3.41.1(react@19.2.4)':
-    dependencies:
-      '@tabler/icons': 3.41.1
-      react: 19.2.4
-
-  '@tabler/icons@3.41.1': {}
 
   '@tailwindcss/node@4.2.4':
     dependencies:

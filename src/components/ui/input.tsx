@@ -1,5 +1,5 @@
 import * as React from "react";
-import { IconEye, IconEyeOff } from "@tabler/icons-react";
+import { IconEye, IconEyeOff } from "../../core/icons";
 
 import { Button } from "./button";
 import { inputClassName } from "./input-base";

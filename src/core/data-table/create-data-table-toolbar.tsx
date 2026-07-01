@@ -5,15 +5,28 @@ import {
   IconList,
   IconSearch,
   IconX,
-} from "@tabler/icons-react";
+} from "../icons";
 import type {
+  DataTableColumnFilterType,
+  DataTableColumnFixed,
   DataTableColumnVisibilityOption,
+  DataTableDensity,
+  DataTableLabels,
   DataTableSelectionAction,
   DataTableToolbarAction,
   DataTableToolbarVisibility,
   DataTableViewMode,
 } from "../types";
 import type { DataTableUiKit } from "../ui-kit";
+
+export type DataTableToolbarColumnFilter = {
+  id: string;
+  label: string;
+  type: DataTableColumnFilterType;
+  value: unknown;
+  placeholder?: string;
+  options: Array<{ label: string; value: string }>;
+};
 
 type DataTableToolbarProps<TData> = {
   title?: string;
@@ -35,6 +48,15 @@ type DataTableToolbarProps<TData> = {
   allRows: Array<TData>;
   columnVisibilityOptions: Array<DataTableColumnVisibilityOption>;
   onColumnVisibilityChange?: (columnId: string, visible: boolean) => void;
+  enableColumnPinning: boolean;
+  onColumnPinningChange: (columnId: string, side: DataTableColumnFixed | false) => void;
+  columnFilters: Array<DataTableToolbarColumnFilter>;
+  onColumnFilterChange: (columnId: string, value: unknown) => void;
+  onClearColumnFilters: () => void;
+  density: DataTableDensity;
+  onDensityChange: (density: DataTableDensity) => void;
+  enableDensityToggle: boolean;
+  labels: DataTableLabels;
   toolbarVisibility?: DataTableToolbarVisibility;
   openFileDialog?: () => void;
 };
@@ -48,6 +70,7 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
     DropdownMenuCheckboxItem,
     DropdownMenuContent,
     DropdownMenuGroup,
+    DropdownMenuItem,
     DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
@@ -79,6 +102,15 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
     allRows,
     columnVisibilityOptions,
     onColumnVisibilityChange,
+    enableColumnPinning,
+    onColumnPinningChange,
+    columnFilters,
+    onColumnFilterChange,
+    onClearColumnFilters,
+    density,
+    onDensityChange,
+    enableDensityToggle,
+    labels,
     toolbarVisibility,
     openFileDialog,
   }: DataTableToolbarProps<TData>) {
@@ -108,7 +140,9 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
     const hasVisibleOptions =
       showOptions &&
       (columnVisibilityOptions.some((column) => column.canHide) ||
-        Boolean(onShowHiddenRowsChange && hiddenRowsLabel));
+        Boolean(onShowHiddenRowsChange && hiddenRowsLabel) ||
+        enableColumnPinning ||
+        enableDensityToggle);
     const hasVisibleViewToggle =
       showViewToggle && enableViewToggle && Boolean(onViewModeChange);
     const hasVisibleTrailingActions =
@@ -116,7 +150,7 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
     const hasVisibleCustomToolbar = showCustomToolbar && Boolean(customToolbar);
     const hasVisibleCompactToolbar =
       showCustomToolbar && Boolean(compactToolbar ?? customToolbar);
-    const selectedRowCountLabel = `${selectedRows.length} record${selectedRows.length === 1 ? "" : "s"} selected`;
+    const selectedRowCountLabel = labels.selectedRows(selectedRows.length);
 
     React.useEffect(() => {
       if (!isCompactSearchVisible) {
@@ -184,8 +218,8 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
                           onClick={() => {
                             onToolbarQueryValueChange("");
                           }}
-                          aria-label="Clear search"
-                          title="Clear search"
+                          aria-label={labels.clearSearch}
+                          title={labels.clearSearch}
                         >
                           <IconX />
                         </button>
@@ -203,7 +237,7 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
                           : "outline"
                       }
                       size="icon-sm"
-                      aria-label="Search table"
+                      aria-label={labels.searchTable}
                       aria-pressed={isCompactSearchVisible}
                       className={`shrink-0 @md/data-table:hidden ${compactToolbarIconButtonClassName} ${uiClassNames.toolbarInputButton ?? ""}`}
                       onClick={() => {
@@ -211,10 +245,10 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
                       }}
                     >
                       <IconSearch />
-                      <span className="sr-only">Search table</span>
+                      <span className="sr-only">{labels.searchTable}</span>
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent>Search table</TooltipContent>
+                  <TooltipContent>{labels.searchTable}</TooltipContent>
                 </Tooltip>
               </>
             ) : null}
@@ -330,16 +364,16 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
                       type="button"
                       variant="outline"
                       size="icon-sm"
-                      aria-label="Show table options"
+                      aria-label={labels.tableOptions}
                       className={`${compactToolbarIconButtonClassName} ${uiClassNames.toolbarInputButton ?? ""}`}
-                      title="Show table options"
+                      title={labels.tableOptions}
                     >
                       <IconAdjustmentsHorizontal />
-                      <span className="sr-only">Show table options</span>
+                      <span className="sr-only">{labels.tableOptions}</span>
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">
-                    <DropdownMenuLabel>Table options</DropdownMenuLabel>
+                    <DropdownMenuLabel>{labels.tableOptions}</DropdownMenuLabel>
                     <DropdownMenuGroup>
                       {onShowHiddenRowsChange && hiddenRowsLabel ? (
                         <DropdownMenuCheckboxItem
@@ -350,14 +384,39 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
                             onShowHiddenRowsChange(checked === true);
                           }}
                         >
-                          Show {hiddenRowsLabel}
+                          {labels.showHiddenRows(hiddenRowsLabel)}
                         </DropdownMenuCheckboxItem>
                       ) : null}
                     </DropdownMenuGroup>
+                    {enableDensityToggle ? (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuLabel>{labels.density}</DropdownMenuLabel>
+                        <DropdownMenuGroup>
+                          {(
+                            [
+                              ["compact", labels.compactDensity],
+                              ["comfortable", labels.comfortableDensity],
+                              ["spacious", labels.spaciousDensity],
+                            ] as const
+                          ).map(([nextDensity, label]) => (
+                            <DropdownMenuCheckboxItem
+                              key={nextDensity}
+                              checked={density === nextDensity}
+                              onCheckedChange={() => {
+                                onDensityChange(nextDensity);
+                              }}
+                            >
+                              {label}
+                            </DropdownMenuCheckboxItem>
+                          ))}
+                        </DropdownMenuGroup>
+                      </>
+                    ) : null}
                     {columnVisibilityOptions.some((column) => column.canHide) ? (
                       <>
                         <DropdownMenuSeparator />
-                        <DropdownMenuLabel>Columns</DropdownMenuLabel>
+                        <DropdownMenuLabel>{labels.columns}</DropdownMenuLabel>
                         <DropdownMenuGroup>
                           {columnVisibilityOptions
                             .filter((column) => column.canHide)
@@ -377,6 +436,61 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
                                 {column.label}
                               </DropdownMenuCheckboxItem>
                             ))}
+                        </DropdownMenuGroup>
+                      </>
+                    ) : null}
+                    {enableColumnPinning ? (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuLabel>
+                          {labels.pinLeft} / {labels.pinRight}
+                        </DropdownMenuLabel>
+                        <DropdownMenuGroup>
+                          {columnVisibilityOptions.map((column) => (
+                            <DropdownMenuItem
+                              key={`pin-${column.id}`}
+                              onSelect={(event: Event) => {
+                                event.preventDefault();
+                              }}
+                            >
+                              <span className="min-w-0 flex-1 truncate">
+                                {column.label}
+                              </span>
+                              <button
+                                type="button"
+                                className="px-1 text-xs"
+                                aria-label={`${labels.pinLeft}: ${column.label}`}
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  onColumnPinningChange(column.id, "left");
+                                }}
+                              >
+                                L
+                              </button>
+                              <button
+                                type="button"
+                                className="px-1 text-xs"
+                                aria-label={`${labels.pinRight}: ${column.label}`}
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  onColumnPinningChange(column.id, "right");
+                                }}
+                              >
+                                R
+                              </button>
+                              <button
+                                type="button"
+                                className="px-1 text-xs"
+                                aria-label={`${labels.unpin}: ${column.label}`}
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  onColumnPinningChange(column.id, false);
+                                }}
+                              >
+                                -
+                              </button>
+                            </DropdownMenuItem>
+                          ))}
                         </DropdownMenuGroup>
                       </>
                     ) : null}
@@ -511,14 +625,42 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
                       onClick={() => {
                         onToolbarQueryValueChange("");
                       }}
-                      aria-label="Clear search"
-                      title="Clear search"
+                      aria-label={labels.clearSearch}
+                      title={labels.clearSearch}
                     >
                       <IconX />
                     </button>
                   </InputGroupAddon>
                 ) : null}
               </InputGroup>
+            </div>
+          ) : null}
+
+          {columnFilters.length ? (
+            <div
+              data-dtp-slot="data-table-toolbar-filters"
+              className="flex min-w-0 flex-wrap items-center gap-2"
+            >
+              {columnFilters.map((filter) => (
+                <ToolbarColumnFilterControl
+                  key={filter.id}
+                  filter={filter}
+                  labels={labels}
+                  onColumnFilterChange={onColumnFilterChange}
+                />
+              ))}
+              {columnFilters.some((filter) =>
+                hasColumnFilterValue(filter.value),
+              ) ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={onClearColumnFilters}
+                >
+                  {labels.clearFilters}
+                </Button>
+              ) : null}
             </div>
           ) : null}
 
@@ -535,4 +677,105 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
       </div>
     );
   };
+
+  function ToolbarColumnFilterControl({
+    filter,
+    labels,
+    onColumnFilterChange,
+  }: {
+    filter: DataTableToolbarColumnFilter;
+    labels: DataTableLabels;
+    onColumnFilterChange: (columnId: string, value: unknown) => void;
+  }) {
+    if (filter.type === "text") {
+      return (
+        <InputGroup className="min-w-48 max-w-64">
+          <InputGroupInput
+            value={typeof filter.value === "string" ? filter.value : ""}
+            onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+              onColumnFilterChange(filter.id, event.target.value);
+            }}
+            placeholder={filter.placeholder ?? filter.label}
+            aria-label={`${labels.filters}: ${filter.label}`}
+          />
+          <InputGroupAddon align="inline-start" aria-hidden="true">
+            <IconSearch />
+          </InputGroupAddon>
+        </InputGroup>
+      );
+    }
+
+    const selectedValues = Array.isArray(filter.value)
+      ? filter.value.map(String)
+      : typeof filter.value === "string" && filter.value
+        ? [filter.value]
+        : [];
+    const selectedLabel =
+      selectedValues.length === 0
+        ? filter.label
+        : `${filter.label}: ${
+            selectedValues.length === 1
+              ? (filter.options.find(
+                  (option) => option.value === selectedValues[0],
+                )?.label ?? selectedValues[0])
+              : selectedValues.length
+          }`;
+
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button type="button" variant="outline" size="sm">
+            {selectedLabel}
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="w-56">
+          <DropdownMenuLabel>{filter.label}</DropdownMenuLabel>
+          <DropdownMenuGroup>
+            {filter.type === "select" ? (
+              <DropdownMenuItem
+                onClick={() => {
+                  onColumnFilterChange(filter.id, "");
+                }}
+              >
+                All
+              </DropdownMenuItem>
+            ) : null}
+            {filter.options.map((option) => (
+              <DropdownMenuCheckboxItem
+                key={option.value}
+                checked={selectedValues.includes(option.value)}
+                onCheckedChange={(checked: boolean | "indeterminate") => {
+                  if (filter.type === "select") {
+                    onColumnFilterChange(
+                      filter.id,
+                      checked === true ? option.value : "",
+                    );
+                    return;
+                  }
+
+                  const nextValues = new Set(selectedValues);
+                  if (checked === true) {
+                    nextValues.add(option.value);
+                  } else {
+                    nextValues.delete(option.value);
+                  }
+                  onColumnFilterChange(filter.id, Array.from(nextValues));
+                }}
+              >
+                {option.label}
+              </DropdownMenuCheckboxItem>
+            ))}
+          </DropdownMenuGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  }
+}
+
+function hasColumnFilterValue(value: unknown) {
+  if (Array.isArray(value)) {
+    return value.length > 0;
+  }
+
+  return value !== undefined && value !== null && value !== "";
 }

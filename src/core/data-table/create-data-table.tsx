@@ -2,6 +2,8 @@ import * as React from "react";
 import { flushSync } from "react-dom";
 import {
   flexRender,
+  getExpandedRowModel,
+  getFilteredRowModel,
   functionalUpdate,
   getCoreRowModel,
   getPaginationRowModel,
@@ -9,17 +11,32 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { IconChevronDown, IconSelector } from "@tabler/icons-react";
+import { IconChevronDown, IconDownload, IconSelector } from "../icons";
 import type {
   CellContext,
   Column,
+  ColumnFiltersState,
   ColumnDef,
+  ColumnOrderState,
+  ColumnPinningState,
+  ColumnSizingState,
+  ExpandedState,
   OnChangeFn,
   PaginationState,
   SortingState,
+  Table as TanStackTable,
   VisibilityState,
 } from "@tanstack/react-table";
-import type { DataTableColumnDef, DataTableProps } from "../types";
+import type {
+  DataTableColumnDef,
+  DataTableColumnFilterOption,
+  DataTableColumnFixed,
+  DataTableColumnType,
+  DataTableCsvExportOptions,
+  DataTableDensity,
+  DataTableLabels,
+  DataTableProps,
+} from "../types";
 import type { DataTableUiClassNames, DataTableUiKit } from "../ui-kit";
 import { cn } from "../../lib/utils";
 import { renderDataTableCellContent } from "./data-table-cell-content";
@@ -28,6 +45,11 @@ import { createDataTableEmptyState } from "./create-data-table-empty-state";
 import { createDataTablePagination } from "./create-data-table-pagination";
 import { createDataTableRowActions } from "./create-data-table-row-actions";
 import { createDataTableToolbar } from "./create-data-table-toolbar";
+import { resolveDataTableLabels } from "./data-table-labels";
+import {
+  readDataTableColumnPrefs,
+  usePersistDataTableColumnPrefs,
+} from "./use-data-table-column-prefs";
 import { useDataTableContainerWidth } from "./use-data-table-container-width";
 import { useDataTableInfiniteScroll } from "./use-data-table-infinite-scroll";
 import { useDataTablePaginationClamp } from "./use-data-table-pagination-clamp";
@@ -41,6 +63,7 @@ import {
 } from "../types";
 
 const DATA_TABLE_LOADING_ROW = Symbol("data-table-loading-row");
+const UTILITY_COLUMN_SIZE = 50;
 
 type DataTableLoadingRow = {
   [DATA_TABLE_LOADING_ROW]: true;
@@ -60,6 +83,7 @@ export function createDataTable(ui: DataTableUiKit) {
     Table,
     TableBody,
     TableCell,
+    TableFooter = "tfoot",
     TableHead,
     TableHeader,
     TableRow,
@@ -90,6 +114,12 @@ export function createDataTable(ui: DataTableUiKit) {
     onToolbarQueryValueChange,
     toolbarQueryPlaceholder,
     toolbarQueryDebounceMs,
+    manualFiltering = false,
+    enableToolbarQueryFiltering = true,
+    globalFilterFn,
+    columnFilters,
+    onColumnFiltersChange,
+    enableColumnFilters,
     customToolbar,
     compactToolbar,
     rowsPerPageOptions = [10, 20, 50, 100],
@@ -106,13 +136,30 @@ export function createDataTable(ui: DataTableUiKit) {
     rowSelection,
     onRowSelectionChange,
     enableRowSelection = false,
+    expanded,
+    onExpandedChange,
+    getRowCanExpand,
+    renderExpandedRow,
+    columnOrder,
+    onColumnOrderChange,
+    enableColumnReordering = false,
+    columnPinning,
+    onColumnPinningChange,
+    enableColumnPinning = false,
     toolbarActions = [],
     selectionActions = [],
     rowActions = [],
+    csvExport,
+    density,
+    onDensityChange,
+    enableDensityToggle = false,
+    columnPrefsKey,
+    labels,
+    summaryRows = [],
     cardRenderer,
     cardGridClassName,
     cardClassName,
-    viewMode = "table",
+    viewMode,
     onViewModeChange,
     enableViewToggle = false,
     emptyState,
@@ -120,7 +167,7 @@ export function createDataTable(ui: DataTableUiKit) {
     loadingRowCount,
     getRowLoadingState,
     hiddenRows,
-    showHiddenRows = false,
+    showHiddenRows,
     onShowHiddenRowsChange,
     infiniteScroll,
     editableRows,
@@ -132,6 +179,7 @@ export function createDataTable(ui: DataTableUiKit) {
     stickyHeader = true,
     showFooter = true,
     showToolbar = true,
+    dir = "ltr",
     flexGrow = true,
     toolbarVisibility,
     className,
@@ -146,6 +194,17 @@ export function createDataTable(ui: DataTableUiKit) {
     const containerRef = React.useRef<HTMLDivElement | null>(null);
     const fileInputRef = React.useRef<HTMLInputElement | null>(null);
     const tableScrollContainerRef = React.useRef<HTMLDivElement | null>(null);
+    const draggedColumnIdRef = React.useRef<string | null>(null);
+    const tableRef = React.useRef<TanStackTable<TData> | null>(null);
+    const lastSelectedRowIdRef = React.useRef<string | null>(null);
+    const persistedColumnPrefs = React.useMemo(
+      () => readDataTableColumnPrefs(columnPrefsKey),
+      [columnPrefsKey],
+    );
+    const resolvedLabels = React.useMemo(
+      () => resolveDataTableLabels(labels),
+      [labels],
+    );
     const [localSorting, setLocalSorting] = React.useState<SortingState>([]);
     const [localPagination, setLocalPagination] =
       React.useState<PaginationState>({
@@ -156,10 +215,29 @@ export function createDataTable(ui: DataTableUiKit) {
       Record<string, boolean>
     >({});
     const [localColumnVisibility, setLocalColumnVisibility] =
-      React.useState<VisibilityState>({});
+      React.useState<VisibilityState>(() => persistedColumnPrefs.visibility ?? {});
+    const [localColumnFilters, setLocalColumnFilters] =
+      React.useState<ColumnFiltersState>([]);
+    const [localExpanded, setLocalExpanded] = React.useState<ExpandedState>({});
+    const [localColumnOrder, setLocalColumnOrder] =
+      React.useState<ColumnOrderState>(() => persistedColumnPrefs.order ?? []);
+    const [localColumnPinning, setLocalColumnPinning] =
+      React.useState<ColumnPinningState>(
+        () => persistedColumnPrefs.pinning ?? getInitialColumnPinning(columns),
+      );
+    const [localColumnSizing, setLocalColumnSizing] =
+      React.useState<ColumnSizingState>(() => persistedColumnPrefs.sizing ?? {});
+    const [localViewMode, setLocalViewMode] =
+      React.useState(() => viewMode ?? "table");
+    const [localShowHiddenRows, setLocalShowHiddenRows] = React.useState(
+      showHiddenRows ?? false,
+    );
+    const [localDensity, setLocalDensity] = React.useState<DataTableDensity>(
+      () => density ?? persistedColumnPrefs.density ?? "comfortable",
+    );
     const resolvedToolbarQueryValue = toolbarQueryValue ?? "";
     const resolvedToolbarQueryPlaceholder =
-      toolbarQueryPlaceholder ?? "Search rows...";
+      toolbarQueryPlaceholder ?? resolvedLabels.searchPlaceholder;
     const resolvedToolbarQueryDebounceMs = toolbarQueryDebounceMs ?? 250;
     const resolvedOnToolbarQueryValueChange = onToolbarQueryValueChange;
     const [localSearchValue, setLocalSearchValue] = React.useState(
@@ -169,10 +247,14 @@ export function createDataTable(ui: DataTableUiKit) {
     const [draftValues, setDraftValues] = React.useState<
       Record<string, unknown>
     >({});
+    const draftValuesRef = React.useRef(draftValues);
     const [isSavingEdit, setIsSavingEdit] = React.useState(false);
+    const currentViewMode = viewMode ?? localViewMode;
+    const currentShowHiddenRows = showHiddenRows ?? localShowHiddenRows;
+    const currentDensity = density ?? localDensity;
     const containerWidth = useDataTableContainerWidth(containerRef);
     const { viewportElement: tableScrollElement, viewportHeight } =
-      useDataTableScrollViewport(tableScrollContainerRef, viewMode);
+      useDataTableScrollViewport(tableScrollContainerRef, currentViewMode);
     const hasOnSearchValueChange = Boolean(resolvedOnToolbarQueryValueChange);
     const lastReportedSearchValueRef = React.useRef(resolvedToolbarQueryValue);
     const onToolbarQueryValueChangeEvent = React.useEffectEvent(
@@ -186,6 +268,10 @@ export function createDataTable(ui: DataTableUiKit) {
       lastReportedSearchValueRef.current = resolvedToolbarQueryValue;
       setLocalSearchValue(resolvedToolbarQueryValue);
     }, [resolvedToolbarQueryValue]);
+
+    React.useEffect(() => {
+      draftValuesRef.current = draftValues;
+    }, [draftValues]);
 
     React.useEffect(() => {
       if (!hasOnSearchValueChange) {
@@ -233,6 +319,81 @@ export function createDataTable(ui: DataTableUiKit) {
     );
     const currentRowSelection = rowSelection ?? localRowSelection;
     const currentColumnVisibility = columnVisibility ?? localColumnVisibility;
+    const currentColumnFilters = columnFilters ?? localColumnFilters;
+    const currentExpanded = expanded ?? localExpanded;
+    const currentColumnOrder = columnOrder ?? localColumnOrder;
+    const currentColumnPinning = columnPinning ?? localColumnPinning;
+    const currentColumnSizing = localColumnSizing;
+    const globalFilterValue = "";
+    const handleViewModeChange = React.useCallback(
+      (nextViewMode: "table" | "card") => {
+        onViewModeChange?.(nextViewMode);
+        if (viewMode === undefined) {
+          setLocalViewMode(nextViewMode);
+        }
+      },
+      [onViewModeChange, viewMode],
+    );
+    const handleShowHiddenRowsChange = React.useCallback(
+      (nextShowHiddenRows: boolean) => {
+        onShowHiddenRowsChange?.(nextShowHiddenRows);
+        if (showHiddenRows === undefined) {
+          setLocalShowHiddenRows(nextShowHiddenRows);
+        }
+      },
+      [onShowHiddenRowsChange, showHiddenRows],
+    );
+    const handleDensityChange = React.useCallback(
+      (nextDensity: DataTableDensity) => {
+        onDensityChange?.(nextDensity);
+        if (density === undefined) {
+          setLocalDensity(nextDensity);
+        }
+      },
+      [density, onDensityChange],
+    );
+    const resetPageIndexForFilterChange = React.useCallback(() => {
+      onPageIndexChange?.(0);
+      if (pageIndex === undefined) {
+        setLocalPagination((current) =>
+          current.pageIndex === 0 ? current : { ...current, pageIndex: 0 },
+        );
+      }
+    }, [onPageIndexChange, pageIndex]);
+    const filterResetSignature = React.useMemo(
+      () =>
+        JSON.stringify({
+          globalFilterValue,
+          columnFilters: currentColumnFilters,
+        }),
+      [currentColumnFilters, globalFilterValue],
+    );
+    const lastFilterResetSignatureRef = React.useRef(filterResetSignature);
+
+    React.useEffect(() => {
+      if (manualFiltering) {
+        lastFilterResetSignatureRef.current = filterResetSignature;
+        return;
+      }
+
+      if (lastFilterResetSignatureRef.current === filterResetSignature) {
+        return;
+      }
+
+      lastFilterResetSignatureRef.current = filterResetSignature;
+      resetPageIndexForFilterChange();
+    }, [filterResetSignature, manualFiltering, resetPageIndexForFilterChange]);
+
+    usePersistDataTableColumnPrefs({
+      key: columnPrefsKey,
+      prefs: {
+        visibility: columnVisibility ? undefined : currentColumnVisibility,
+        sizing: currentColumnSizing,
+        order: columnOrder ? undefined : currentColumnOrder,
+        pinning: columnPinning ? undefined : currentColumnPinning,
+        density: density ? undefined : currentDensity,
+      },
+    });
     const responsiveColumnVisibility = React.useMemo<VisibilityState>(() => {
       return columns.reduce<VisibilityState>((visibility, column, index) => {
         const columnId = getColumnId(column, index);
@@ -263,15 +424,39 @@ export function createDataTable(ui: DataTableUiKit) {
     );
 
     const visibleData = React.useMemo(
-      () => data.filter((row) => isRowVisible(row, hiddenRows, showHiddenRows)),
-      [data, hiddenRows, showHiddenRows],
+      () =>
+        data.filter((row) =>
+          isRowVisible(row, hiddenRows, currentShowHiddenRows),
+        ),
+      [currentShowHiddenRows, data, hiddenRows],
     );
+    const toolbarFilteredData = React.useMemo(() => {
+      if (
+        manualFiltering ||
+        !enableToolbarQueryFiltering ||
+        !localSearchValue.trim()
+      ) {
+        return visibleData;
+      }
+
+      return visibleData.filter((row) =>
+        rowMatchesToolbarQuery(row, columns, localSearchValue),
+      );
+    }, [
+      columns,
+      enableToolbarQueryFiltering,
+      localSearchValue,
+      manualFiltering,
+      visibleData,
+    ]);
     const shouldRenderInitialLoading = isLoading && visibleData.length === 0;
     const loadingRows = React.useMemo(
       () => createDataTableLoadingRows<TData>(resolvedLoadingRowCount),
       [resolvedLoadingRowCount],
     );
-    const tableData = shouldRenderInitialLoading ? loadingRows : visibleData;
+    const tableData = shouldRenderInitialLoading
+      ? loadingRows
+      : toolbarFilteredData;
     const tableGetRowId = React.useCallback(
       (row: TData, index: number) => {
         if (isDataTableLoadingRow(row)) {
@@ -320,14 +505,22 @@ export function createDataTable(ui: DataTableUiKit) {
               ? startCase(accessorKey)
               : startCase(id);
 
+        const pinned: false | DataTableColumnFixed =
+          currentColumnPinning.left?.includes(id) === true
+            ? "left"
+            : currentColumnPinning.right?.includes(id) === true
+              ? "right"
+              : false;
+
         return {
           id,
           label,
           visible: effectiveColumnVisibility[id] !== false,
           canHide: column.enableHiding !== false,
+          pinned,
         };
       });
-    }, [columns, effectiveColumnVisibility]);
+    }, [columns, currentColumnPinning, effectiveColumnVisibility]);
 
     const startEditingRow = React.useCallback(
       (row: TData, rowId: string) => {
@@ -348,7 +541,7 @@ export function createDataTable(ui: DataTableUiKit) {
 
         setIsSavingEdit(true);
         try {
-          await editableRows.onSaveRow(row, draftValues);
+          await editableRows.onSaveRow(row, draftValuesRef.current);
           React.startTransition(() => {
             setEditingRowId(null);
             setDraftValues({});
@@ -357,11 +550,91 @@ export function createDataTable(ui: DataTableUiKit) {
           setIsSavingEdit(false);
         }
       },
-      [draftValues, editableRows],
+      [editableRows],
+    );
+    const selectRowRange = React.useCallback(
+      (targetRowId: string, selected: boolean) => {
+        const tableInstance = tableRef.current;
+        if (!tableInstance || !lastSelectedRowIdRef.current) {
+          return;
+        }
+
+        const rows = tableInstance
+          .getRowModel()
+          .rows.filter((row) => !isDataTableLoadingRow(row.original));
+        const startIndex = rows.findIndex(
+          (row) => row.id === lastSelectedRowIdRef.current,
+        );
+        const endIndex = rows.findIndex((row) => row.id === targetRowId);
+
+        if (startIndex < 0 || endIndex < 0) {
+          return;
+        }
+
+        const from = Math.min(startIndex, endIndex);
+        const to = Math.max(startIndex, endIndex);
+        tableInstance.setRowSelection((current) => {
+          const next = { ...current };
+          for (const row of rows.slice(from, to + 1)) {
+            if (selected) {
+              next[row.id] = true;
+            } else {
+              delete next[row.id];
+            }
+          }
+          return next;
+        });
+      },
+      [],
     );
 
     const tableColumns = React.useMemo<Array<ColumnDef<TData, unknown>>>(() => {
       const defs: Array<ColumnDef<TData, unknown>> = [];
+
+      if (renderExpandedRow) {
+        defs.push({
+          id: "__expand__",
+          enableResizing: false,
+          enableSorting: false,
+          enableHiding: false,
+          size: UTILITY_COLUMN_SIZE,
+          minSize: UTILITY_COLUMN_SIZE,
+          maxSize: UTILITY_COLUMN_SIZE,
+          header: () => <span className="sr-only">{resolvedLabels.expandRow}</span>,
+          cell: ({ row }) => {
+            const canExpand =
+              getRowCanExpand?.(row.original) ?? Boolean(renderExpandedRow);
+            if (!canExpand) {
+              return null;
+            }
+
+            const isExpanded = row.getIsExpanded();
+            return (
+              <div className="flex items-center justify-center">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label={
+                    isExpanded
+                      ? resolvedLabels.collapseRow
+                      : resolvedLabels.expandRow
+                  }
+                  aria-expanded={isExpanded}
+                  onClick={() => row.toggleExpanded()}
+                >
+                  <IconChevronDown
+                    className={cn(
+                      "transition-transform",
+                      isExpanded ? "rotate-0" : "-rotate-90",
+                    )}
+                  />
+                </Button>
+              </div>
+            );
+          },
+        });
+      }
 
       if (enableRowSelection) {
         defs.push({
@@ -369,9 +642,9 @@ export function createDataTable(ui: DataTableUiKit) {
           enableResizing: false,
           enableSorting: false,
           enableHiding: false,
-          size: 50,
-          minSize: 50,
-          maxSize: 50,
+          size: UTILITY_COLUMN_SIZE,
+          minSize: UTILITY_COLUMN_SIZE,
+          maxSize: UTILITY_COLUMN_SIZE,
           header: ({ table }) => (
             <div className="flex items-center justify-center">
               <Checkbox
@@ -387,7 +660,19 @@ export function createDataTable(ui: DataTableUiKit) {
             <div className="flex items-center justify-center">
               <Checkbox
                 checked={row.getIsSelected()}
+                onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
+                  if (!event.shiftKey || !lastSelectedRowIdRef.current) {
+                    lastSelectedRowIdRef.current = row.id;
+                    return;
+                  }
+
+                  event.preventDefault();
+                  event.stopPropagation();
+                  selectRowRange(row.id, !row.getIsSelected());
+                  lastSelectedRowIdRef.current = row.id;
+                }}
                 onCheckedChange={(checked: boolean | "indeterminate") => {
+                  lastSelectedRowIdRef.current = row.id;
                   row.toggleSelected(checked === true);
                 }}
                 aria-label="Select row"
@@ -397,7 +682,7 @@ export function createDataTable(ui: DataTableUiKit) {
         });
       }
 
-      defs.push(...columns);
+      defs.push(...columns.map((column) => decorateFilterableColumn(column)));
 
       if (rowActions.length || editableRows) {
         defs.push({
@@ -405,10 +690,10 @@ export function createDataTable(ui: DataTableUiKit) {
           enableSorting: false,
           enableResizing: false,
           enableHiding: false,
-          size: 50,
-          minSize: 50,
-          maxSize: 50,
-          header: () => <span className="sr-only">Actions</span>,
+          size: UTILITY_COLUMN_SIZE,
+          minSize: UTILITY_COLUMN_SIZE,
+          maxSize: UTILITY_COLUMN_SIZE,
+          header: () => <span className="sr-only">{resolvedLabels.actions}</span>,
           cell: ({ row }) => {
             const rowId = row.id;
             const isEditing = editingRowId === rowId;
@@ -424,7 +709,7 @@ export function createDataTable(ui: DataTableUiKit) {
                       void saveEdit(row.original);
                     }}
                   >
-                    Save
+                    {resolvedLabels.saveEdit}
                   </Button>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -438,10 +723,12 @@ export function createDataTable(ui: DataTableUiKit) {
                         }}
                       >
                         <IconChevronDown className="rotate-45" />
-                        <span className="sr-only">Cancel editing</span>
+                        <span className="sr-only">
+                          {resolvedLabels.cancelEdit}
+                        </span>
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent>Cancel editing</TooltipContent>
+                    <TooltipContent>{resolvedLabels.cancelEdit}</TooltipContent>
                   </Tooltip>
                 </div>
               );
@@ -458,6 +745,7 @@ export function createDataTable(ui: DataTableUiKit) {
                     startEditingRow(row.original, row.id);
                   }}
                   onCancelEditing={() => {}}
+                  labels={resolvedLabels}
                 />
               </div>
             );
@@ -471,9 +759,13 @@ export function createDataTable(ui: DataTableUiKit) {
       editableRows,
       editingRowId,
       enableRowSelection,
+      getRowCanExpand,
       isSavingEdit,
+      renderExpandedRow,
+      resolvedLabels,
       rowActions,
       saveEdit,
+      selectRowRange,
       startEditingRow,
     ]);
 
@@ -483,12 +775,24 @@ export function createDataTable(ui: DataTableUiKit) {
         pagination: currentPagination,
         rowSelection: currentRowSelection,
         columnVisibility: effectiveColumnVisibility,
+        columnFilters: currentColumnFilters,
+        globalFilter: globalFilterValue,
+        expanded: currentExpanded,
+        columnOrder: currentColumnOrder,
+        columnPinning: currentColumnPinning,
+        columnSizing: currentColumnSizing,
       }),
       [
+        currentColumnFilters,
+        currentColumnOrder,
+        currentColumnPinning,
+        currentColumnSizing,
+        currentExpanded,
         currentPagination,
         currentRowSelection,
         currentSorting,
         effectiveColumnVisibility,
+        globalFilterValue,
       ],
     );
     const handleSortingChange = React.useCallback<OnChangeFn<SortingState>>(
@@ -552,12 +856,65 @@ export function createDataTable(ui: DataTableUiKit) {
       },
       [columnVisibility, currentColumnVisibility, onColumnVisibilityChange],
     );
+    const handleColumnFiltersChange = React.useCallback<
+      OnChangeFn<ColumnFiltersState>
+    >(
+      (updater) => {
+        const nextValue = functionalUpdate(updater, currentColumnFilters);
+        onColumnFiltersChange?.(nextValue);
+        if (!columnFilters) {
+          setLocalColumnFilters(nextValue);
+        }
+      },
+      [columnFilters, currentColumnFilters, onColumnFiltersChange],
+    );
+    const handleExpandedChange = React.useCallback<OnChangeFn<ExpandedState>>(
+      (updater) => {
+        const nextValue = functionalUpdate(updater, currentExpanded);
+        onExpandedChange?.(nextValue);
+        if (!expanded) {
+          setLocalExpanded(nextValue);
+        }
+      },
+      [currentExpanded, expanded, onExpandedChange],
+    );
+    const handleColumnOrderChange = React.useCallback<
+      OnChangeFn<ColumnOrderState>
+    >(
+      (updater) => {
+        const nextValue = functionalUpdate(updater, currentColumnOrder);
+        onColumnOrderChange?.(nextValue);
+        if (!columnOrder) {
+          setLocalColumnOrder(nextValue);
+        }
+      },
+      [columnOrder, currentColumnOrder, onColumnOrderChange],
+    );
+    const handleColumnPinningChange = React.useCallback<
+      OnChangeFn<ColumnPinningState>
+    >(
+      (updater) => {
+        const nextValue = functionalUpdate(updater, currentColumnPinning);
+        onColumnPinningChange?.(nextValue);
+        if (!columnPinning) {
+          setLocalColumnPinning(nextValue);
+        }
+      },
+      [columnPinning, currentColumnPinning, onColumnPinningChange],
+    );
+    const handleColumnSizingChange = React.useCallback<
+      OnChangeFn<ColumnSizingState>
+    >((updater) => {
+      setLocalColumnSizing((current) => functionalUpdate(updater, current));
+    }, []);
 
     const table = useReactTable({
       data: tableData,
       columns: tableColumns,
       getCoreRowModel: getCoreRowModel(),
+      getFilteredRowModel: manualFiltering ? undefined : getFilteredRowModel(),
       getSortedRowModel: manualSorting ? undefined : getSortedRowModel(),
+      getExpandedRowModel: renderExpandedRow ? getExpandedRowModel() : undefined,
       getPaginationRowModel:
         manualPagination || infiniteScroll?.enabled
           ? undefined
@@ -567,7 +924,12 @@ export function createDataTable(ui: DataTableUiKit) {
       enableColumnResizing,
       columnResizeMode,
       getRowId: tableGetRowId,
+      getRowCanExpand: renderExpandedRow
+        ? (row) => getRowCanExpand?.(row.original) ?? true
+        : undefined,
+      globalFilterFn,
       manualSorting,
+      manualFiltering,
       manualPagination: manualPagination || Boolean(infiniteScroll?.enabled),
       defaultColumn,
       autoResetPageIndex: false,
@@ -576,15 +938,40 @@ export function createDataTable(ui: DataTableUiKit) {
       onPaginationChange: handlePaginationChange,
       onRowSelectionChange: handleRowSelectionChange,
       onColumnVisibilityChange: handleColumnVisibilityChange,
+      onColumnFiltersChange: handleColumnFiltersChange,
+      onExpandedChange: handleExpandedChange,
+      onColumnOrderChange: handleColumnOrderChange,
+      onColumnPinningChange: handleColumnPinningChange,
+      onColumnSizingChange: handleColumnSizingChange,
     });
-    const columnSizing = table.getState().columnSizing;
+    tableRef.current = table;
+    const columnSizing = currentColumnSizing;
     const visibleLeafColumns = table.getVisibleLeafColumns();
+    const reorderColumn = React.useCallback(
+      (sourceColumnId: string, targetColumnId: string) => {
+        if (sourceColumnId === targetColumnId) {
+          return;
+        }
+
+        const defaultOrder = table
+          .getAllLeafColumns()
+          .map((column) => column.id)
+          .filter((columnId) => !isUtilityColumnId(columnId));
+        const nextOrder = moveColumnInOrder(
+          currentColumnOrder.length ? currentColumnOrder : defaultOrder,
+          sourceColumnId,
+          targetColumnId,
+        );
+        handleColumnOrderChange(nextOrder);
+      },
+      [currentColumnOrder, handleColumnOrderChange, table],
+    );
 
     const renderedRows = table.getRowModel().rows;
     const virtualizationConfig =
       typeof virtualization === "object" ? virtualization : undefined;
     const enableVirtualization =
-      viewMode === "table" &&
+      currentViewMode === "table" &&
       !shouldRenderInitialLoading &&
       (virtualization === true || virtualizationConfig?.enabled === true);
     const shouldUseVirtualRows =
@@ -651,12 +1038,22 @@ export function createDataTable(ui: DataTableUiKit) {
         ids.add("__select__");
       }
 
+      if (renderExpandedRow) {
+        ids.add("__expand__");
+      }
+
       if (rowActions.length || editableRows) {
         ids.add("__actions__");
       }
 
       return ids;
-    }, [columns, editableRows, enableRowSelection, rowActions.length]);
+    }, [
+      columns,
+      editableRows,
+      enableRowSelection,
+      renderExpandedRow,
+      rowActions.length,
+    ]);
     const minimumColumnWidths = React.useMemo(() => {
       const widths = new Map<string, number>();
 
@@ -688,7 +1085,7 @@ export function createDataTable(ui: DataTableUiKit) {
 
       const dataColumns = visibleLeafColumns.filter(
         (column) =>
-          column.id !== "__select__" && column.id !== "__actions__",
+          !isUtilityColumnId(column.id),
       );
 
       if (!dataColumns.length) {
@@ -724,8 +1121,7 @@ export function createDataTable(ui: DataTableUiKit) {
     }, [columnSizing, explicitlySizedColumnIds, fillColumnId]);
     const fillMinWidth = React.useMemo(() => {
       return visibleLeafColumns.reduce((total, column) => {
-        const isFixedUtilityColumn =
-          column.id === "__select__" || column.id === "__actions__";
+        const isFixedUtilityColumn = isUtilityColumnId(column.id);
         const configuredMinWidth = minimumColumnWidths.get(column.id);
         const isFlexibleFillColumn = column.id === fillColumnId;
 
@@ -792,7 +1188,7 @@ export function createDataTable(ui: DataTableUiKit) {
 
     const derivedTotalRowCount =
       manualPagination || infiniteScroll?.enabled
-        ? visibleData.length
+        ? toolbarFilteredData.length
         : table.getFilteredRowModel().rows.length;
     const effectiveTotalRowCount = totalRowCount ?? derivedTotalRowCount;
     const footerTotalRowCount = totalRowCount ?? effectiveTotalRowCount;
@@ -865,13 +1261,115 @@ export function createDataTable(ui: DataTableUiKit) {
       },
     });
 
+    const filteredData = table
+      .getFilteredRowModel()
+      .rows.map((row) => row.original);
     const emptyNode =
       typeof emptyState === "function"
       ? emptyState({
-          rows: visibleData,
+          rows: filteredData,
           toolbarQueryValue: localSearchValue,
         })
         : emptyState;
+    const toolbarColumnFilters = React.useMemo(() => {
+      if (enableColumnFilters === false) {
+        return [];
+      }
+
+      return columns.flatMap((column, index) => {
+        const filter = column.meta?.filter;
+        if (!filter) {
+          return [];
+        }
+
+        const id = getColumnId(column, index);
+        const header = column.header;
+        const accessorKey = getAccessorKey(column);
+        const label =
+          filter.label ??
+          (typeof header === "string"
+            ? header
+            : accessorKey
+              ? startCase(accessorKey)
+              : startCase(id));
+        const state = currentColumnFilters.find((item) => item.id === id);
+        const rawOptions =
+          typeof filter.options === "function"
+            ? filter.options({ rows: visibleData })
+            : (filter.options ?? []);
+
+        return [
+          {
+            id,
+            label,
+            type: filter.type,
+            value: state?.value,
+            placeholder: filter.placeholder,
+            options: normalizeColumnFilterOptions(rawOptions),
+          },
+        ];
+      });
+    }, [columns, currentColumnFilters, enableColumnFilters, visibleData]);
+    const handleToolbarColumnFilterChange = React.useCallback(
+      (columnId: string, value: unknown) => {
+        handleColumnFiltersChange((current) => {
+          const next = current.filter((filter) => filter.id !== columnId);
+          if (hasFilterValue(value)) {
+            next.push({ id: columnId, value });
+          }
+          return next;
+        });
+      },
+      [handleColumnFiltersChange],
+    );
+    const handleClearColumnFilters = React.useCallback(() => {
+      handleColumnFiltersChange([]);
+    }, [handleColumnFiltersChange]);
+    const handleToolbarColumnPinningChange = React.useCallback(
+      (columnId: string, side: DataTableColumnFixed | false) => {
+        handleColumnPinningChange((current) => {
+          const left = (current.left ?? []).filter((id) => id !== columnId);
+          const right = (current.right ?? []).filter((id) => id !== columnId);
+
+          if (side === "left") {
+            left.push(columnId);
+          }
+          if (side === "right") {
+            right.push(columnId);
+          }
+
+          return { left, right };
+        });
+      },
+      [handleColumnPinningChange],
+    );
+    const handleCsvExport = React.useCallback(() => {
+      if (!csvExport) {
+        return;
+      }
+
+      void exportDataTableCsv({
+        csvExport,
+        table,
+        labels: resolvedLabels,
+      });
+    }, [csvExport, resolvedLabels, table]);
+    const effectiveToolbarActions = React.useMemo(() => {
+      if (!csvExport) {
+        return toolbarActions;
+      }
+
+      return [
+        ...toolbarActions,
+        {
+          key: "__csv_export__",
+          label: resolvedLabels.exportCsv,
+          icon: IconDownload,
+          placement: "trailing" as const,
+          onClick: handleCsvExport,
+        },
+      ];
+    }, [csvExport, handleCsvExport, resolvedLabels.exportCsv, toolbarActions]);
 
     const handleRowClick = React.useCallback(
       (event: React.MouseEvent<HTMLElement>, row: TData, rowId: string) => {
@@ -890,6 +1388,8 @@ export function createDataTable(ui: DataTableUiKit) {
         <div
           ref={containerRef}
           data-dtp-slot="data-table-root"
+          data-density={currentDensity}
+          dir={dir}
           className={cn(
             "@container/data-table data-table-container-query flex flex-col",
             flexGrow ? "h-full min-h-0 flex-1" : "grow",
@@ -942,20 +1442,29 @@ export function createDataTable(ui: DataTableUiKit) {
                     onToolbarQueryValueChange={setLocalSearchValue}
                     customToolbar={customToolbar}
                     compactToolbar={compactToolbar}
-                    viewMode={viewMode}
-                    onViewModeChange={onViewModeChange}
+                    viewMode={currentViewMode}
+                    onViewModeChange={handleViewModeChange}
                     enableViewToggle={enableViewToggle && Boolean(cardRenderer)}
-                    toolbarActions={toolbarActions}
+                    toolbarActions={effectiveToolbarActions}
                     selectionActions={selectionActions}
                     selectedRows={selectedRows}
-                    showHiddenRows={showHiddenRows}
+                    showHiddenRows={currentShowHiddenRows}
                     hiddenRowsLabel={hiddenRows?.label}
-                    onShowHiddenRowsChange={onShowHiddenRowsChange}
-                    allRows={visibleData}
+                    onShowHiddenRowsChange={handleShowHiddenRowsChange}
+                    allRows={filteredData}
                     columnVisibilityOptions={columnVisibilityOptions}
                     onColumnVisibilityChange={(columnId, visible) => {
                       table.getColumn(columnId)?.toggleVisibility(visible);
                     }}
+                    enableColumnPinning={enableColumnPinning}
+                    onColumnPinningChange={handleToolbarColumnPinningChange}
+                    columnFilters={toolbarColumnFilters}
+                    onColumnFilterChange={handleToolbarColumnFilterChange}
+                    onClearColumnFilters={handleClearColumnFilters}
+                    density={currentDensity}
+                    onDensityChange={handleDensityChange}
+                    enableDensityToggle={enableDensityToggle}
+                    labels={resolvedLabels}
                     toolbarVisibility={toolbarVisibility}
                     openFileDialog={fileUpload ? openFileDialog : undefined}
                   />
@@ -966,7 +1475,7 @@ export function createDataTable(ui: DataTableUiKit) {
               data-dtp-slot="data-table-content"
               className={cn(flexGrow ? "flex min-h-0 flex-1 flex-col" : "")}
             >
-              {viewMode === "card" && cardRenderer ? (
+              {currentViewMode === "card" && cardRenderer ? (
                 <div
                   data-dtp-slot="data-table-card-shell"
                   className={cn(
@@ -999,6 +1508,7 @@ export function createDataTable(ui: DataTableUiKit) {
                           cardClassName={cardClassName}
                           rowActions={rowActions}
                           editableRows={editableRows}
+                          renderExpandedRow={renderExpandedRow}
                           hasCardTitle={hasCardTitle}
                           rowSelection={currentRowSelection}
                           onRowSelectionChange={(nextValue) => {
@@ -1017,8 +1527,9 @@ export function createDataTable(ui: DataTableUiKit) {
                           onRowDragEnd={dragAndDrop?.onRowDragEnd}
                           isLoading={true}
                           loadingRowCount={resolvedLoadingRowCount}
+                          labels={resolvedLabels}
                         />
-                      ) : visibleData.length ? (
+                      ) : renderedRows.length ? (
                         <DataTableCardView
                           rows={renderedRows}
                           cardRenderer={cardRenderer}
@@ -1026,6 +1537,7 @@ export function createDataTable(ui: DataTableUiKit) {
                           cardClassName={cardClassName}
                           rowActions={rowActions}
                           editableRows={editableRows}
+                          renderExpandedRow={renderExpandedRow}
                           hasCardTitle={hasCardTitle}
                           rowSelection={currentRowSelection}
                           onRowSelectionChange={(nextValue) => {
@@ -1042,6 +1554,7 @@ export function createDataTable(ui: DataTableUiKit) {
                           getRowDraggable={dragAndDrop?.getRowDraggable}
                           onRowDragStart={dragAndDrop?.onRowDragStart}
                           onRowDragEnd={dragAndDrop?.onRowDragEnd}
+                          labels={resolvedLabels}
                         />
                       ) : (
                         <div className="flex min-h-0 flex-1 items-center justify-center p-4">
@@ -1049,13 +1562,13 @@ export function createDataTable(ui: DataTableUiKit) {
                             <DataTableEmptyState
                               title={
                                 localSearchValue
-                                  ? "No matching rows"
-                                  : "No rows yet"
+                                  ? resolvedLabels.noMatchingRowsTitle
+                                  : resolvedLabels.noRowsTitle
                               }
                               description={
                                 localSearchValue
-                                  ? "Try a different search term or clear filters."
-                                  : "Create a record or refresh this view once data exists."
+                                  ? resolvedLabels.noMatchingRowsDescription
+                                  : resolvedLabels.noRowsDescription
                               }
                             />
                           )}
@@ -1115,9 +1628,9 @@ export function createDataTable(ui: DataTableUiKit) {
                         >
                           <colgroup>
                             {table.getVisibleLeafColumns().map((column) => {
-                              const isFixedUtilityColumn =
-                                column.id === "__select__" ||
-                                column.id === "__actions__";
+                              const isFixedUtilityColumn = isUtilityColumnId(
+                                column.id,
+                              );
                               const isSpacerColumn = column.id === "__spacer__";
                               const configuredMinWidth =
                                 minimumColumnWidths.get(column.id);
@@ -1143,17 +1656,17 @@ export function createDataTable(ui: DataTableUiKit) {
                                       ? {
                                           width: shouldFixWidth
                                             ? isFixedUtilityColumn
-                                              ? 50
+                                              ? UTILITY_COLUMN_SIZE
                                               : column.getSize()
                                             : undefined,
                                           minWidth: isFixedUtilityColumn
-                                            ? 50
+                                            ? UTILITY_COLUMN_SIZE
                                             : shouldFixWidth
                                               ? column.getSize()
                                               : columnMinWidth,
                                           maxWidth: shouldFixWidth
                                             ? isFixedUtilityColumn
-                                              ? 50
+                                              ? UTILITY_COLUMN_SIZE
                                               : column.getSize()
                                             : undefined,
                                         }
@@ -1184,12 +1697,25 @@ export function createDataTable(ui: DataTableUiKit) {
                                   const canSort = header.column.getCanSort();
                                   const sortingState =
                                     header.column.getIsSorted();
+                                  const sortingIndex = currentSorting.findIndex(
+                                    (sort) => sort.id === header.column.id,
+                                  );
                                   const isSelectionColumn =
                                     header.column.id === "__select__";
+                                  const isExpansionColumn =
+                                    header.column.id === "__expand__";
                                   const isActionsColumn =
                                     header.column.id === "__actions__";
+                                  const isUtilityColumn =
+                                    isSelectionColumn ||
+                                    isExpansionColumn ||
+                                    isActionsColumn;
                                   const isSpacerColumn =
                                     header.column.id === "__spacer__";
+                                  const canReorderColumn =
+                                    enableColumnReordering &&
+                                    !isUtilityColumn &&
+                                    !isSpacerColumn;
                                   const configuredMinWidth =
                                     minimumColumnWidths.get(header.column.id);
                                   const isFlexibleFillColumn =
@@ -1202,8 +1728,7 @@ export function createDataTable(ui: DataTableUiKit) {
                                   const shouldFixWidth =
                                     !isSpacerColumn &&
                                     (layoutMode === "fit" ||
-                                      isSelectionColumn ||
-                                      isActionsColumn ||
+                                      isUtilityColumn ||
                                       fixedWidthColumnIds.has(
                                         header.column.id,
                                       ));
@@ -1216,8 +1741,10 @@ export function createDataTable(ui: DataTableUiKit) {
                                       key={header.id}
                                       className={cn(
                                         "relative border-b",
-                                        (isSelectionColumn ||
-                                          isActionsColumn) &&
+                                        getDensityHeaderClassName(
+                                          currentDensity,
+                                        ),
+                                        isUtilityColumn &&
                                           "w-[50px] max-w-[50px] min-w-[50px] px-0",
                                         isSpacerColumn &&
                                           "border-b-1 bg-transparent p-0",
@@ -1227,8 +1754,7 @@ export function createDataTable(ui: DataTableUiKit) {
                                             uiClassNames,
                                             {
                                               isUtilityColumn:
-                                                isSelectionColumn ||
-                                                isActionsColumn,
+                                                isUtilityColumn,
                                             },
                                           ),
                                         hideClassName,
@@ -1240,34 +1766,138 @@ export function createDataTable(ui: DataTableUiKit) {
                                       )}
                                       style={{
                                         width: shouldFixWidth
-                                          ? isSelectionColumn || isActionsColumn
-                                            ? 50
+                                          ? isUtilityColumn
+                                            ? UTILITY_COLUMN_SIZE
                                             : header.getSize()
                                           : undefined,
                                         minWidth:
-                                          isSelectionColumn || isActionsColumn
-                                            ? 50
+                                          isUtilityColumn
+                                            ? UTILITY_COLUMN_SIZE
                                             : shouldFixWidth
                                               ? header.getSize()
                                               : columnMinWidth,
                                         maxWidth: shouldFixWidth
-                                          ? isSelectionColumn || isActionsColumn
-                                            ? 50
+                                          ? isUtilityColumn
+                                            ? UTILITY_COLUMN_SIZE
                                             : header.getSize()
                                           : undefined,
-                                        left:
+                                        insetInlineStart:
                                           fixedSide === "left"
                                             ? pinnedColumns.left.get(
                                                 header.column.id,
                                               )
                                             : undefined,
-                                        right:
+                                        insetInlineEnd:
                                           fixedSide === "right"
                                             ? pinnedColumns.right.get(
                                                 header.column.id,
                                               )
                                             : undefined,
                                       }}
+                                      aria-sort={
+                                        sortingState === "asc"
+                                          ? "ascending"
+                                          : sortingState === "desc"
+                                            ? "descending"
+                                            : canSort
+                                              ? "none"
+                                              : undefined
+                                      }
+                                      draggable={canReorderColumn}
+                                      tabIndex={canReorderColumn ? 0 : undefined}
+                                      onDragStart={
+                                        canReorderColumn
+                                          ? (
+                                              event: React.DragEvent<
+                                                HTMLTableCellElement
+                                              >,
+                                            ) => {
+                                              draggedColumnIdRef.current =
+                                                header.column.id;
+                                              event.dataTransfer.effectAllowed =
+                                                "move";
+                                            }
+                                          : undefined
+                                      }
+                                      onDragOver={
+                                        canReorderColumn
+                                          ? (
+                                              event: React.DragEvent<
+                                                HTMLTableCellElement
+                                              >,
+                                            ) => {
+                                              event.preventDefault();
+                                              event.dataTransfer.dropEffect =
+                                                "move";
+                                            }
+                                          : undefined
+                                      }
+                                      onDrop={
+                                        canReorderColumn
+                                          ? (
+                                              event: React.DragEvent<
+                                                HTMLTableCellElement
+                                              >,
+                                            ) => {
+                                              event.preventDefault();
+                                              const sourceColumnId =
+                                                draggedColumnIdRef.current;
+                                              draggedColumnIdRef.current = null;
+                                              if (sourceColumnId) {
+                                                reorderColumn(
+                                                  sourceColumnId,
+                                                  header.column.id,
+                                                );
+                                              }
+                                            }
+                                          : undefined
+                                      }
+                                      onKeyDown={
+                                        canReorderColumn
+                                          ? (
+                                              event: React.KeyboardEvent<
+                                                HTMLTableCellElement
+                                              >,
+                                            ) => {
+                                              if (
+                                                !event.altKey ||
+                                                (event.key !== "ArrowLeft" &&
+                                                  event.key !== "ArrowRight")
+                                              ) {
+                                                return;
+                                              }
+
+                                              event.preventDefault();
+                                              const headers =
+                                                headerGroup.headers.filter(
+                                                  (item) =>
+                                                    !isUtilityColumnId(
+                                                      item.column.id,
+                                                    ) &&
+                                                    item.column.id !==
+                                                      "__spacer__",
+                                                );
+                                              const currentIndex =
+                                                headers.findIndex(
+                                                  (item) =>
+                                                    item.column.id ===
+                                                    header.column.id,
+                                                );
+                                              const target =
+                                                headers[
+                                                  event.key === "ArrowLeft"
+                                                    ? currentIndex - 1
+                                                    : currentIndex + 1
+                                                ];
+                                              if (target) {
+                                                reorderColumn(
+                                                  header.column.id,
+                                                  target.column.id,
+                                                );
+                                              }
+                                            }
+                                          : undefined
+                                      }
                                     >
                                       {header.isPlaceholder ? null : canSort ? (
                                         <button
@@ -1287,14 +1917,22 @@ export function createDataTable(ui: DataTableUiKit) {
                                             )}
                                           </span>
                                           {sortingState ? (
-                                            <IconChevronDown
-                                              className={cn(
-                                                "shrink-0 transition-transform",
-                                                sortingState === "desc"
-                                                  ? "rotate-0"
-                                                  : "rotate-180",
-                                              )}
-                                            />
+                                            <>
+                                              <IconChevronDown
+                                                className={cn(
+                                                  "shrink-0 transition-transform",
+                                                  sortingState === "desc"
+                                                    ? "rotate-0"
+                                                    : "rotate-180",
+                                                )}
+                                              />
+                                              {currentSorting.length > 1 &&
+                                              sortingIndex >= 0 ? (
+                                                <span className="inline-flex size-4 shrink-0 items-center justify-center rounded-full text-[10px] leading-none">
+                                                  {sortingIndex + 1}
+                                                </span>
+                                              ) : null}
+                                            </>
                                           ) : (
                                             <IconSelector
                                               className={cn(
@@ -1380,8 +2018,8 @@ export function createDataTable(ui: DataTableUiKit) {
                                   const isEditing = editingRowId === row.id;
 
                                   return (
+                                    <React.Fragment key={row.id}>
                                     <TableRow
-                                      key={row.id}
                                       draggable={
                                         isInitialLoadingRow
                                           ? false
@@ -1399,6 +2037,16 @@ export function createDataTable(ui: DataTableUiKit) {
                                           : row.getIsSelected()
                                             ? "selected"
                                             : undefined
+                                      }
+                                      role={
+                                        onRowClick && !isInitialLoadingRow
+                                          ? "button"
+                                          : undefined
+                                      }
+                                      tabIndex={
+                                        onRowClick && !isInitialLoadingRow
+                                          ? 0
+                                          : undefined
                                       }
                                       className={cn(
                                         !isInitialLoadingRow &&
@@ -1425,6 +2073,34 @@ export function createDataTable(ui: DataTableUiKit) {
                                           originalRow,
                                           row.id,
                                         );
+                                      }}
+                                      onKeyDown={(
+                                        event: React.KeyboardEvent<HTMLTableRowElement>,
+                                      ) => {
+                                        if (
+                                          isInitialLoadingRow ||
+                                          !onRowClick ||
+                                          (event.key !== "Enter" &&
+                                            event.key !== " ")
+                                        ) {
+                                          return;
+                                        }
+
+                                        const target =
+                                          event.target as HTMLElement | null;
+                                        if (
+                                          target?.closest(
+                                            "[data-row-click-ignore='true']",
+                                          )
+                                        ) {
+                                          return;
+                                        }
+
+                                        event.preventDefault();
+                                        void onRowClick({
+                                          row: originalRow,
+                                          rowId: row.id,
+                                        });
                                       }}
                                       onDragStart={(
                                         event: React.DragEvent<HTMLTableRowElement>,
@@ -1465,8 +2141,14 @@ export function createDataTable(ui: DataTableUiKit) {
                                         const value = cell.getValue();
                                         const isSelectionColumn =
                                           cell.column.id === "__select__";
+                                        const isExpansionColumn =
+                                          cell.column.id === "__expand__";
                                         const isActionsColumn =
                                           cell.column.id === "__actions__";
+                                        const isUtilityColumn =
+                                          isSelectionColumn ||
+                                          isExpansionColumn ||
+                                          isActionsColumn;
                                         const isSpacerColumn =
                                           cell.column.id === "__spacer__";
                                         const configuredMinWidth =
@@ -1484,6 +2166,7 @@ export function createDataTable(ui: DataTableUiKit) {
                                           !isSpacerColumn &&
                                           (layoutMode === "fit" ||
                                             isSelectionColumn ||
+                                            isExpansionColumn ||
                                             isActionsColumn ||
                                             fixedWidthColumnIds.has(
                                               cell.column.id,
@@ -1510,9 +2193,11 @@ export function createDataTable(ui: DataTableUiKit) {
                                             key={cell.id}
                                             className={cn(
                                               "border-b",
+                                              getDensityCellClassName(
+                                                currentDensity,
+                                              ),
                                               uiClassNames.cellBorder,
-                                              (isSelectionColumn ||
-                                                isActionsColumn) &&
+                                              isUtilityColumn &&
                                                 "w-[50px] max-w-[50px] min-w-[50px] px-0",
                                               isSpacerColumn &&
                                                 "border-b-0 bg-transparent p-0",
@@ -1522,8 +2207,7 @@ export function createDataTable(ui: DataTableUiKit) {
                                                   uiClassNames,
                                                   {
                                                     isUtilityColumn:
-                                                      isSelectionColumn ||
-                                                      isActionsColumn,
+                                                      isUtilityColumn,
                                                   },
                                                 ),
                                               hideClassName,
@@ -1533,31 +2217,28 @@ export function createDataTable(ui: DataTableUiKit) {
                                             )}
                                             style={{
                                               width: shouldFixWidth
-                                                ? isSelectionColumn ||
-                                                  isActionsColumn
-                                                  ? 50
+                                                ? isUtilityColumn
+                                                  ? UTILITY_COLUMN_SIZE
                                                   : cell.column.getSize()
                                                 : undefined,
                                               minWidth:
-                                                isSelectionColumn ||
-                                                isActionsColumn
-                                                  ? 50
+                                                isUtilityColumn
+                                                  ? UTILITY_COLUMN_SIZE
                                                   : shouldFixWidth
                                                     ? cell.column.getSize()
                                                     : columnMinWidth,
                                               maxWidth: shouldFixWidth
-                                                ? isSelectionColumn ||
-                                                  isActionsColumn
-                                                  ? 50
+                                                ? isUtilityColumn
+                                                  ? UTILITY_COLUMN_SIZE
                                                   : cell.column.getSize()
                                                 : undefined,
-                                              left:
+                                              insetInlineStart:
                                                 fixedSide === "left"
                                                   ? pinnedColumns.left.get(
                                                       cell.column.id,
                                                     )
                                                   : undefined,
-                                              right:
+                                              insetInlineEnd:
                                                 fixedSide === "right"
                                                   ? pinnedColumns.right.get(
                                                       cell.column.id,
@@ -1568,6 +2249,7 @@ export function createDataTable(ui: DataTableUiKit) {
                                             <div
                                               data-row-click-ignore={
                                                 isSelectionColumn ||
+                                                isExpansionColumn ||
                                                 isActionsColumn
                                                   ? "true"
                                                   : undefined
@@ -1595,6 +2277,8 @@ export function createDataTable(ui: DataTableUiKit) {
                                                     cell.column.id !==
                                                       "__select__" &&
                                                     cell.column.id !==
+                                                      "__expand__" &&
+                                                    cell.column.id !==
                                                       "__actions__"
                                                   ? renderEditableCell(
                                                       cellContext,
@@ -1606,11 +2290,20 @@ export function createDataTable(ui: DataTableUiKit) {
                                                 cellContext,
                                                 uiClassNames,
                                                 {
+                                                  hasCustomCell:
+                                                    explicitCustomCellColumnIds.has(
+                                                      cell.column.id,
+                                                    ) ||
+                                                    isSelectionColumn ||
+                                                    isExpansionColumn ||
+                                                    isActionsColumn ||
+                                                    isSpacerColumn,
                                                   useCustomOverflowDefaults:
                                                     explicitCustomCellColumnIds.has(
                                                       cell.column.id,
                                                     ) ||
                                                     isSelectionColumn ||
+                                                    isExpansionColumn ||
                                                     isActionsColumn ||
                                                     isSpacerColumn,
                                                 },
@@ -1620,6 +2313,32 @@ export function createDataTable(ui: DataTableUiKit) {
                                         );
                                       })}
                                     </TableRow>
+                                    {!isInitialLoadingRow &&
+                                    renderExpandedRow &&
+                                    row.getIsExpanded() ? (
+                                      <TableRow>
+                                        <TableCell
+                                          colSpan={Math.max(
+                                            1,
+                                            visibleLeafColumnCount,
+                                          )}
+                                          className={cn(
+                                          "border-b",
+                                          getDensityCellClassName(
+                                            currentDensity,
+                                          ),
+                                          uiClassNames.cellBorder,
+                                          )}
+                                        >
+                                          {renderExpandedRow({
+                                            row: originalRow,
+                                            rowId: row.id,
+                                            tableRow: row,
+                                          })}
+                                        </TableCell>
+                                      </TableRow>
+                                    ) : null}
+                                    </React.Fragment>
                                   );
                                 })}
                                 {virtualPaddingBottom > 0 ? (
@@ -1646,13 +2365,13 @@ export function createDataTable(ui: DataTableUiKit) {
                                       <DataTableEmptyState
                                         title={
                                           localSearchValue
-                                            ? "No matching rows"
-                                            : "No rows yet"
+                                            ? resolvedLabels.noMatchingRowsTitle
+                                            : resolvedLabels.noRowsTitle
                                         }
                                         description={
                                           localSearchValue
-                                            ? "Try a different search term or clear filters."
-                                            : "Create a record or refresh this view once data exists."
+                                            ? resolvedLabels.noMatchingRowsDescription
+                                            : resolvedLabels.noRowsDescription
                                         }
                                       />
                                     )}
@@ -1661,6 +2380,37 @@ export function createDataTable(ui: DataTableUiKit) {
                               </TableRow>
                             )}
                           </TableBody>
+                          {summaryRows.length ? (
+                            <TableFooter>
+                              {summaryRows.map((summaryRow) => (
+                                <TableRow key={summaryRow.key}>
+                                  {visibleLeafColumns.map((column, index) => {
+                                    const content =
+                                      summaryRow.cells[column.id] ??
+                                      (index === 0 ? summaryRow.label : null);
+                                    return (
+                                      <TableCell
+                                        key={`${summaryRow.key}-${column.id}`}
+                                        className={cn(
+                                          "border-b font-medium",
+                                          uiClassNames.cellBorder,
+                                        )}
+                                      >
+                                        {typeof content === "function"
+                                          ? content({
+                                              rows: table
+                                                .getFilteredRowModel()
+                                                .rows.map((row) => row.original),
+                                              columnId: column.id,
+                                            })
+                                          : content}
+                                      </TableCell>
+                                    );
+                                  })}
+                                </TableRow>
+                              ))}
+                            </TableFooter>
+                          ) : null}
                         </Table>
                       </div>
 
@@ -1688,6 +2438,7 @@ export function createDataTable(ui: DataTableUiKit) {
                     rowsPerPageOptions={rowsPerPageOptions}
                     onPageIndexChange={handleFooterPageIndexChange}
                     onPageSizeChange={handleFooterPageSizeChange}
+                    labels={resolvedLabels}
                   />
                 ) : null}
                 {children}
@@ -1746,6 +2497,8 @@ function renderEditableCell<TData>(
     });
   }
 
+  const inputType = getEditableInputType(meta?.type, draftValue);
+
   if (typeof draftValue === "boolean") {
     return (
       <Checkbox
@@ -1759,21 +2512,47 @@ function renderEditableCell<TData>(
 
   return (
     <Input
-      value={getEditableInputValue(draftValue)}
+      type={inputType}
+      value={
+        meta?.formatEditValue
+          ? meta.formatEditValue(draftValue, context)
+          : getEditableInputValue(draftValue, inputType)
+      }
       onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-        setDraftValue(event.target.value);
+        const rawValue = event.target.value;
+        const parsedValue = meta?.parseEditValue
+          ? meta.parseEditValue(rawValue, context)
+          : parseEditableInputValue(rawValue, inputType, draftValue);
+        setDraftValue(parsedValue);
       }}
     />
   );
 }
 
-function getEditableInputValue(value: unknown) {
+function getEditableInputType(
+  type: DataTableColumnType | undefined,
+  value: unknown,
+) {
+  if (type === "numeric" || typeof value === "number") {
+    return "number";
+  }
+
+  if (type === "date" || value instanceof Date) {
+    return "datetime-local";
+  }
+
+  return "text";
+}
+
+function getEditableInputValue(value: unknown, inputType = "text") {
   if (value == null) {
     return "";
   }
 
   if (value instanceof Date) {
-    return value.toISOString();
+    return inputType === "datetime-local"
+      ? value.toISOString().slice(0, 16)
+      : value.toISOString();
   }
 
   if (
@@ -1786,6 +2565,25 @@ function getEditableInputValue(value: unknown) {
   }
 
   return "";
+}
+
+function parseEditableInputValue(
+  value: string,
+  inputType: string,
+  previousValue: unknown,
+) {
+  if (inputType === "number") {
+    return value === "" ? null : Number(value);
+  }
+
+  if (inputType === "datetime-local") {
+    if (!value) {
+      return null;
+    }
+    return previousValue instanceof Date ? new Date(value) : value;
+  }
+
+  return value;
 }
 
 function createDataTableLoadingRows<TData>(count: number) {
@@ -1827,6 +2625,225 @@ function getConfiguredColumnMinWidth<TData>(
   return undefined;
 }
 
+function decorateFilterableColumn<TData>(
+  column: DataTableColumnDef<TData, unknown>,
+): ColumnDef<TData, unknown> {
+  const filter = column.meta?.filter;
+  if (!filter || column.filterFn) {
+    return column;
+  }
+
+  return {
+    ...column,
+    filterFn: (row, columnId, filterValue) => {
+      if (!hasFilterValue(filterValue)) {
+        return true;
+      }
+
+      const value = row.getValue(columnId);
+      const optionValue =
+        filter.getOptionValue?.(value, row.original) ?? normalizeFilterValue(value);
+
+      if (filter.type === "multi") {
+        return Array.isArray(filterValue)
+          ? filterValue.map(String).includes(optionValue)
+          : true;
+      }
+
+      if (filter.type === "select") {
+        return optionValue === String(filterValue);
+      }
+
+      return normalizeFilterValue(value)
+        .toLowerCase()
+        .includes(String(filterValue).toLowerCase());
+    },
+  };
+}
+
+function normalizeColumnFilterOptions(
+  options: Array<DataTableColumnFilterOption | string>,
+) {
+  return options.map((option) =>
+    typeof option === "string" ? { label: startCase(option), value: option } : option,
+  );
+}
+
+function normalizeFilterValue(value: unknown) {
+  if (value == null) {
+    return "";
+  }
+
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+
+  if (typeof value === "object") {
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return "";
+    }
+  }
+
+  if (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean" ||
+    typeof value === "bigint" ||
+    typeof value === "symbol"
+  ) {
+    return String(value);
+  }
+
+  return "";
+}
+
+function hasFilterValue(value: unknown) {
+  if (Array.isArray(value)) {
+    return value.length > 0;
+  }
+
+  return value !== undefined && value !== null && value !== "";
+}
+
+function rowMatchesToolbarQuery<TData>(
+  row: TData,
+  columns: Array<DataTableColumnDef<TData, unknown>>,
+  query: string,
+) {
+  const normalizedQuery = query.trim().toLowerCase();
+  if (!normalizedQuery) {
+    return true;
+  }
+
+  return columns.some((column) => {
+    const value = getColumnSearchValue(row, column);
+    return normalizeFilterValue(value).toLowerCase().includes(normalizedQuery);
+  });
+}
+
+function getColumnSearchValue<TData>(
+  row: TData,
+  column: DataTableColumnDef<TData, unknown>,
+) {
+  if ("accessorKey" in column && typeof column.accessorKey === "string") {
+    return (row as Record<string, unknown>)[column.accessorKey];
+  }
+
+  if ("accessorFn" in column && typeof column.accessorFn === "function") {
+    return column.accessorFn(row, 0);
+  }
+
+  return undefined;
+}
+
+async function exportDataTableCsv<TData>({
+  csvExport,
+  table,
+}: {
+  csvExport: boolean | DataTableCsvExportOptions<TData>;
+  table: TanStackTable<TData>;
+  labels: DataTableLabels;
+}) {
+  if (csvExport === false) {
+    return;
+  }
+
+  const options: DataTableCsvExportOptions<TData> =
+    csvExport === true ? {} : csvExport;
+  const filename = options.filename ?? "data-table.csv";
+  const exportColumnIds = options.columns
+    ? new Set(options.columns)
+    : undefined;
+  const columns = table
+    .getVisibleLeafColumns()
+    .filter(
+      (column) =>
+        !isUtilityColumnId(column.id) &&
+        column.id !== "__spacer__" &&
+        (!exportColumnIds || exportColumnIds.has(column.id)),
+    );
+  const rows = table.getFilteredRowModel().rows;
+  const csvRows: Array<Array<unknown>> = [];
+
+  if (options.includeHeaders ?? true) {
+    csvRows.push(
+      columns.map((column) =>
+        typeof column.columnDef.header === "string"
+          ? column.columnDef.header
+          : startCase(column.id),
+      ),
+    );
+  }
+
+  for (const row of rows) {
+    csvRows.push(
+      columns.map((column) => {
+        const value = row.getValue(column.id);
+        return options.getCellValue
+          ? options.getCellValue({
+              row: row.original,
+              rowId: row.id,
+              columnId: column.id,
+              value,
+            })
+          : value;
+      }),
+    );
+  }
+
+  const csv = csvRows.map((row) => row.map(escapeCsvCell).join(",")).join("\n");
+
+  if (options.onExport) {
+    await options.onExport({
+      csv,
+      filename,
+      rows: rows.map((row) => row.original),
+    });
+    return;
+  }
+
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = window.URL.createObjectURL(blob);
+  const anchor = window.document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  window.URL.revokeObjectURL(url);
+}
+
+function escapeCsvCell(value: unknown) {
+  const text = normalizeFilterValue(value);
+  if (/[",\n\r]/.test(text)) {
+    return `"${text.replace(/"/g, '""')}"`;
+  }
+  return text;
+}
+
+function getInitialColumnPinning<TData>(
+  columns: Array<DataTableColumnDef<TData, unknown>>,
+): ColumnPinningState {
+  const left: Array<string> = [];
+  const right: Array<string> = [];
+
+  for (const [index, column] of columns.entries()) {
+    const columnId = getColumnId(column, index);
+    if (column.meta?.fixed === "left") {
+      left.push(columnId);
+    }
+    if (column.meta?.fixed === "right") {
+      right.push(columnId);
+    }
+  }
+
+  return { left, right };
+}
+
 function getColumnId<TData>(
   column: DataTableColumnDef<TData, unknown>,
   index: number,
@@ -1852,7 +2869,16 @@ function getAccessorKey<TData>(column: DataTableColumnDef<TData, unknown>) {
 }
 
 function getFixedSide<TData>(column: Column<TData>) {
+  const pinnedSide = column.getIsPinned();
+  if (pinnedSide) {
+    return pinnedSide;
+  }
+
   if (column.id === "__select__") {
+    return "left" as const;
+  }
+
+  if (column.id === "__expand__") {
     return "left" as const;
   }
 
@@ -1877,8 +2903,60 @@ function getPinnedColumnClassName(
     isUtilityColumn
       ? uiClassNames.pinnedUtilityColumn
       : undefined,
-    side === "left" ? "border-r-1" : "right-0 border-l",
+    side === "left" ? "border-r-1" : "border-l",
   );
+}
+
+function isUtilityColumnId(columnId: string) {
+  return (
+    columnId === "__select__" ||
+    columnId === "__expand__" ||
+    columnId === "__actions__"
+  );
+}
+
+function getDensityHeaderClassName(density: DataTableDensity) {
+  switch (density) {
+    case "compact":
+      return "h-8 py-1";
+    case "spacious":
+      return "h-14 py-4";
+    case "comfortable":
+    default:
+      return undefined;
+  }
+}
+
+function getDensityCellClassName(density: DataTableDensity) {
+  switch (density) {
+    case "compact":
+      return "py-1.5";
+    case "spacious":
+      return "py-4";
+    case "comfortable":
+    default:
+      return undefined;
+  }
+}
+
+function moveColumnInOrder(
+  currentOrder: Array<string>,
+  sourceColumnId: string,
+  targetColumnId: string,
+) {
+  const order = currentOrder.includes(sourceColumnId)
+    ? currentOrder.slice()
+    : [...currentOrder, sourceColumnId];
+  const sourceIndex = order.indexOf(sourceColumnId);
+  const targetIndex = order.indexOf(targetColumnId);
+
+  if (sourceIndex < 0 || targetIndex < 0 || sourceIndex === targetIndex) {
+    return order;
+  }
+
+  const [source] = order.splice(sourceIndex, 1);
+  order.splice(targetIndex, 0, source);
+  return order;
 }
 
 function startCase(value: string) {

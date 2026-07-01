@@ -27,7 +27,9 @@ export function useDataTableUrlState({
       query: parseAsString.withDefault(""),
       page: parseAsInteger.withDefault(1),
       pageSize: parseAsInteger.withDefault(defaultPageSize),
-      sort: parseAsString.withDefault(defaultSort?.id ?? ""),
+      sort: parseAsString.withDefault(
+        defaultSort ? encodeSorting([{ id: defaultSort.id, desc: Boolean(defaultSort.desc) }]) : "",
+      ),
       order: parseAsStringLiteral(["asc", "desc"] as const).withDefault(
         defaultSort?.desc ? "desc" : "asc",
       ),
@@ -56,7 +58,7 @@ export function useDataTableUrlState({
       return [];
     }
 
-    return [{ id: state.sort, desc: state.order === "desc" }];
+    return decodeSorting(state.sort, state.order);
   }, [state.order, state.sort]);
 
   const setSorting = React.useCallback(
@@ -73,7 +75,7 @@ export function useDataTableUrlState({
       const next = nextSorting[0];
       void setState({
         page: 1,
-        sort: next.id,
+        sort: encodeSorting(nextSorting),
         order: next.desc ? "desc" : "asc",
       });
     },
@@ -129,4 +131,41 @@ export function useDataTableUrlState({
     showHiddenRows: state.showHidden,
     setShowHiddenRows: setShowHidden,
   };
+}
+
+function encodeSorting(sorting: SortingState) {
+  return JSON.stringify(
+    sorting.map((sort) => ({
+      id: sort.id,
+      desc: Boolean(sort.desc),
+    })),
+  );
+}
+
+function decodeSorting(value: string, order: "asc" | "desc"): SortingState {
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    if (!Array.isArray(parsed)) {
+      throw new Error("Expected sorting array");
+    }
+
+    return parsed
+      .map((item) => {
+        if (
+          !item ||
+          typeof item !== "object" ||
+          typeof (item as { id?: unknown }).id !== "string"
+        ) {
+          return undefined;
+        }
+
+        return {
+          id: (item as { id: string }).id,
+          desc: Boolean((item as { desc?: unknown }).desc),
+        };
+      })
+      .filter((item): item is SortingState[number] => Boolean(item));
+  } catch {
+    return [{ id: value, desc: order === "desc" }];
+  }
 }

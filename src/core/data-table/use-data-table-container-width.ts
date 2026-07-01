@@ -1,4 +1,9 @@
 import * as React from "react";
+import { DATA_TABLE_CONTAINER_BREAKPOINT_WIDTHS } from "../types";
+
+const BREAKPOINT_WIDTHS = Object.values(DATA_TABLE_CONTAINER_BREAKPOINT_WIDTHS)
+  .slice()
+  .sort((first, second) => first - second);
 
 export function useDataTableContainerWidth(
   containerRef: React.RefObject<HTMLElement | null>,
@@ -14,7 +19,7 @@ export function useDataTableContainerWidth(
 
     let frameId: number | null = null;
     const updateWidth = () => {
-      const nextWidth = element.clientWidth;
+      const nextWidth = quantizeContainerWidth(element.clientWidth);
       if (nextWidth === widthRef.current) {
         return;
       }
@@ -47,4 +52,20 @@ export function useDataTableContainerWidth(
   }, [containerRef]);
 
   return width;
+}
+
+function quantizeContainerWidth(width: number) {
+  if (width <= 0) {
+    return 0;
+  }
+
+  let bucket = 1;
+  for (const breakpointWidth of BREAKPOINT_WIDTHS) {
+    if (width < breakpointWidth) {
+      break;
+    }
+    bucket = breakpointWidth;
+  }
+
+  return bucket;
 }

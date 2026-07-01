@@ -19,13 +19,13 @@ Dedicated subpath exports are also available:
 - `data-table-pro/url-state`: `useDataTableUrlState`
 - `data-table-pro/types`: public TypeScript types
 
-## Breaking Changes In 2.0.1
+## Breaking Changes In 3.0.0
 
-- `useDataTableUrlState` is no longer exported from `data-table-pro`, `data-table-pro/heroui`, or `data-table-pro/thegridcn`
-- import the hook from `data-table-pro/url-state`
-- `searchValue`, `onSearchValueChange`, `searchPlaceholder`, and `searchDebounceMs` were removed
-- use `toolbarQueryValue`, `onToolbarQueryValueChange`, `toolbarQueryPlaceholder`, and `toolbarQueryDebounceMs` instead
-- custom empty-state render functions now receive `toolbarQueryValue` instead of `searchValue`
+- package output is ESM-only; `require()`/CommonJS entrypoints were removed
+- React peers are now `react@^19.2.0` and `react-dom@^19.2.0`
+- `nuqs` is an optional peer used only by `data-table-pro/url-state`
+- toolbar search now filters client-side tables by default; disable with `manualFiltering` or `enableToolbarQueryFiltering={false}`
+- column filters, CSV export, row expansion, density, column pinning/reordering, labels, and column preference persistence were added
 
 ## Installation
 
@@ -35,8 +35,9 @@ pnpm add data-table-pro
 
 Peer dependencies:
 
-- `react@^19`
-- `react-dom@^19`
+- `react@^19.2`
+- `react-dom@^19.2`
+- `nuqs@^2.8` only when using `data-table-pro/url-state`
 - `@heroui/styles@^3` when using `data-table-pro/heroui`
 
 Baseline assumptions:
@@ -187,6 +188,38 @@ export function PeopleTable({ rows }: { rows: Array<Person> }) {
 />
 ```
 
+Toolbar search filters local/client-side data by default. Server-side tables can keep filtering consumer-owned:
+
+```tsx
+<DataTable
+  columns={columns}
+  data={rows}
+  getRowId={(row) => row.id}
+  manualFiltering
+  toolbarQueryValue={query}
+  onToolbarQueryValueChange={setQuery}
+/>
+```
+
+### Column filters
+
+Declare toolbar filters on column meta:
+
+```tsx
+const columns: Array<DataTableColumnDef<Person>> = [
+  {
+    accessorKey: "status",
+    header: "Status",
+    meta: {
+      filter: {
+        type: "multi",
+        options: ["active", "paused", "archived"],
+      },
+    },
+  },
+];
+```
+
 ## Demo App
 
 Run the bundled demo workbench:
@@ -200,7 +233,8 @@ The demo uses generated employee data and can switch between the shadcn, HeroUI,
 Toolbar query note:
 
 - `toolbarQueryValue` and `onToolbarQueryValueChange` control the toolbar search input only
-- filtering remains consumer-owned unless you pass already-filtered `data`
+- toolbar query and `column.meta.filter` controls filter client-side rows by default
+- use `manualFiltering` for server-side filtering
 
 Cell overflow note:
 

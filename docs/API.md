@@ -124,24 +124,35 @@ The Gridcn consumers must also import a host-managed The Gridcn theme or token s
 These are exported from the adapter entrypoints and from `data-table-pro/types`.
 
 - `DataTableAlign`
+- `DataTableCardVirtualizationConfig`
+- `DataTableCellOverflow`
 - `DataTableCardRendererProps`
 - `DataTableColumnDef`
+- `DataTableColumnFilterConfig`
+- `DataTableColumnFilterOption`
+- `DataTableColumnFilterType`
 - `DataTableColumnFixed`
 - `DataTableColumnMeta`
+- `DataTableColumnPrefs`
 - `DataTableColumnType`
 - `DataTableColumnVisibilityOption`
 - `DataTableContainerBreakpoint`
+- `DataTableCsvExportOptions`
+- `DataTableDensity`
 - `DataTableDragAndDropConfig`
 - `DataTableEditableRowsConfig`
 - `DataTableEmptyStateContext`
+- `DataTableExpandedRowProps`
 - `DataTableFileUploadConfig`
 - `DataTableHiddenRowsConfig`
 - `DataTableInfiniteScroll`
+- `DataTableLabels`
 - `DataTableLoadingState`
 - `DataTableProps`
 - `DataTableRowAction`
 - `DataTableRowLoadingState`
 - `DataTableSelectionAction`
+- `DataTableSummaryRow`
 - `DataTableToolbarAction`
 - `DataTableToolbarVisibility`
 - `DataTableViewMode`
@@ -202,9 +213,14 @@ One parent requirement remains unavoidable: the nearest containing layout must e
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `toolbarQueryValue` | `string` | `""` | Controlled toolbar query string. |
-| `onToolbarQueryValueChange` | `(value: string) => void` | `undefined` | Called after the debounce window. This updates the toolbar input state only; row filtering remains consumer-owned. |
+| `onToolbarQueryValueChange` | `(value: string) => void` | `undefined` | Called after the debounce window. The query filters local rows by default unless manual filtering is enabled. |
 | `toolbarQueryPlaceholder` | `string` | `"Search rows..."` | Toolbar input placeholder. |
 | `toolbarQueryDebounceMs` | `number` | `250` | Debounce delay for `onToolbarQueryValueChange`. |
+| `manualFiltering` | `boolean` | `false` | Disables built-in client filtering for toolbar query and column filters. |
+| `enableToolbarQueryFiltering` | `boolean` | `true` | Opts out of built-in toolbar-query filtering while keeping the input. |
+| `columnFilters` | `ColumnFiltersState` | internal state | Controlled TanStack column filter state. |
+| `onColumnFiltersChange` | `(filters: ColumnFiltersState) => void` | `undefined` | Column filter callback. |
+| `enableColumnFilters` | `boolean` | enabled when column meta filters exist | Renders toolbar filter controls declared by `column.meta.filter`. |
 | `customToolbar` | `React.ReactNode` | `undefined` | Optional secondary toolbar row rendered below the main toolbar. |
 | `compactToolbar` | `React.ReactNode` | `undefined` | Optional mobile compact-toolbar content rendered inline with the collapsed toolbar control strip. Use this for icon-only filter/action controls in narrow container widths. |
 
@@ -305,7 +321,7 @@ Removed in `2.0.1`:
 | `onRowClick` | `(context: { row: TData; rowId: string }) => void \| Promise<void>` | `undefined` | Row click handler for table and card modes. |
 | `getRowClassName` | `(row: TData) => string \| undefined` | `undefined` | Row-level styling hook. |
 
-### View-mode props
+### Expansion, view, and card props
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
@@ -315,6 +331,10 @@ Removed in `2.0.1`:
 | `cardRenderer` | `(props: DataTableCardRendererProps<TData>) => React.ReactNode` | `undefined` | Required for card mode rendering. |
 | `cardGridClassName` | `string` | responsive auto-fit grid | Supported grid slot for card mode. Prefer this over app CSS selectors against internal scroll/card wrappers. |
 | `cardClassName` | `string` | `undefined` | Supported item slot for card mode card wrappers. |
+| `expanded` | `ExpandedState` | internal state | Controlled expanded row state. |
+| `onExpandedChange` | `(expanded: ExpandedState) => void` | `undefined` | Expanded state callback. |
+| `getRowCanExpand` | `(row: TData) => boolean` | any row when `renderExpandedRow` exists | Optional per-row expansion gate. |
+| `renderExpandedRow` | `(props: DataTableExpandedRowProps<TData>) => React.ReactNode` | `undefined` | Detail panel rendered below table rows or inside cards. |
 
 ### Empty and loading props
 
@@ -345,7 +365,7 @@ Removed in `2.0.1`:
 | --- | --- | --- | --- |
 | `virtualization` | `boolean \| DataTableVirtualizationConfig` | `undefined` | Enables opt-in row virtualization in table mode. Use `{ estimateRowHeight, overscan }` to tune the virtual row window. |
 
-Virtualization is intentionally disabled until the table scroll viewport has a measurable height, so collapsed or server-like test environments still render rows instead of a blank virtual window. Card mode does not virtualize.
+Virtualization is intentionally disabled until the table scroll viewport has a measurable height, so collapsed or server-like test environments still render rows instead of a blank virtual window.
 
 ### Inline editing props
 
@@ -353,16 +373,37 @@ Virtualization is intentionally disabled until the table scroll viewport has a m
 | --- | --- | --- | --- |
 | `editableRows` | `DataTableEditableRowsConfig<TData>` | `undefined` | Enables row edit mode, built-in draft state, and save handling. |
 
-### Column visibility and sizing props
+Column meta can customize editing with `renderEditCell`, `parseEditValue`, and `formatEditValue`. Numeric columns use number inputs, date columns use datetime inputs, and boolean drafts use checkboxes by default.
+
+### Column visibility, sizing, ordering, pinning, and preferences props
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `columnVisibility` | `VisibilityState` | internal state | Controlled column visibility. |
 | `onColumnVisibilityChange` | `(visibility: VisibilityState) => void` | `undefined` | Column visibility callback. |
+| `columnOrder` | `ColumnOrderState` | internal state | Controlled column order. |
+| `onColumnOrderChange` | `(order: ColumnOrderState) => void` | `undefined` | Column order callback. |
+| `enableColumnReordering` | `boolean` | `false` | Enables header drag and keyboard column reordering. |
+| `columnPinning` | `ColumnPinningState` | internal state seeded from `meta.fixed` | Controlled column pinning. |
+| `onColumnPinningChange` | `(pinning: ColumnPinningState) => void` | `undefined` | Column pinning callback. |
+| `enableColumnPinning` | `boolean` | `false` | Adds pin/unpin controls to the table options menu. |
+| `columnPrefsKey` | `string` | `undefined` | Persists uncontrolled visibility, sizing, order, pinning, and density in `localStorage`. |
 | `enableColumnResizing` | `boolean` | `false` | Enables resize handles on resizable columns. |
 | `columnResizeMode` | `"onChange" \| "onEnd"` | `"onChange"` | TanStack Table resize mode. |
 | `layoutMode` | `"fill" \| "fit"` | `"fill"` | `fill` stretches the table to the container; `fit` sizes to content width. |
 | `stickyHeader` | `boolean` | `true` | Makes the table header sticky inside the scroll area. |
+
+### Export, density, labels, and summary props
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `csvExport` | `boolean \| DataTableCsvExportOptions<TData>` | `false` | Adds a CSV toolbar action. Defaults to filtered/sorted visible data columns. |
+| `density` | `"compact" \| "comfortable" \| "spacious"` | internal state | Controlled row density. |
+| `onDensityChange` | `(density: DataTableDensity) => void` | `undefined` | Density change callback. |
+| `enableDensityToggle` | `boolean` | `false` | Adds density controls to the table options menu. |
+| `labels` | `Partial<DataTableLabels>` | English defaults | Overrides built-in UI labels. |
+| `summaryRows` | `Array<DataTableSummaryRow<TData>>` | `[]` | Renders aggregate/footer rows aligned to visible columns. |
+| `dir` | `"ltr" \| "rtl"` | `"ltr"` | Direction used for logical pinned column offsets. |
 
 ### Cell overflow defaults
 

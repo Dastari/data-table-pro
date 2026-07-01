@@ -1,4 +1,10 @@
 import { defineConfig } from "tsup";
+import packageJson from "./package.json" with { type: "json" };
+
+const external = [
+  ...Object.keys(packageJson.dependencies ?? {}),
+  ...Object.keys(packageJson.peerDependencies ?? {}),
+];
 
 export default defineConfig({
   clean: true,
@@ -10,8 +16,8 @@ export default defineConfig({
     "url-state": "src/entries/url-state.ts",
     types: "src/entries/types.ts",
   },
-  external: ["react", "react-dom"],
-  format: ["esm", "cjs"],
+  external,
+  format: ["esm"],
   outDir: "dist",
   sourcemap: true,
   target: "es2022",

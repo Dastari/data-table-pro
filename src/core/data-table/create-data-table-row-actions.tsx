@@ -1,6 +1,10 @@
 import * as React from "react";
-import { IconDots, IconEdit, IconX } from "@tabler/icons-react";
-import type { DataTableEditableRowsConfig, DataTableRowAction } from "../types";
+import { IconDots, IconEdit, IconX } from "../icons";
+import type {
+  DataTableEditableRowsConfig,
+  DataTableLabels,
+  DataTableRowAction,
+} from "../types";
 import type { DataTableUiKit } from "../ui-kit";
 import { canEditRow, canUseRowAction, resolveRowActionLabel } from "../types";
 
@@ -11,6 +15,7 @@ type DataTableRowActionsProps<TData> = {
   isEditing: boolean;
   onStartEditing: () => void;
   onCancelEditing: () => void;
+  labels: DataTableLabels;
 };
 
 export function createDataTableRowActions(ui: DataTableUiKit) {
@@ -34,6 +39,7 @@ export function createDataTableRowActions(ui: DataTableUiKit) {
     isEditing,
     onStartEditing,
     onCancelEditing,
+    labels,
   }: DataTableRowActionsProps<TData>) {
     const actions = rowActions.filter((action) => canUseRowAction(action, row));
     const stopRowClickPropagation = React.useCallback(
@@ -55,10 +61,10 @@ export function createDataTableRowActions(ui: DataTableUiKit) {
               onClick={onCancelEditing}
             >
               <IconX />
-              <span className="sr-only">Cancel editing</span>
+              <span className="sr-only">{labels.cancelEdit}</span>
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Cancel editing</TooltipContent>
+          <TooltipContent>{labels.cancelEdit}</TooltipContent>
         </Tooltip>
       );
     }
@@ -81,11 +87,11 @@ export function createDataTableRowActions(ui: DataTableUiKit) {
                 onClick={stopRowClickPropagation}
               >
                 <IconDots />
-                <span className="sr-only">Open row actions</span>
+                <span className="sr-only">{labels.rowActions}</span>
               </Button>
             </DropdownMenuTrigger>
           </TooltipTrigger>
-          <TooltipContent>Row actions</TooltipContent>
+          <TooltipContent>{labels.rowActions}</TooltipContent>
         </Tooltip>
         <DropdownMenuContent align="end" className="w-52">
           {allowEdit ? (
@@ -97,7 +103,7 @@ export function createDataTableRowActions(ui: DataTableUiKit) {
                 }}
               >
                 <IconEdit data-icon="inline-start" />
-                Edit row
+                {labels.editRow}
               </DropdownMenuItem>
             </DropdownMenuGroup>
           ) : null}

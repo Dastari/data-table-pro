@@ -1,7 +1,12 @@
 import type * as React from "react";
 import type {
   CellContext,
+  ColumnFiltersState,
   ColumnDef,
+  ColumnOrderState,
+  ColumnPinningState,
+  ExpandedState,
+  FilterFnOption,
   HeaderContext,
   Row,
   SortingState,
@@ -14,11 +19,13 @@ export type DataTableAlign = "start" | "center" | "end";
 export type DataTableColumnType = "text" | "numeric" | "date";
 export type DataTableColumnFixed = "left" | "right";
 export type DataTableContainerBreakpoint = "sm" | "md" | "lg" | "xl" | "2xl";
+export type DataTableDensity = "compact" | "comfortable" | "spacious";
 export type DataTableCellOverflow =
   | "truncate"
   | "clip"
   | "wrap"
   | "visible";
+export type DataTableColumnFilterType = "text" | "select" | "multi";
 
 export const DATA_TABLE_CONTAINER_BREAKPOINT_WIDTHS: Record<
   DataTableContainerBreakpoint,
@@ -49,6 +56,21 @@ export type DataTableCellEditRenderProps<TData, TValue> = {
   setDraftValue: (value: unknown) => void;
 };
 
+export type DataTableColumnFilterOption = {
+  label: string;
+  value: string;
+};
+
+export type DataTableColumnFilterConfig<TData, TValue> = {
+  type: DataTableColumnFilterType;
+  label?: string;
+  placeholder?: string;
+  options?:
+    | Array<DataTableColumnFilterOption | string>
+    | ((context: { rows: Array<TData> }) => Array<DataTableColumnFilterOption | string>);
+  getOptionValue?: (value: TValue | undefined, row: TData) => string;
+};
+
 export type DataTableColumnMeta<TData, TValue> = {
   type?: DataTableColumnType;
   fixed?: DataTableColumnFixed;
@@ -68,6 +90,12 @@ export type DataTableColumnMeta<TData, TValue> = {
     | ((args: { row: TData; value: TValue | undefined }) => string | undefined);
   responsiveClassName?: string;
   skeleton?: (context: CellContext<TData, TValue>) => React.ReactNode;
+  filter?: DataTableColumnFilterConfig<TData, TValue>;
+  parseEditValue?: (value: unknown, context: CellContext<TData, TValue>) => unknown;
+  formatEditValue?: (
+    value: unknown,
+    context: CellContext<TData, TValue>,
+  ) => string;
   renderEditCell?: (
     props: DataTableCellEditRenderProps<TData, TValue>,
   ) => React.ReactNode;
@@ -119,6 +147,7 @@ export type DataTableColumnVisibilityOption = {
   label: string;
   visible: boolean;
   canHide: boolean;
+  pinned?: false | DataTableColumnFixed;
 };
 
 export type DataTableToolbarVisibility = {
@@ -198,6 +227,92 @@ export type DataTableVirtualizationConfig = {
   enabled?: boolean;
   estimateRowHeight?: number;
   overscan?: number;
+  card?: DataTableCardVirtualizationConfig;
+};
+
+export type DataTableCardVirtualizationConfig = {
+  enabled?: boolean;
+  estimateCardHeight?: number;
+  overscan?: number;
+  lanes?: number | "auto";
+};
+
+export type DataTableExpandedRowProps<TData> = {
+  row: TData;
+  rowId: string;
+  tableRow: Row<TData>;
+};
+
+export type DataTableCsvExportOptions<TData> = {
+  filename?: string;
+  includeHeaders?: boolean;
+  columns?: Array<string>;
+  getCellValue?: (context: {
+    row: TData;
+    rowId: string;
+    columnId: string;
+    value: unknown;
+  }) => unknown;
+  onExport?: (context: {
+    csv: string;
+    filename: string;
+    rows: Array<TData>;
+  }) => void | Promise<void>;
+};
+
+export type DataTableColumnPrefs = {
+  visibility?: VisibilityState;
+  sizing?: Record<string, number>;
+  order?: ColumnOrderState;
+  pinning?: ColumnPinningState;
+  density?: DataTableDensity;
+};
+
+export type DataTableLabels = {
+  searchPlaceholder: string;
+  searchTable: string;
+  clearSearch: string;
+  noRowsTitle: string;
+  noRowsDescription: string;
+  noMatchingRowsTitle: string;
+  noMatchingRowsDescription: string;
+  tableOptions: string;
+  columns: string;
+  filters: string;
+  clearFilters: string;
+  selectedRows: (count: number) => string;
+  showHiddenRows: (label: string) => string;
+  recordsPerPage: string;
+  totalRecords: (count: number) => string;
+  pageStatus: (pageIndex: number, pageCount: number) => string;
+  firstPage: string;
+  previousPage: string;
+  nextPage: string;
+  lastPage: string;
+  actions: string;
+  rowActions: string;
+  editRow: string;
+  saveEdit: string;
+  cancelEdit: string;
+  expandRow: string;
+  collapseRow: string;
+  exportCsv: string;
+  density: string;
+  compactDensity: string;
+  comfortableDensity: string;
+  spaciousDensity: string;
+  pinLeft: string;
+  pinRight: string;
+  unpin: string;
+};
+
+export type DataTableSummaryRow<TData> = {
+  key: string;
+  label?: React.ReactNode;
+  cells: Record<
+    string,
+    React.ReactNode | ((context: { rows: Array<TData>; columnId: string }) => React.ReactNode)
+  >;
 };
 
 export type DataTableProps<TData> = {
@@ -211,6 +326,12 @@ export type DataTableProps<TData> = {
   onToolbarQueryValueChange?: (value: string) => void;
   toolbarQueryPlaceholder?: string;
   toolbarQueryDebounceMs?: number;
+  manualFiltering?: boolean;
+  enableToolbarQueryFiltering?: boolean;
+  globalFilterFn?: FilterFnOption<TData>;
+  columnFilters?: ColumnFiltersState;
+  onColumnFiltersChange?: (filters: ColumnFiltersState) => void;
+  enableColumnFilters?: boolean;
   customToolbar?: React.ReactNode;
   compactToolbar?: React.ReactNode;
   rowsPerPageOptions?: Array<number>;
@@ -227,9 +348,28 @@ export type DataTableProps<TData> = {
   rowSelection?: Record<string, boolean>;
   onRowSelectionChange?: (rowSelection: Record<string, boolean>) => void;
   enableRowSelection?: boolean;
+  expanded?: ExpandedState;
+  onExpandedChange?: (expanded: ExpandedState) => void;
+  getRowCanExpand?: (row: TData) => boolean;
+  renderExpandedRow?: (
+    props: DataTableExpandedRowProps<TData>,
+  ) => React.ReactNode;
+  columnOrder?: ColumnOrderState;
+  onColumnOrderChange?: (columnOrder: ColumnOrderState) => void;
+  enableColumnReordering?: boolean;
+  columnPinning?: ColumnPinningState;
+  onColumnPinningChange?: (columnPinning: ColumnPinningState) => void;
+  enableColumnPinning?: boolean;
   toolbarActions?: Array<DataTableToolbarAction<TData>>;
   selectionActions?: Array<DataTableSelectionAction<TData>>;
   rowActions?: Array<DataTableRowAction<TData>>;
+  csvExport?: boolean | DataTableCsvExportOptions<TData>;
+  density?: DataTableDensity;
+  onDensityChange?: (density: DataTableDensity) => void;
+  enableDensityToggle?: boolean;
+  columnPrefsKey?: string;
+  labels?: Partial<DataTableLabels>;
+  summaryRows?: Array<DataTableSummaryRow<TData>>;
   cardRenderer?: (props: DataTableCardRendererProps<TData>) => React.ReactNode;
   cardGridClassName?: string;
   cardClassName?: string;
@@ -258,6 +398,7 @@ export type DataTableProps<TData> = {
   stickyHeader?: boolean;
   showFooter?: boolean;
   showToolbar?: boolean;
+  dir?: "ltr" | "rtl";
   flexGrow?: boolean;
   toolbarVisibility?: DataTableToolbarVisibility;
   className?: string;

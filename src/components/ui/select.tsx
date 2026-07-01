@@ -9,7 +9,7 @@ import {
   IconCheck,
   IconChevronUp,
   IconChevronDown,
-} from "@tabler/icons-react";
+} from "../../core/icons";
 
 function Select({
   ...props
