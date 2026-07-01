@@ -10,7 +10,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { IconChevronDown, IconDownload } from "../icons";
+import { IconChevronDown } from "../icons";
 import type {
   ColumnFiltersState,
   ColumnDef,
@@ -25,7 +25,6 @@ import type {
   VisibilityState,
 } from "@tanstack/react-table";
 import type {
-  DataTableColumnFixed,
   DataTableDensity,
   DataTableProps,
 } from "../types";
@@ -51,19 +50,15 @@ import {
   UTILITY_COLUMN_SIZE,
   createDataTableLoadingRows,
   decorateFilterableColumn,
-  exportDataTableCsv,
-  getAccessorKey,
   getColumnId,
   getDataTableLoadingRowId,
   getInitialColumnPinning,
-  hasFilterValue,
   isDataTableLoadingRow,
   isUtilityColumnId,
   moveColumnInOrder,
-  normalizeColumnFilterOptions,
   rowMatchesToolbarQuery,
-  startCase,
 } from "./data-table-utils";
+import { useDataTableToolbarFeatures } from "./use-data-table-toolbar-features";
 import { useColumnLayout } from "./use-column-layout";
 import { useControllableState } from "./use-controllable-state";
 import { useRowEditing } from "./use-row-editing";
@@ -516,35 +511,6 @@ export function createDataTable(ui: DataTableUiKit) {
         .map(([rowId]) => rowById.get(rowId))
         .filter((row): row is TData => Boolean(row));
     }, [currentRowSelection, rowById, shouldResolveSelectedRows]);
-
-    const columnVisibilityOptions = React.useMemo(() => {
-      return columns.map((column, index) => {
-        const id = getColumnId(column, index);
-        const header = column.header;
-        const accessorKey = getAccessorKey(column);
-        const label =
-          typeof header === "string"
-            ? header
-            : accessorKey
-              ? startCase(accessorKey)
-              : startCase(id);
-
-        const pinned: false | DataTableColumnFixed =
-          currentColumnPinning.left?.includes(id) === true
-            ? "left"
-            : currentColumnPinning.right?.includes(id) === true
-              ? "right"
-              : false;
-
-        return {
-          id,
-          label,
-          visible: effectiveColumnVisibility[id] !== false,
-          canHide: column.enableHiding !== false,
-          pinned,
-        };
-      });
-    }, [columns, currentColumnPinning, effectiveColumnVisibility]);
 
     const selectRowRange = React.useCallback(
       (targetRowId: string, selected: boolean) => {
@@ -1131,105 +1097,27 @@ export function createDataTable(ui: DataTableUiKit) {
           toolbarQueryValue: localSearchValue,
         })
         : emptyState;
-    const toolbarColumnFilters = React.useMemo(() => {
-      if (enableColumnFilters === false) {
-        return [];
-      }
-
-      return columns.flatMap((column, index) => {
-        const filter = column.meta?.filter;
-        if (!filter) {
-          return [];
-        }
-
-        const id = getColumnId(column, index);
-        const header = column.header;
-        const accessorKey = getAccessorKey(column);
-        const label =
-          filter.label ??
-          (typeof header === "string"
-            ? header
-            : accessorKey
-              ? startCase(accessorKey)
-              : startCase(id));
-        const state = currentColumnFilters.find((item) => item.id === id);
-        const rawOptions =
-          typeof filter.options === "function"
-            ? filter.options({ rows: visibleData })
-            : (filter.options ?? []);
-
-        return [
-          {
-            id,
-            label,
-            type: filter.type,
-            value: state?.value,
-            placeholder: filter.placeholder,
-            options: normalizeColumnFilterOptions(rawOptions),
-          },
-        ];
-      });
-    }, [columns, currentColumnFilters, enableColumnFilters, visibleData]);
-    const handleToolbarColumnFilterChange = React.useCallback(
-      (columnId: string, value: unknown) => {
-        handleColumnFiltersChange((current) => {
-          const next = current.filter((filter) => filter.id !== columnId);
-          if (hasFilterValue(value)) {
-            next.push({ id: columnId, value });
-          }
-          return next;
-        });
-      },
-      [handleColumnFiltersChange],
-    );
-    const handleClearColumnFilters = React.useCallback(() => {
-      handleColumnFiltersChange([]);
-    }, [handleColumnFiltersChange]);
-    const handleToolbarColumnPinningChange = React.useCallback(
-      (columnId: string, side: DataTableColumnFixed | false) => {
-        handleColumnPinningChange((current) => {
-          const left = (current.left ?? []).filter((id) => id !== columnId);
-          const right = (current.right ?? []).filter((id) => id !== columnId);
-
-          if (side === "left") {
-            left.push(columnId);
-          }
-          if (side === "right") {
-            right.push(columnId);
-          }
-
-          return { left, right };
-        });
-      },
-      [handleColumnPinningChange],
-    );
-    const handleCsvExport = React.useCallback(() => {
-      if (!csvExport) {
-        return;
-      }
-
-      void exportDataTableCsv({
-        csvExport,
-        table,
-        labels: resolvedLabels,
-      });
-    }, [csvExport, resolvedLabels, table]);
-    const effectiveToolbarActions = React.useMemo(() => {
-      if (!csvExport) {
-        return toolbarActions;
-      }
-
-      return [
-        ...toolbarActions,
-        {
-          key: "__csv_export__",
-          label: resolvedLabels.exportCsv,
-          icon: IconDownload,
-          placement: "trailing" as const,
-          onClick: handleCsvExport,
-        },
-      ];
-    }, [csvExport, handleCsvExport, resolvedLabels.exportCsv, toolbarActions]);
+    const {
+      columnVisibilityOptions,
+      effectiveToolbarActions,
+      handleClearColumnFilters,
+      handleToolbarColumnFilterChange,
+      handleToolbarColumnPinningChange,
+      toolbarColumnFilters,
+    } = useDataTableToolbarFeatures({
+      columns,
+      currentColumnFilters,
+      currentColumnPinning,
+      csvExport,
+      effectiveColumnVisibility,
+      enableColumnFilters,
+      handleColumnFiltersChange,
+      handleColumnPinningChange,
+      labels: resolvedLabels,
+      table,
+      toolbarActions,
+      visibleData,
+    });
 
     return (
       <TooltipProvider>
