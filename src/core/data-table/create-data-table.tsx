@@ -57,13 +57,10 @@ import {
   exportDataTableCsv,
   getAccessorKey,
   getColumnId,
-  getConfiguredColumnMinWidth,
   getDataTableLoadingRowId,
   getDensityCellClassName,
   getDensityHeaderClassName,
-  getFixedSide,
   getInitialColumnPinning,
-  getPinnedColumnClassName,
   hasFilterValue,
   isDataTableLoadingRow,
   isUtilityColumnId,
@@ -72,6 +69,7 @@ import {
   rowMatchesToolbarQuery,
   startCase,
 } from "./data-table-utils";
+import { useColumnLayout } from "./use-column-layout";
 import {
   cellAlignClassName,
   headerAlignClassName,
@@ -1013,70 +1011,19 @@ export function createDataTable(ui: DataTableUiKit) {
         )
       : 0;
 
-    const pinnedColumns = React.useMemo(() => {
-      const left = new Map<string, number>();
-      const right = new Map<string, number>();
-
-      let leftOffset = 0;
-      for (const column of visibleLeafColumns) {
-        if (getFixedSide(column) === "left") {
-          left.set(column.id, leftOffset);
-          leftOffset += column.getSize();
-        }
-      }
-
-      let rightOffset = 0;
-      for (const column of [...visibleLeafColumns].reverse()) {
-        if (getFixedSide(column) === "right") {
-          right.set(column.id, rightOffset);
-          rightOffset += column.getSize();
-        }
-      }
-
-      return { left, right };
-    }, [visibleLeafColumns]);
-    const explicitlySizedColumnIds = React.useMemo(() => {
-      const ids = new Set<string>();
-
-      for (const [index, column] of columns.entries()) {
-        if (Object.prototype.hasOwnProperty.call(column, "size")) {
-          ids.add(getColumnId(column, index));
-        }
-      }
-
-      if (enableRowSelection) {
-        ids.add("__select__");
-      }
-
-      if (renderExpandedRow) {
-        ids.add("__expand__");
-      }
-
-      if (rowActions.length || editableRows) {
-        ids.add("__actions__");
-      }
-
-      return ids;
-    }, [
+    const columnLayout = useColumnLayout({
       columns,
-      editableRows,
+      columnSizing,
+      editableRows: Boolean(editableRows),
       enableRowSelection,
-      renderExpandedRow,
-      rowActions.length,
-    ]);
-    const minimumColumnWidths = React.useMemo(() => {
-      const widths = new Map<string, number>();
-
-      for (const [index, column] of columns.entries()) {
-        const configuredMinWidth = getConfiguredColumnMinWidth(column);
-
-        if (configuredMinWidth !== undefined) {
-          widths.set(getColumnId(column, index), configuredMinWidth);
-        }
-      }
-
-      return widths;
-    }, [columns]);
+      hasRowActions: rowActions.length > 0,
+      hasRowExpansion: Boolean(renderExpandedRow),
+      layoutMode,
+      uiClassNames,
+      visibleLeafColumns,
+    });
+    const { explicitlySizedColumnIds, fillMinWidth, getColumnLayout } =
+      columnLayout;
     const explicitCustomCellColumnIds = React.useMemo(() => {
       return new Set(
         columns.flatMap((column, index) => {
@@ -1088,69 +1035,6 @@ export function createDataTable(ui: DataTableUiKit) {
       );
     }, [columns]);
     const visibleLeafColumnCount = visibleLeafColumns.length;
-    const fillColumnId = React.useMemo(() => {
-      if (layoutMode !== "fill") {
-        return undefined;
-      }
-
-      const dataColumns = visibleLeafColumns.filter(
-        (column) =>
-          !isUtilityColumnId(column.id),
-      );
-
-      if (!dataColumns.length) {
-        return undefined;
-      }
-
-      const allDataColumnsAreFixed = dataColumns.every(
-        (column) =>
-          explicitlySizedColumnIds.has(column.id) ||
-          Object.prototype.hasOwnProperty.call(columnSizing, column.id),
-      );
-
-      return allDataColumnsAreFixed
-        ? dataColumns[dataColumns.length - 1]?.id
-        : undefined;
-    }, [
-      columnSizing,
-      explicitlySizedColumnIds,
-      layoutMode,
-      visibleLeafColumns,
-    ]);
-    const fixedWidthColumnIds = React.useMemo(() => {
-      const ids = new Set([
-        ...explicitlySizedColumnIds,
-        ...Object.keys(columnSizing),
-      ]);
-
-      if (fillColumnId) {
-        ids.delete(fillColumnId);
-      }
-
-      return ids;
-    }, [columnSizing, explicitlySizedColumnIds, fillColumnId]);
-    const fillMinWidth = React.useMemo(() => {
-      return visibleLeafColumns.reduce((total, column) => {
-        const isFixedUtilityColumn = isUtilityColumnId(column.id);
-        const configuredMinWidth = minimumColumnWidths.get(column.id);
-        const isFlexibleFillColumn = column.id === fillColumnId;
-
-        if (isFixedUtilityColumn || fixedWidthColumnIds.has(column.id)) {
-          return total + column.getSize();
-        }
-
-        return (
-          total +
-          (configuredMinWidth ??
-            (isFlexibleFillColumn ? column.getSize() : 0))
-        );
-      }, 0);
-    }, [
-      fillColumnId,
-      fixedWidthColumnIds,
-      minimumColumnWidths,
-      visibleLeafColumns,
-    ]);
     const hasCardTitle = React.useMemo(
       () => columns.some((column) => column.meta?.cardTitle),
       [columns],
@@ -1638,50 +1522,11 @@ export function createDataTable(ui: DataTableUiKit) {
                         >
                           <colgroup>
                             {table.getVisibleLeafColumns().map((column) => {
-                              const isFixedUtilityColumn = isUtilityColumnId(
-                                column.id,
-                              );
-                              const isSpacerColumn = column.id === "__spacer__";
-                              const configuredMinWidth =
-                                minimumColumnWidths.get(column.id);
-                              const isFlexibleFillColumn =
-                                column.id === fillColumnId;
-                              const columnMinWidth =
-                                configuredMinWidth ??
-                                (isFlexibleFillColumn
-                                  ? column.getSize()
-                                  : undefined);
-                              const shouldFixWidth =
-                                !isSpacerColumn &&
-                                (layoutMode === "fit" ||
-                                  isFixedUtilityColumn ||
-                                  fixedWidthColumnIds.has(column.id));
-
+                              const layout = getColumnLayout(column.id);
                               return (
                                 <col
                                   key={column.id}
-                                  style={
-                                    shouldFixWidth ||
-                                    columnMinWidth !== undefined
-                                      ? {
-                                          width: shouldFixWidth
-                                            ? isFixedUtilityColumn
-                                              ? UTILITY_COLUMN_SIZE
-                                              : column.getSize()
-                                            : undefined,
-                                          minWidth: isFixedUtilityColumn
-                                            ? UTILITY_COLUMN_SIZE
-                                            : shouldFixWidth
-                                              ? column.getSize()
-                                              : columnMinWidth,
-                                          maxWidth: shouldFixWidth
-                                            ? isFixedUtilityColumn
-                                              ? UTILITY_COLUMN_SIZE
-                                              : column.getSize()
-                                            : undefined,
-                                        }
-                                      : undefined
-                                  }
+                                  style={layout.colStyle}
                                 />
                               );
                             })}
@@ -1710,39 +1555,13 @@ export function createDataTable(ui: DataTableUiKit) {
                                   const sortingIndex = currentSorting.findIndex(
                                     (sort) => sort.id === header.column.id,
                                   );
-                                  const isSelectionColumn =
-                                    header.column.id === "__select__";
-                                  const isExpansionColumn =
-                                    header.column.id === "__expand__";
-                                  const isActionsColumn =
-                                    header.column.id === "__actions__";
-                                  const isUtilityColumn =
-                                    isSelectionColumn ||
-                                    isExpansionColumn ||
-                                    isActionsColumn;
-                                  const isSpacerColumn =
-                                    header.column.id === "__spacer__";
+                                  const layout = getColumnLayout(
+                                    header.column.id,
+                                  );
                                   const canReorderColumn =
                                     enableColumnReordering &&
-                                    !isUtilityColumn &&
-                                    !isSpacerColumn;
-                                  const configuredMinWidth =
-                                    minimumColumnWidths.get(header.column.id);
-                                  const isFlexibleFillColumn =
-                                    header.column.id === fillColumnId;
-                                  const columnMinWidth =
-                                    configuredMinWidth ??
-                                    (isFlexibleFillColumn
-                                      ? header.column.getSize()
-                                      : undefined);
-                                  const shouldFixWidth =
-                                    !isSpacerColumn &&
-                                    (layoutMode === "fit" ||
-                                      isUtilityColumn ||
-                                      fixedWidthColumnIds.has(
-                                        header.column.id,
-                                      ));
-                                  const fixedSide = getFixedSide(header.column);
+                                    !layout.isUtilityColumn &&
+                                    !layout.isSpacerColumn;
                                   const hideClassName = hideOnClassName(
                                     meta?.hideOn,
                                   );
@@ -1754,19 +1573,10 @@ export function createDataTable(ui: DataTableUiKit) {
                                         getDensityHeaderClassName(
                                           currentDensity,
                                         ),
-                                        isUtilityColumn &&
-                                          "w-[50px] max-w-[50px] min-w-[50px] px-0",
-                                        isSpacerColumn &&
+                                        layout.utilityClassName,
+                                        layout.isSpacerColumn &&
                                           "border-b-1 bg-transparent p-0",
-                                        fixedSide &&
-                                          getPinnedColumnClassName(
-                                            fixedSide,
-                                            uiClassNames,
-                                            {
-                                              isUtilityColumn:
-                                                isUtilityColumn,
-                                            },
-                                          ),
+                                        layout.pinnedClassName,
                                         hideClassName,
                                         headerAlignClassName(
                                           header.getContext(),
@@ -1774,36 +1584,7 @@ export function createDataTable(ui: DataTableUiKit) {
                                         meta?.headerClassName,
                                         meta?.responsiveClassName,
                                       )}
-                                      style={{
-                                        width: shouldFixWidth
-                                          ? isUtilityColumn
-                                            ? UTILITY_COLUMN_SIZE
-                                            : header.getSize()
-                                          : undefined,
-                                        minWidth:
-                                          isUtilityColumn
-                                            ? UTILITY_COLUMN_SIZE
-                                            : shouldFixWidth
-                                              ? header.getSize()
-                                              : columnMinWidth,
-                                        maxWidth: shouldFixWidth
-                                          ? isUtilityColumn
-                                            ? UTILITY_COLUMN_SIZE
-                                            : header.getSize()
-                                          : undefined,
-                                        insetInlineStart:
-                                          fixedSide === "left"
-                                            ? pinnedColumns.left.get(
-                                                header.column.id,
-                                              )
-                                            : undefined,
-                                        insetInlineEnd:
-                                          fixedSide === "right"
-                                            ? pinnedColumns.right.get(
-                                                header.column.id,
-                                              )
-                                            : undefined,
-                                      }}
+                                      style={layout.headerStyle}
                                       aria-sort={
                                         sortingState === "asc"
                                           ? "ascending"
@@ -2149,41 +1930,15 @@ export function createDataTable(ui: DataTableUiKit) {
                                         ).meta;
                                         const cellContext = cell.getContext();
                                         const value = cell.getValue();
-                                        const isSelectionColumn =
-                                          cell.column.id === "__select__";
-                                        const isExpansionColumn =
-                                          cell.column.id === "__expand__";
-                                        const isActionsColumn =
-                                          cell.column.id === "__actions__";
-                                        const isUtilityColumn =
-                                          isSelectionColumn ||
-                                          isExpansionColumn ||
-                                          isActionsColumn;
-                                        const isSpacerColumn =
-                                          cell.column.id === "__spacer__";
-                                        const configuredMinWidth =
-                                          minimumColumnWidths.get(
-                                            cell.column.id,
-                                          );
-                                        const isFlexibleFillColumn =
-                                          cell.column.id === fillColumnId;
-                                        const columnMinWidth =
-                                          configuredMinWidth ??
-                                          (isFlexibleFillColumn
-                                            ? cell.column.getSize()
-                                            : undefined);
-                                        const shouldFixWidth =
-                                          !isSpacerColumn &&
-                                          (layoutMode === "fit" ||
-                                            isSelectionColumn ||
-                                            isExpansionColumn ||
-                                            isActionsColumn ||
-                                            fixedWidthColumnIds.has(
-                                              cell.column.id,
-                                            ));
-                                        const fixedSide = getFixedSide(
-                                          cell.column,
+                                        const layout = getColumnLayout(
+                                          cell.column.id,
                                         );
+                                        const {
+                                          isActionsColumn,
+                                          isExpansionColumn,
+                                          isSelectionColumn,
+                                          isSpacerColumn,
+                                        } = layout;
                                         const hideClassName = hideOnClassName(
                                           meta?.hideOn,
                                         );
@@ -2207,54 +1962,16 @@ export function createDataTable(ui: DataTableUiKit) {
                                                 currentDensity,
                                               ),
                                               uiClassNames.cellBorder,
-                                              isUtilityColumn &&
-                                                "w-[50px] max-w-[50px] min-w-[50px] px-0",
-                                              isSpacerColumn &&
+                                              layout.utilityClassName,
+                                              layout.isSpacerColumn &&
                                                 "border-b-0 bg-transparent p-0",
-                                              fixedSide &&
-                                                getPinnedColumnClassName(
-                                                  fixedSide,
-                                                  uiClassNames,
-                                                  {
-                                                    isUtilityColumn:
-                                                      isUtilityColumn,
-                                                  },
-                                                ),
+                                              layout.pinnedClassName,
                                               hideClassName,
                                               cellAlignClassName(cellContext),
                                               meta?.responsiveClassName,
                                               cellClassName,
                                             )}
-                                            style={{
-                                              width: shouldFixWidth
-                                                ? isUtilityColumn
-                                                  ? UTILITY_COLUMN_SIZE
-                                                  : cell.column.getSize()
-                                                : undefined,
-                                              minWidth:
-                                                isUtilityColumn
-                                                  ? UTILITY_COLUMN_SIZE
-                                                  : shouldFixWidth
-                                                    ? cell.column.getSize()
-                                                    : columnMinWidth,
-                                              maxWidth: shouldFixWidth
-                                                ? isUtilityColumn
-                                                  ? UTILITY_COLUMN_SIZE
-                                                  : cell.column.getSize()
-                                                : undefined,
-                                              insetInlineStart:
-                                                fixedSide === "left"
-                                                  ? pinnedColumns.left.get(
-                                                      cell.column.id,
-                                                    )
-                                                  : undefined,
-                                              insetInlineEnd:
-                                                fixedSide === "right"
-                                                  ? pinnedColumns.right.get(
-                                                      cell.column.id,
-                                                    )
-                                                  : undefined,
-                                            }}
+                                            style={layout.cellStyle}
                                           >
                                             <div
                                               data-row-click-ignore={
