@@ -1,7 +1,6 @@
 import * as React from "react";
 import { flushSync } from "react-dom";
 import {
-  flexRender,
   getExpandedRowModel,
   getFilteredRowModel,
   functionalUpdate,
@@ -11,7 +10,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { IconChevronDown, IconDownload, IconSelector } from "../icons";
+import { IconChevronDown, IconDownload } from "../icons";
 import type {
   ColumnFiltersState,
   ColumnDef,
@@ -26,19 +25,19 @@ import type {
   VisibilityState,
 } from "@tanstack/react-table";
 import type {
-  DataTableColumnDef,
   DataTableColumnFixed,
   DataTableDensity,
   DataTableProps,
 } from "../types";
 import type { DataTableUiKit } from "../ui-kit";
 import { cn } from "../../lib/utils";
-import { renderDataTableCellContent } from "./data-table-cell-content";
 import { createDataTableCardView } from "./create-data-table-card-view";
 import { createDataTableEmptyState } from "./create-data-table-empty-state";
 import { createDataTablePagination } from "./create-data-table-pagination";
 import { createDataTableRowActions } from "./create-data-table-row-actions";
 import { createDataTableToolbar } from "./create-data-table-toolbar";
+import { DataTableBodyRow } from "./data-table-body-row";
+import { DataTableHeaderCell } from "./data-table-header-cell";
 import { resolveDataTableLabels } from "./data-table-labels";
 import {
   readDataTableColumnPrefs,
@@ -56,8 +55,6 @@ import {
   getAccessorKey,
   getColumnId,
   getDataTableLoadingRowId,
-  getDensityCellClassName,
-  getDensityHeaderClassName,
   getInitialColumnPinning,
   hasFilterValue,
   isDataTableLoadingRow,
@@ -69,14 +66,8 @@ import {
 } from "./data-table-utils";
 import { useColumnLayout } from "./use-column-layout";
 import { useControllableState } from "./use-controllable-state";
-import { renderEditableCell, useRowEditing } from "./use-row-editing";
-import {
-  cellAlignClassName,
-  headerAlignClassName,
-  hideOnClassName,
-  isHiddenAtContainerWidth,
-  isRowVisible,
-} from "../types";
+import { useRowEditing } from "./use-row-editing";
+import { isHiddenAtContainerWidth, isRowVisible } from "../types";
 
 export function createDataTable(ui: DataTableUiKit) {
   const uiClassNames = ui.classNames ?? {};
@@ -1000,6 +991,16 @@ export function createDataTable(ui: DataTableUiKit) {
       );
     }, [columns]);
     const visibleLeafColumnCount = visibleLeafColumns.length;
+    const bodyRowComponents = React.useMemo(
+      () => ({
+        Checkbox,
+        Input,
+        Skeleton,
+        TableCell,
+        TableRow,
+      }),
+      [],
+    );
     const hasCardTitle = React.useMemo(
       () => columns.some((column) => column.meta?.cardTitle),
       [columns],
@@ -1229,18 +1230,6 @@ export function createDataTable(ui: DataTableUiKit) {
         },
       ];
     }, [csvExport, handleCsvExport, resolvedLabels.exportCsv, toolbarActions]);
-
-    const handleRowClick = React.useCallback(
-      (event: React.MouseEvent<HTMLElement>, row: TData, rowId: string) => {
-        const target = event.target as HTMLElement | null;
-        if (target?.closest("[data-row-click-ignore='true']")) {
-          return;
-        }
-
-        void onRowClick?.({ row, rowId });
-      },
-      [onRowClick],
-    );
 
     return (
       <TooltipProvider>
@@ -1497,236 +1486,32 @@ export function createDataTable(ui: DataTableUiKit) {
                             {table.getHeaderGroups().map((headerGroup) => (
                               <TableRow key={headerGroup.id}>
                                 {headerGroup.headers.map((header) => {
-                                  const meta = (
-                                    header.column
-                                      .columnDef as DataTableColumnDef<
-                                      TData,
-                                      unknown
-                                    >
-                                  ).meta;
-                                  const canSort = header.column.getCanSort();
-                                  const sortingState =
-                                    header.column.getIsSorted();
-                                  const sortingIndex = currentSorting.findIndex(
-                                    (sort) => sort.id === header.column.id,
-                                  );
                                   const layout = getColumnLayout(
                                     header.column.id,
                                   );
-                                  const canReorderColumn =
-                                    enableColumnReordering &&
-                                    !layout.isUtilityColumn &&
-                                    !layout.isSpacerColumn;
-                                  const hideClassName = hideOnClassName(
-                                    meta?.hideOn,
-                                  );
                                   return (
-                                    <TableHead
+                                    <DataTableHeaderCell
                                       key={header.id}
-                                      className={cn(
-                                        "relative border-b",
-                                        getDensityHeaderClassName(
-                                          currentDensity,
-                                        ),
-                                        layout.utilityClassName,
-                                        layout.isSpacerColumn &&
-                                          "border-b-1 bg-transparent p-0",
-                                        layout.pinnedClassName,
-                                        hideClassName,
-                                        headerAlignClassName(
-                                          header.getContext(),
-                                        ),
-                                        meta?.headerClassName,
-                                        meta?.responsiveClassName,
-                                      )}
-                                      style={layout.headerStyle}
-                                      aria-sort={
-                                        sortingState === "asc"
-                                          ? "ascending"
-                                          : sortingState === "desc"
-                                            ? "descending"
-                                            : canSort
-                                              ? "none"
-                                              : undefined
+                                      currentDensity={currentDensity}
+                                      currentSorting={currentSorting}
+                                      draggedColumnIdRef={draggedColumnIdRef}
+                                      enableColumnReordering={
+                                        enableColumnReordering
                                       }
-                                      draggable={canReorderColumn}
-                                      tabIndex={canReorderColumn ? 0 : undefined}
-                                      onDragStart={
-                                        canReorderColumn
-                                          ? (
-                                              event: React.DragEvent<
-                                                HTMLTableCellElement
-                                              >,
-                                            ) => {
-                                              draggedColumnIdRef.current =
-                                                header.column.id;
-                                              event.dataTransfer.effectAllowed =
-                                                "move";
-                                            }
-                                          : undefined
+                                      enableColumnResizing={
+                                        enableColumnResizing
                                       }
-                                      onDragOver={
-                                        canReorderColumn
-                                          ? (
-                                              event: React.DragEvent<
-                                                HTMLTableCellElement
-                                              >,
-                                            ) => {
-                                              event.preventDefault();
-                                              event.dataTransfer.dropEffect =
-                                                "move";
-                                            }
-                                          : undefined
+                                      header={header}
+                                      headerGroupHeaders={headerGroup.headers}
+                                      layout={layout}
+                                      primeColumnForResize={
+                                        primeColumnForResize
                                       }
-                                      onDrop={
-                                        canReorderColumn
-                                          ? (
-                                              event: React.DragEvent<
-                                                HTMLTableCellElement
-                                              >,
-                                            ) => {
-                                              event.preventDefault();
-                                              const sourceColumnId =
-                                                draggedColumnIdRef.current;
-                                              draggedColumnIdRef.current = null;
-                                              if (sourceColumnId) {
-                                                reorderColumn(
-                                                  sourceColumnId,
-                                                  header.column.id,
-                                                );
-                                              }
-                                            }
-                                          : undefined
-                                      }
-                                      onKeyDown={
-                                        canReorderColumn
-                                          ? (
-                                              event: React.KeyboardEvent<
-                                                HTMLTableCellElement
-                                              >,
-                                            ) => {
-                                              if (
-                                                !event.altKey ||
-                                                (event.key !== "ArrowLeft" &&
-                                                  event.key !== "ArrowRight")
-                                              ) {
-                                                return;
-                                              }
-
-                                              event.preventDefault();
-                                              const headers =
-                                                headerGroup.headers.filter(
-                                                  (item) =>
-                                                    !isUtilityColumnId(
-                                                      item.column.id,
-                                                    ) &&
-                                                    item.column.id !==
-                                                      "__spacer__",
-                                                );
-                                              const currentIndex =
-                                                headers.findIndex(
-                                                  (item) =>
-                                                    item.column.id ===
-                                                    header.column.id,
-                                                );
-                                              const target =
-                                                headers[
-                                                  event.key === "ArrowLeft"
-                                                    ? currentIndex - 1
-                                                    : currentIndex + 1
-                                                ];
-                                              if (target) {
-                                                reorderColumn(
-                                                  header.column.id,
-                                                  target.column.id,
-                                                );
-                                              }
-                                            }
-                                          : undefined
-                                      }
-                                    >
-                                      {header.isPlaceholder ? null : canSort ? (
-                                        <button
-                                          type="button"
-                                          className={cn(
-                                            "flex w-full items-center gap-2 font-medium",
-                                            headerAlignClassName(
-                                              header.getContext(),
-                                            ),
-                                          )}
-                                          onClick={header.column.getToggleSortingHandler()}
-                                        >
-                                          <span className="truncate">
-                                            {flexRender(
-                                              header.column.columnDef.header,
-                                              header.getContext(),
-                                            )}
-                                          </span>
-                                          {sortingState ? (
-                                            <>
-                                              <IconChevronDown
-                                                className={cn(
-                                                  "shrink-0 transition-transform",
-                                                  sortingState === "desc"
-                                                    ? "rotate-0"
-                                                    : "rotate-180",
-                                                )}
-                                              />
-                                              {currentSorting.length > 1 &&
-                                              sortingIndex >= 0 ? (
-                                                <span className="inline-flex size-4 shrink-0 items-center justify-center rounded-full text-[10px] leading-none">
-                                                  {sortingIndex + 1}
-                                                </span>
-                                              ) : null}
-                                            </>
-                                          ) : (
-                                            <IconSelector
-                                              className={cn(
-                                                "shrink-0",
-                                                uiClassNames.headerSortIcon ??
-                                                  "opacity-70",
-                                              )}
-                                            />
-                                          )}
-                                        </button>
-                                      ) : (
-                                        flexRender(
-                                          header.column.columnDef.header,
-                                          header.getContext(),
-                                        )
-                                      )}
-
-                                      {enableColumnResizing &&
-                                      header.column.getCanResize() ? (
-                                        <div
-                                          onDoubleClick={() => {
-                                            resetColumnSize(header.column.id);
-                                          }}
-                                          onMouseDown={(event) => {
-                                            primeColumnForResize(
-                                              header.column.id,
-                                              header.getSize(),
-                                            );
-                                            header.getResizeHandler()(event);
-                                          }}
-                                          onTouchStart={(event) => {
-                                            primeColumnForResize(
-                                              header.column.id,
-                                              header.getSize(),
-                                            );
-                                            header.getResizeHandler()(event);
-                                          }}
-                                          className={cn(
-                                            "absolute inset-y-0 right-0 z-50 h-full w-3 translate-x-1/2 cursor-col-resize touch-none select-none after:absolute after:top-0 after:left-1/2 after:h-full after:w-px after:-translate-x-1/2",
-                                            uiClassNames.resizeHandle ??
-                                              "after:bg-current after:opacity-20 hover:after:opacity-70",
-                                            header.column.getIsResizing() &&
-                                              (uiClassNames.resizeHandleActive ??
-                                                "after:opacity-100"),
-                                          )}
-                                        />
-                                      ) : null}
-                                    </TableHead>
+                                      reorderColumn={reorderColumn}
+                                      resetColumnSize={resetColumnSize}
+                                      TableHead={TableHead}
+                                      uiClassNames={uiClassNames}
+                                    />
                                   );
                                 })}
                               </TableRow>
@@ -1762,265 +1547,46 @@ export function createDataTable(ui: DataTableUiKit) {
                                       ? { isLoading: loadingState }
                                       : loadingState;
                                   const isEditing = editingRowId === row.id;
+                                  const isDraggable = isInitialLoadingRow
+                                    ? false
+                                    : (dragAndDrop?.getRowDraggable?.(
+                                        originalRow,
+                                      ) ?? false);
 
                                   return (
-                                    <React.Fragment key={row.id}>
-                                    <TableRow
-                                      draggable={
+                                    <DataTableBodyRow
+                                      key={row.id}
+                                      columnLayouts={
+                                        columnLayout.columnLayouts
+                                      }
+                                      components={bodyRowComponents}
+                                      currentDensity={currentDensity}
+                                      draftValues={draftValues}
+                                      dragAndDrop={dragAndDrop}
+                                      explicitCustomCellColumnIds={
+                                        explicitCustomCellColumnIds
+                                      }
+                                      getRowClassName={getRowClassName}
+                                      isDraggable={isDraggable}
+                                      isEditing={isEditing}
+                                      isExpanded={row.getIsExpanded()}
+                                      isInitialLoadingRow={
                                         isInitialLoadingRow
-                                          ? false
-                                          : (dragAndDrop?.getRowDraggable?.(
-                                              originalRow,
-                                            ) ?? false)
                                       }
-                                      data-loading={
-                                        resolvedLoadingState?.isLoading ||
-                                        undefined
+                                      isSelected={row.getIsSelected()}
+                                      loadingState={resolvedLoadingState}
+                                      onRowClick={onRowClick}
+                                      originalRow={originalRow}
+                                      renderExpandedRow={renderExpandedRow}
+                                      row={row}
+                                      rowIndex={rowIndex}
+                                      setDraftValues={setDraftValues}
+                                      uiClassNames={uiClassNames}
+                                      visibleCells={row.getVisibleCells()}
+                                      visibleLeafColumnCount={
+                                        visibleLeafColumnCount
                                       }
-                                      data-state={
-                                        isInitialLoadingRow
-                                          ? undefined
-                                          : row.getIsSelected()
-                                            ? "selected"
-                                            : undefined
-                                      }
-                                      role={
-                                        onRowClick && !isInitialLoadingRow
-                                          ? "button"
-                                          : undefined
-                                      }
-                                      tabIndex={
-                                        onRowClick && !isInitialLoadingRow
-                                          ? 0
-                                          : undefined
-                                      }
-                                      className={cn(
-                                        !isInitialLoadingRow &&
-                                          getRowClassName?.(originalRow),
-                                        uiClassNames.row,
-                                        row.getIsSelected() &&
-                                          !isInitialLoadingRow &&
-                                          uiClassNames.rowSelected,
-                                        onRowClick &&
-                                          !isInitialLoadingRow &&
-                                          "cursor-pointer",
-                                        isInitialLoadingRow &&
-                                          "pointer-events-none",
-                                      )}
-                                      onClick={(
-                                        event: React.MouseEvent<HTMLTableRowElement>,
-                                      ) => {
-                                        if (isInitialLoadingRow) {
-                                          return;
-                                        }
-
-                                        handleRowClick(
-                                          event,
-                                          originalRow,
-                                          row.id,
-                                        );
-                                      }}
-                                      onKeyDown={(
-                                        event: React.KeyboardEvent<HTMLTableRowElement>,
-                                      ) => {
-                                        if (
-                                          isInitialLoadingRow ||
-                                          !onRowClick ||
-                                          (event.key !== "Enter" &&
-                                            event.key !== " ")
-                                        ) {
-                                          return;
-                                        }
-
-                                        const target =
-                                          event.target as HTMLElement | null;
-                                        if (
-                                          target?.closest(
-                                            "[data-row-click-ignore='true']",
-                                          )
-                                        ) {
-                                          return;
-                                        }
-
-                                        event.preventDefault();
-                                        void onRowClick({
-                                          row: originalRow,
-                                          rowId: row.id,
-                                        });
-                                      }}
-                                      onDragStart={(
-                                        event: React.DragEvent<HTMLTableRowElement>,
-                                      ) => {
-                                        if (isInitialLoadingRow) {
-                                          return;
-                                        }
-
-                                        dragAndDrop?.onRowDragStart?.({
-                                          row: originalRow,
-                                          rowId: row.id,
-                                          event,
-                                        });
-                                      }}
-                                      onDragEnd={(
-                                        event: React.DragEvent<HTMLTableRowElement>,
-                                      ) => {
-                                        if (isInitialLoadingRow) {
-                                          return;
-                                        }
-
-                                        dragAndDrop?.onRowDragEnd?.({
-                                          row: originalRow,
-                                          rowId: row.id,
-                                          event,
-                                        });
-                                      }}
-                                    >
-                                      {row.getVisibleCells().map((cell) => {
-                                        const meta = (
-                                          cell.column
-                                            .columnDef as DataTableColumnDef<
-                                            TData,
-                                            unknown
-                                          >
-                                        ).meta;
-                                        const cellContext = cell.getContext();
-                                        const value = cell.getValue();
-                                        const layout = getColumnLayout(
-                                          cell.column.id,
-                                        );
-                                        const {
-                                          isActionsColumn,
-                                          isExpansionColumn,
-                                          isSelectionColumn,
-                                          isSpacerColumn,
-                                        } = layout;
-                                        const hideClassName = hideOnClassName(
-                                          meta?.hideOn,
-                                        );
-                                        const cellClassName =
-                                          isInitialLoadingRow
-                                            ? undefined
-                                            : typeof meta?.cellClassName ===
-                                                "function"
-                                              ? meta.cellClassName({
-                                                  row: originalRow,
-                                                  value,
-                                                })
-                                              : meta?.cellClassName;
-
-                                        return (
-                                          <TableCell
-                                            key={cell.id}
-                                            className={cn(
-                                              "border-b",
-                                              getDensityCellClassName(
-                                                currentDensity,
-                                              ),
-                                              uiClassNames.cellBorder,
-                                              layout.utilityClassName,
-                                              layout.isSpacerColumn &&
-                                                "border-b-0 bg-transparent p-0",
-                                              layout.pinnedClassName,
-                                              hideClassName,
-                                              cellAlignClassName(cellContext),
-                                              meta?.responsiveClassName,
-                                              cellClassName,
-                                            )}
-                                            style={layout.cellStyle}
-                                          >
-                                            <div
-                                              data-row-click-ignore={
-                                                isSelectionColumn ||
-                                                isExpansionColumn ||
-                                                isActionsColumn
-                                                  ? "true"
-                                                  : undefined
-                                              }
-                                              className="min-w-0 max-w-full"
-                                            >
-                                              {resolvedLoadingState?.isLoading
-                                                ? (meta?.skeleton?.(
-                                                    cellContext,
-                                                  ) ??
-                                                  resolvedLoadingState.skeleton ?? (
-                                                    <Skeleton
-                                                      className={cn(
-                                                        "h-4 rounded",
-                                                        meta?.type === "numeric"
-                                                          ? "ml-auto w-16"
-                                                          : meta?.type ===
-                                                              "date"
-                                                            ? "ml-auto w-28"
-                                                            : "w-full",
-                                                      )}
-                                                    />
-                                                  ))
-                                                : isEditing &&
-                                                    cell.column.id !==
-                                                      "__select__" &&
-                                                    cell.column.id !==
-                                                      "__expand__" &&
-                                                    cell.column.id !==
-                                                      "__actions__"
-                                                  ? renderEditableCell(
-                                                      cellContext,
-                                                      draftValues,
-                                                      setDraftValues,
-                                                      { Checkbox, Input },
-                                                    )
-                                            : renderDataTableCellContent(
-                                                cellContext,
-                                                uiClassNames,
-                                                {
-                                                  hasCustomCell:
-                                                    explicitCustomCellColumnIds.has(
-                                                      cell.column.id,
-                                                    ) ||
-                                                    isSelectionColumn ||
-                                                    isExpansionColumn ||
-                                                    isActionsColumn ||
-                                                    isSpacerColumn,
-                                                  useCustomOverflowDefaults:
-                                                    explicitCustomCellColumnIds.has(
-                                                      cell.column.id,
-                                                    ) ||
-                                                    isSelectionColumn ||
-                                                    isExpansionColumn ||
-                                                    isActionsColumn ||
-                                                    isSpacerColumn,
-                                                },
-                                              )}
-                                            </div>
-                                          </TableCell>
-                                        );
-                                      })}
-                                    </TableRow>
-                                    {!isInitialLoadingRow &&
-                                    renderExpandedRow &&
-                                    row.getIsExpanded() ? (
-                                      <TableRow>
-                                        <TableCell
-                                          colSpan={Math.max(
-                                            1,
-                                            visibleLeafColumnCount,
-                                          )}
-                                          className={cn(
-                                          "border-b",
-                                          getDensityCellClassName(
-                                            currentDensity,
-                                          ),
-                                          uiClassNames.cellBorder,
-                                          )}
-                                        >
-                                          {renderExpandedRow({
-                                            row: originalRow,
-                                            rowId: row.id,
-                                            tableRow: row,
-                                          })}
-                                        </TableCell>
-                                      </TableRow>
-                                    ) : null}
-                                    </React.Fragment>
+                                    />
                                   );
                                 })}
                                 {virtualPaddingBottom > 0 ? (

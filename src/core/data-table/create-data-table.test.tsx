@@ -637,6 +637,66 @@ for (const suite of suites) {
       expect(onRowClick).toHaveBeenCalledTimes(2);
     });
 
+    it("does not re-render sibling rows while typing in an edit input", () => {
+      const renderCounts = new Map<string, number>([
+        ["1", 0],
+        ["2", 0],
+      ]);
+      const countRender = (rowId: string) => {
+        renderCounts.set(rowId, (renderCounts.get(rowId) ?? 0) + 1);
+      };
+      const editRows: Array<TestRow> = [
+        { id: "1", name: "Ada" },
+        { id: "2", name: "Grace" },
+      ];
+      const editColumns: Array<DataTableColumnDef<TestRow, unknown>> = [
+        {
+          accessorKey: "name",
+          header: "Name",
+          cell: ({ row }) => {
+            countRender(row.original.id);
+            return row.original.name;
+          },
+          meta: {
+            renderEditCell: ({ row, draftValue, setDraftValue }) => {
+              countRender(row.id);
+              return (
+                <input
+                  aria-label={`Edit ${row.id}`}
+                  value={typeof draftValue === "string" ? draftValue : ""}
+                  onChange={(event) => {
+                    setDraftValue(event.currentTarget.value);
+                  }}
+                />
+              );
+            },
+          },
+        },
+      ];
+
+      renderTable({
+        columns: editColumns,
+        data: editRows,
+        editableRows: {
+          onSaveRow: vi.fn(),
+        },
+      });
+
+      fireEvent.pointerDown(
+        screen.getAllByRole("button", { name: "Row actions" })[0],
+      );
+      fireEvent.click(screen.getByText("Edit row"));
+      renderCounts.set("1", 0);
+      renderCounts.set("2", 0);
+
+      fireEvent.change(screen.getByLabelText("Edit 1"), {
+        target: { value: "Ada Lovelace" },
+      });
+
+      expect(renderCounts.get("1")).toBeGreaterThan(0);
+      expect(renderCounts.get("2")).toBe(0);
+    });
+
     it("supports keyboard column reordering", () => {
       const onColumnOrderChange = vi.fn();
 
