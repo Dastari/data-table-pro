@@ -30,6 +30,10 @@ export function useDataTableScrollViewport(
 
     updateHeight();
 
+    if (typeof ResizeObserver === "undefined") {
+      return;
+    }
+
     const observer = new ResizeObserver(() => {
       if (frameId !== null) {
         window.cancelAnimationFrame(frameId);
