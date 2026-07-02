@@ -1,5 +1,20 @@
 # Changelog
 
+## 3.0.5
+
+### Notes
+
+- Version bump release for GitHub consumers.
+- No functional source changes from `3.0.4`.
+
+### Validation
+
+- `pnpm lint`
+- `pnpm typecheck`
+- `pnpm test`
+- `pnpm build`
+- `pnpm demo:build`
+
 ## 3.0.4
 
 ### Fixes
