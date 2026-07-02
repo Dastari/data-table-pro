@@ -17,6 +17,7 @@ All three adapter entrypoints export the same table runtime API:
 Dedicated subpath exports are also available:
 
 - `data-table-pro/url-state`: `useDataTableUrlState`
+- `data-table-pro/advanced`: advanced composition hooks, panels, and adapter helpers
 - `data-table-pro/types`: public TypeScript types
 
 ## Breaking Changes In 3.0.0
@@ -30,8 +31,10 @@ Dedicated subpath exports are also available:
 ## Installation
 
 ```bash
-pnpm add data-table-pro
+pnpm add github:Dastari/data-table-pro#v3.0.0
 ```
+
+This package is installed from GitHub refs. It is not published to npm. Release tags such as `v3.0.0` include committed `dist/` output, so consumers do not need to allow package build scripts during install.
 
 Peer dependencies:
 
@@ -71,6 +74,33 @@ import { DataTable, type DataTableColumnDef } from "data-table-pro/thegridcn";
 import "data-table-pro/styles.css";
 import "./thegridcn-theme.css";
 ```
+
+### Advanced composition
+
+`data-table-pro/advanced` is the supported import path for adapter authors and consumers composing around the extracted internals:
+
+```tsx
+import {
+  createDataTable,
+  primitiveUiKit,
+  useColumnLayout,
+  useControllableState,
+  useDataTableColumns,
+  useDataTableInstance,
+  useDataTableState,
+  useRowEditing,
+  useStableCallback,
+  DataTableBodyRow,
+  DataTableCardPanel,
+  DataTableFooterSection,
+  DataTableHeaderCell,
+  DataTableTablePanel,
+  DataTableToolbarSection,
+  type DataTableUiKit,
+} from "data-table-pro/advanced";
+```
+
+Use this subpath instead of deep imports from `src`, `dist/chunk-*`, or other generated files. The regular adapter entrypoints remain the recommended API for application tables.
 
 ## Shared Styling Contract
 
@@ -119,6 +149,25 @@ For card mode, use `cardGridClassName` instead of targeting internal DOM:
   cardGridClassName="grid-cols-1 sm:grid-cols-2 xl:grid-cols-3"
 />
 ```
+
+Card mode can virtualize large card sets:
+
+```tsx
+<DataTable
+  viewMode="card"
+  cardRenderer={renderCard}
+  virtualization={{
+    card: {
+      enabled: true,
+      estimateCardHeight: 280,
+      overscan: 4,
+      lanes: "auto",
+    },
+  }}
+/>
+```
+
+`virtualization.card.lanes` accepts a positive number or `"auto"`. `"auto"` derives lanes from the card viewport width, and the table renders the full card set until the scroll viewport is measurable so first paint is never blank.
 
 ## Adapter Requirements
 
