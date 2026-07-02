@@ -742,6 +742,33 @@ for (const suite of suites) {
       expect(sortedIcon?.getAttribute("height")).toBe("1em");
     });
 
+    it("keeps utility columns pinned to fixed edge widths with data column order", () => {
+      renderTable({
+        enableRowSelection: true,
+        rowActions: [
+          {
+            key: "open",
+            label: "Open",
+            onClick: vi.fn(),
+          },
+        ],
+        columnOrder: ["name"],
+      });
+
+      const headers = screen.getAllByRole("columnheader");
+      const firstHeader = headers[0];
+      const lastHeader = headers.at(-1);
+
+      expect(firstHeader?.querySelector('[role="checkbox"]')).not.toBeNull();
+      expect(firstHeader?.style.width).toBe("50px");
+      expect(firstHeader?.style.minWidth).toBe("50px");
+      expect(firstHeader?.style.maxWidth).toBe("50px");
+      expect(lastHeader?.textContent).toContain("Actions");
+      expect(lastHeader?.style.width).toBe("50px");
+      expect(lastHeader?.style.minWidth).toBe("50px");
+      expect(lastHeader?.style.maxWidth).toBe("50px");
+    });
+
     it("supports pinning columns from table options", () => {
       const onColumnPinningChange = vi.fn();
 

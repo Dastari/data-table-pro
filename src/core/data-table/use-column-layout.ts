@@ -114,7 +114,7 @@ export function useColumnLayout<TData>({
     for (const column of visibleLeafColumns) {
       if (getFixedSide(column) === "left") {
         left.set(column.id, leftOffset);
-        leftOffset += column.getSize();
+        leftOffset += getColumnLayoutSize(column);
       }
     }
 
@@ -122,7 +122,7 @@ export function useColumnLayout<TData>({
     for (const column of [...visibleLeafColumns].reverse()) {
       if (getFixedSide(column) === "right") {
         right.set(column.id, rightOffset);
-        rightOffset += column.getSize();
+        rightOffset += getColumnLayoutSize(column);
       }
     }
 
@@ -263,7 +263,11 @@ export function useColumnLayout<TData>({
       const configuredMinWidth = minimumColumnWidths.get(column.id);
       const isFlexibleFillColumn = column.id === fillColumnId;
 
-      if (layout?.isUtilityColumn || fixedWidthColumnIds.has(column.id)) {
+      if (layout?.isUtilityColumn) {
+        return total + UTILITY_COLUMN_SIZE;
+      }
+
+      if (fixedWidthColumnIds.has(column.id)) {
         return total + column.getSize();
       }
 
@@ -291,4 +295,8 @@ export function useColumnLayout<TData>({
     fillMinWidth,
     getColumnLayout,
   };
+}
+
+function getColumnLayoutSize<TData>(column: Column<TData>) {
+  return isUtilityColumnId(column.id) ? UTILITY_COLUMN_SIZE : column.getSize();
 }

@@ -7,6 +7,8 @@
 - Fixed oversized table header sort icons after the Tabler icon dependency was replaced with local SVG components.
 - Added default `width` and `height` attributes to local SVG icons so unclassed icons cannot render at browser fallback SVG dimensions.
 - Explicitly constrained sorted and unsorted header sort indicators to `size-4`.
+- Kept selection, expansion, and actions utility columns outside data-column ordering so selection stays at the leading edge and actions stay at the trailing edge.
+- Fixed utility column layout math so checkbox, expansion, and actions columns consistently use the fixed 50px utility width.
 
 ### Validation
 

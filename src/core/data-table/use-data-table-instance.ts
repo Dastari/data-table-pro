@@ -26,6 +26,7 @@ import type {
 } from "@tanstack/react-table";
 import type { DataTableProps } from "../types";
 import {
+  getColumnId,
   isUtilityColumnId,
   moveColumnInOrder,
 } from "./data-table-utils";
@@ -131,6 +132,33 @@ export function useDataTableInstance<TData>({
   virtualization: DataTableProps<TData>["virtualization"];
   viewportHeight: number;
 }) {
+  const effectiveColumnOrder = React.useMemo<ColumnOrderState>(() => {
+    const columnIds = tableColumns.map((column, index) =>
+      getColumnId(column as DataTableProps<TData>["columns"][number], index),
+    );
+    const dataColumnIds = columnIds.filter(
+      (columnId) =>
+        !isUtilityColumnId(columnId) && columnId !== "__spacer__",
+    );
+    const dataColumnIdSet = new Set(dataColumnIds);
+    const orderedDataColumnIds = currentColumnOrder.filter((columnId) =>
+      dataColumnIdSet.has(columnId),
+    );
+    const unorderedDataColumnIds = dataColumnIds.filter(
+      (columnId) => !orderedDataColumnIds.includes(columnId),
+    );
+
+    return [
+      ...columnIds.filter(
+        (columnId) => columnId === "__expand__" || columnId === "__select__",
+      ),
+      ...orderedDataColumnIds,
+      ...unorderedDataColumnIds,
+      ...columnIds.filter((columnId) => columnId === "__spacer__"),
+      ...columnIds.filter((columnId) => columnId === "__actions__"),
+    ];
+  }, [currentColumnOrder, tableColumns]);
+
   const tableState = React.useMemo(
     () => ({
       sorting: currentSorting,
@@ -140,13 +168,12 @@ export function useDataTableInstance<TData>({
       columnFilters: currentColumnFilters,
       globalFilter: globalFilterValue,
       expanded: currentExpanded,
-      columnOrder: currentColumnOrder,
+      columnOrder: effectiveColumnOrder,
       columnPinning: currentColumnPinning,
       columnSizing: currentColumnSizing,
     }),
     [
       currentColumnFilters,
-      currentColumnOrder,
       currentColumnPinning,
       currentColumnSizing,
       currentExpanded,
@@ -154,6 +181,7 @@ export function useDataTableInstance<TData>({
       currentRowSelection,
       currentSorting,
       effectiveColumnVisibility,
+      effectiveColumnOrder,
       globalFilterValue,
     ],
   );

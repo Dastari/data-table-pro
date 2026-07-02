@@ -3312,6 +3312,30 @@ function useDataTableInstance({
   virtualization,
   viewportHeight
 }) {
+  const effectiveColumnOrder = React30.useMemo(() => {
+    const columnIds = tableColumns.map(
+      (column, index) => getColumnId(column, index)
+    );
+    const dataColumnIds = columnIds.filter(
+      (columnId) => !isUtilityColumnId(columnId) && columnId !== "__spacer__"
+    );
+    const dataColumnIdSet = new Set(dataColumnIds);
+    const orderedDataColumnIds = currentColumnOrder.filter(
+      (columnId) => dataColumnIdSet.has(columnId)
+    );
+    const unorderedDataColumnIds = dataColumnIds.filter(
+      (columnId) => !orderedDataColumnIds.includes(columnId)
+    );
+    return [
+      ...columnIds.filter(
+        (columnId) => columnId === "__expand__" || columnId === "__select__"
+      ),
+      ...orderedDataColumnIds,
+      ...unorderedDataColumnIds,
+      ...columnIds.filter((columnId) => columnId === "__spacer__"),
+      ...columnIds.filter((columnId) => columnId === "__actions__")
+    ];
+  }, [currentColumnOrder, tableColumns]);
   const tableState = React30.useMemo(
     () => ({
       sorting: currentSorting,
@@ -3321,13 +3345,12 @@ function useDataTableInstance({
       columnFilters: currentColumnFilters,
       globalFilter: globalFilterValue,
       expanded: currentExpanded,
-      columnOrder: currentColumnOrder,
+      columnOrder: effectiveColumnOrder,
       columnPinning: currentColumnPinning,
       columnSizing: currentColumnSizing
     }),
     [
       currentColumnFilters,
-      currentColumnOrder,
       currentColumnPinning,
       currentColumnSizing,
       currentExpanded,
@@ -3335,6 +3358,7 @@ function useDataTableInstance({
       currentRowSelection,
       currentSorting,
       effectiveColumnVisibility,
+      effectiveColumnOrder,
       globalFilterValue
     ]
   );
@@ -3942,14 +3966,14 @@ function useColumnLayout({
     for (const column of visibleLeafColumns) {
       if (getFixedSide(column) === "left") {
         left.set(column.id, leftOffset);
-        leftOffset += column.getSize();
+        leftOffset += getColumnLayoutSize(column);
       }
     }
     let rightOffset = 0;
     for (const column of [...visibleLeafColumns].reverse()) {
       if (getFixedSide(column) === "right") {
         right.set(column.id, rightOffset);
-        rightOffset += column.getSize();
+        rightOffset += getColumnLayoutSize(column);
       }
     }
     return { left, right };
@@ -4038,7 +4062,10 @@ function useColumnLayout({
       const layout = columnLayouts.get(column.id);
       const configuredMinWidth = minimumColumnWidths.get(column.id);
       const isFlexibleFillColumn = column.id === fillColumnId;
-      if (layout?.isUtilityColumn || fixedWidthColumnIds.has(column.id)) {
+      if (layout?.isUtilityColumn) {
+        return total + UTILITY_COLUMN_SIZE;
+      }
+      if (fixedWidthColumnIds.has(column.id)) {
         return total + column.getSize();
       }
       return total + (configuredMinWidth ?? (isFlexibleFillColumn ? column.getSize() : 0));
@@ -4060,6 +4087,9 @@ function useColumnLayout({
     fillMinWidth,
     getColumnLayout
   };
+}
+function getColumnLayoutSize(column) {
+  return isUtilityColumnId(column.id) ? UTILITY_COLUMN_SIZE : column.getSize();
 }
 function createDataTableCardView(ui, DataTableRowActions) {
   const uiClassNames = ui.classNames ?? {};
@@ -6046,5 +6076,5 @@ function createDataTable(ui) {
 }
 
 export { Button, Card, CardContent, CardDescription, CardFooter, CardHeader, Checkbox, DataTableBodyRow, DataTableCardPanel, DataTableFooterSection, DataTableHeaderCell, DataTableTablePanel, DataTableToolbarSection, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuSubContent, DropdownMenuSubTrigger, Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle, Input, InputGroup, InputGroupAddon, InputGroupInput, Pagination, PaginationFirst, PaginationLast, PaginationLink, PaginationNext, PaginationPrevious, ScrollArea, ScrollBar, SelectContent, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, Separator, Skeleton, Table, TableBody, TableCaption, TableCell, TableFooter, TableHead, TableHeader, TableRow, TooltipContent, cn, createDataTable, primitiveUiKit, useColumnLayout, useControllableState, useDataTableColumns, useDataTableInstance, useDataTableState, useRowEditing };
-//# sourceMappingURL=chunk-QOCSW6XN.js.map
-//# sourceMappingURL=chunk-QOCSW6XN.js.map
+//# sourceMappingURL=chunk-LUKNPGDR.js.map
+//# sourceMappingURL=chunk-LUKNPGDR.js.map
