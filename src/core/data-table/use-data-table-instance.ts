@@ -132,10 +132,14 @@ export function useDataTableInstance<TData>({
   virtualization: DataTableProps<TData>["virtualization"];
   viewportHeight: number;
 }) {
-  const effectiveColumnOrder = React.useMemo<ColumnOrderState>(() => {
-    const columnIds = tableColumns.map((column, index) =>
+  const generatedColumnIds = React.useMemo(() => {
+    return tableColumns.map((column, index) =>
       getColumnId(column as DataTableProps<TData>["columns"][number], index),
     );
+  }, [tableColumns]);
+
+  const effectiveColumnOrder = React.useMemo<ColumnOrderState>(() => {
+    const columnIds = generatedColumnIds;
     const dataColumnIds = columnIds.filter(
       (columnId) =>
         !isUtilityColumnId(columnId) && columnId !== "__spacer__",
@@ -157,7 +161,36 @@ export function useDataTableInstance<TData>({
       ...columnIds.filter((columnId) => columnId === "__spacer__"),
       ...columnIds.filter((columnId) => columnId === "__actions__"),
     ];
-  }, [currentColumnOrder, tableColumns]);
+  }, [currentColumnOrder, generatedColumnIds]);
+
+  const effectiveColumnPinning = React.useMemo<ColumnPinningState>(() => {
+    const columnIdSet = new Set(generatedColumnIds);
+    const dataColumnIdSet = new Set(
+      generatedColumnIds.filter(
+        (columnId) =>
+          !isUtilityColumnId(columnId) && columnId !== "__spacer__",
+      ),
+    );
+    const dataLeft = (currentColumnPinning.left ?? []).filter((columnId) =>
+      dataColumnIdSet.has(columnId),
+    );
+    const dataRight = (currentColumnPinning.right ?? []).filter((columnId) =>
+      dataColumnIdSet.has(columnId),
+    );
+
+    return {
+      left: [
+        ...["__expand__", "__select__"].filter((columnId) =>
+          columnIdSet.has(columnId),
+        ),
+        ...dataLeft,
+      ],
+      right: [
+        ...dataRight,
+        ...["__actions__"].filter((columnId) => columnIdSet.has(columnId)),
+      ],
+    };
+  }, [currentColumnPinning, generatedColumnIds]);
 
   const tableState = React.useMemo(
     () => ({
@@ -169,12 +202,11 @@ export function useDataTableInstance<TData>({
       globalFilter: globalFilterValue,
       expanded: currentExpanded,
       columnOrder: effectiveColumnOrder,
-      columnPinning: currentColumnPinning,
+      columnPinning: effectiveColumnPinning,
       columnSizing: currentColumnSizing,
     }),
     [
       currentColumnFilters,
-      currentColumnPinning,
       currentColumnSizing,
       currentExpanded,
       currentPagination,
@@ -182,6 +214,7 @@ export function useDataTableInstance<TData>({
       currentSorting,
       effectiveColumnVisibility,
       effectiveColumnOrder,
+      effectiveColumnPinning,
       globalFilterValue,
     ],
   );

@@ -3312,10 +3312,13 @@ function useDataTableInstance({
   virtualization,
   viewportHeight
 }) {
-  const effectiveColumnOrder = React30.useMemo(() => {
-    const columnIds = tableColumns.map(
+  const generatedColumnIds = React30.useMemo(() => {
+    return tableColumns.map(
       (column, index) => getColumnId(column, index)
     );
+  }, [tableColumns]);
+  const effectiveColumnOrder = React30.useMemo(() => {
+    const columnIds = generatedColumnIds;
     const dataColumnIds = columnIds.filter(
       (columnId) => !isUtilityColumnId(columnId) && columnId !== "__spacer__"
     );
@@ -3335,7 +3338,33 @@ function useDataTableInstance({
       ...columnIds.filter((columnId) => columnId === "__spacer__"),
       ...columnIds.filter((columnId) => columnId === "__actions__")
     ];
-  }, [currentColumnOrder, tableColumns]);
+  }, [currentColumnOrder, generatedColumnIds]);
+  const effectiveColumnPinning = React30.useMemo(() => {
+    const columnIdSet = new Set(generatedColumnIds);
+    const dataColumnIdSet = new Set(
+      generatedColumnIds.filter(
+        (columnId) => !isUtilityColumnId(columnId) && columnId !== "__spacer__"
+      )
+    );
+    const dataLeft = (currentColumnPinning.left ?? []).filter(
+      (columnId) => dataColumnIdSet.has(columnId)
+    );
+    const dataRight = (currentColumnPinning.right ?? []).filter(
+      (columnId) => dataColumnIdSet.has(columnId)
+    );
+    return {
+      left: [
+        ...["__expand__", "__select__"].filter(
+          (columnId) => columnIdSet.has(columnId)
+        ),
+        ...dataLeft
+      ],
+      right: [
+        ...dataRight,
+        ...["__actions__"].filter((columnId) => columnIdSet.has(columnId))
+      ]
+    };
+  }, [currentColumnPinning, generatedColumnIds]);
   const tableState = React30.useMemo(
     () => ({
       sorting: currentSorting,
@@ -3346,12 +3375,11 @@ function useDataTableInstance({
       globalFilter: globalFilterValue,
       expanded: currentExpanded,
       columnOrder: effectiveColumnOrder,
-      columnPinning: currentColumnPinning,
+      columnPinning: effectiveColumnPinning,
       columnSizing: currentColumnSizing
     }),
     [
       currentColumnFilters,
-      currentColumnPinning,
       currentColumnSizing,
       currentExpanded,
       currentPagination,
@@ -3359,6 +3387,7 @@ function useDataTableInstance({
       currentSorting,
       effectiveColumnVisibility,
       effectiveColumnOrder,
+      effectiveColumnPinning,
       globalFilterValue
     ]
   );
@@ -6076,5 +6105,5 @@ function createDataTable(ui) {
 }
 
 export { Button, Card, CardContent, CardDescription, CardFooter, CardHeader, Checkbox, DataTableBodyRow, DataTableCardPanel, DataTableFooterSection, DataTableHeaderCell, DataTableTablePanel, DataTableToolbarSection, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuSubContent, DropdownMenuSubTrigger, Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle, Input, InputGroup, InputGroupAddon, InputGroupInput, Pagination, PaginationFirst, PaginationLast, PaginationLink, PaginationNext, PaginationPrevious, ScrollArea, ScrollBar, SelectContent, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, Separator, Skeleton, Table, TableBody, TableCaption, TableCell, TableFooter, TableHead, TableHeader, TableRow, TooltipContent, cn, createDataTable, primitiveUiKit, useColumnLayout, useControllableState, useDataTableColumns, useDataTableInstance, useDataTableState, useRowEditing };
-//# sourceMappingURL=chunk-LUKNPGDR.js.map
-//# sourceMappingURL=chunk-LUKNPGDR.js.map
+//# sourceMappingURL=chunk-FNJZDBIH.js.map
+//# sourceMappingURL=chunk-FNJZDBIH.js.map

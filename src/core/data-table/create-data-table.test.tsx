@@ -769,6 +769,48 @@ for (const suite of suites) {
       expect(lastHeader?.style.maxWidth).toBe("50px");
     });
 
+    it("renders utility columns outside fixed data columns", () => {
+      renderTable({
+        columns: [
+          {
+            accessorKey: "name",
+            header: "Record",
+            meta: { fixed: "left" },
+          },
+          {
+            id: "role",
+            header: "Type",
+            accessorFn: () => "Admin",
+            size: 140,
+          },
+        ],
+        enableRowSelection: true,
+        rowActions: [
+          {
+            key: "open",
+            label: "Open",
+            onClick: vi.fn(),
+          },
+        ],
+      });
+
+      const headers = screen.getAllByRole("columnheader");
+      const selectionHeader = headers[0];
+      const recordHeader = headers[1];
+      const actionsHeader = headers.at(-1);
+
+      expect(selectionHeader?.querySelector('[role="checkbox"]')).not.toBeNull();
+      expect(selectionHeader?.style.width).toBe("50px");
+      expect(selectionHeader?.style.minWidth).toBe("50px");
+      expect(selectionHeader?.style.maxWidth).toBe("50px");
+      expect(recordHeader?.textContent).toContain("Record");
+      expect(recordHeader?.style.insetInlineStart).toBe("50px");
+      expect(actionsHeader?.textContent).toContain("Actions");
+      expect(actionsHeader?.style.width).toBe("50px");
+      expect(actionsHeader?.style.minWidth).toBe("50px");
+      expect(actionsHeader?.style.maxWidth).toBe("50px");
+    });
+
     it("supports pinning columns from table options", () => {
       const onColumnPinningChange = vi.fn();
 

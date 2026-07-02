@@ -1,5 +1,18 @@
 # Changelog
 
+## 3.0.2
+
+### Fixes
+
+- Fixed selection and expansion utility columns when the first data column is pinned left with `column.meta.fixed` or column pinning.
+- Fixed the actions utility column when data columns are pinned or reordered, keeping it at the trailing edge.
+- Internally applies utility columns to TanStack column pinning state so DOM order, `colgroup` sizing, sticky offsets, headers, and body cells stay aligned.
+- Strips stale utility IDs out of consumer/persisted pinning before re-applying them in the required internal positions.
+
+### Validation
+
+- `pnpm test src/core/data-table/create-data-table.test.tsx`
+
 ## 3.0.1
 
 ### Fixes
