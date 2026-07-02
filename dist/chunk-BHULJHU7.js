@@ -2675,7 +2675,7 @@ function DataTableHeaderCellInner({
   );
 }
 function areDataTableHeaderCellsEqual(previous, next) {
-  return previous.header.id === next.header.id && previous.header.column.id === next.header.column.id && previous.currentDensity === next.currentDensity && previous.enableColumnReordering === next.enableColumnReordering && previous.enableColumnResizing === next.enableColumnResizing && previous.TableHead === next.TableHead && previous.uiClassNames === next.uiClassNames && previous.draggedColumnIdRef === next.draggedColumnIdRef && previous.primeColumnForResize === next.primeColumnForResize && previous.reorderColumn === next.reorderColumn && previous.resetColumnSize === next.resetColumnSize && sameSorting(previous.currentSorting, next.currentSorting) && sameHeaderGroupHeaders(
+  return previous.header.id === next.header.id && previous.header.column.id === next.header.column.id && previous.currentDensity === next.currentDensity && previous.enableColumnReordering === next.enableColumnReordering && previous.enableColumnResizing === next.enableColumnResizing && previous.TableHead === next.TableHead && previous.uiClassNames === next.uiClassNames && previous.draggedColumnIdRef === next.draggedColumnIdRef && previous.primeColumnForResize === next.primeColumnForResize && previous.reorderColumn === next.reorderColumn && previous.resetColumnSize === next.resetColumnSize && previous.selectionState === next.selectionState && sameSorting(previous.currentSorting, next.currentSorting) && sameHeaderGroupHeaders(
     previous.headerGroupHeaders,
     next.headerGroupHeaders
   ) && sameHeaderLayout(previous.layout, next.layout);
@@ -2750,6 +2750,7 @@ function DataTableTablePanel({
   visibleLeafColumnCount,
   visibleLeafColumns
 }) {
+  const selectionState = table.getIsAllPageRowsSelected() ? true : table.getIsSomePageRowsSelected() ? "indeterminate" : false;
   return /* @__PURE__ */ jsx(
     "div",
     {
@@ -2811,6 +2812,7 @@ function DataTableTablePanel({
                               primeColumnForResize,
                               reorderColumn,
                               resetColumnSize,
+                              selectionState: header.column.id === "__select__" ? selectionState : void 0,
                               TableHead: TableHead2,
                               uiClassNames
                             },
@@ -4890,7 +4892,7 @@ function createDataTableToolbar(ui) {
                   Button2,
                   {
                     type: "button",
-                    className: collapsesToIcon ? `size-7 shrink-0 px-0 @md/data-table:h-8 @md/data-table:w-fit @md/data-table:px-2.5 ${compactToolbarIconButtonClassName}` : action.iconOnly ? `size-7 shrink-0 @md/data-table:h-8 @md/data-table:w-fit ${compactToolbarIconButtonClassName}` : "size-7 shrink-0 @md/data-table:h-8 @md/data-table:w-fit",
+                    className: collapsesToIcon ? `size-7 shrink-0 px-0 @md/data-table:h-8 @md/data-table:w-fit @md/data-table:px-2.5 ${compactToolbarIconButtonClassName}` : action.iconOnly ? `size-7 shrink-0 @md/data-table:size-8 ${compactToolbarIconButtonClassName}` : "size-7 shrink-0 @md/data-table:h-8 @md/data-table:w-fit",
                     variant: action.variant ?? "outline",
                     size: action.iconOnly ? "icon" : "default",
                     onClick: () => {
@@ -5141,7 +5143,7 @@ function createDataTableToolbar(ui) {
                       disabled: action.disabled,
                       "aria-label": action.label,
                       title: action.iconOnly ? void 0 : action.label,
-                      className: `size-7 shrink-0 ${collapsesToIcon ? "px-0 @md/data-table:px-2.5" : ""} @md/data-table:h-8 @md/data-table:w-fit ${action.iconOnly || collapsesToIcon ? compactToolbarIconButtonClassName : ""} ${uiClassNames.toolbarInputButton ?? ""}`,
+                      className: `size-7 shrink-0 ${action.iconOnly ? "" : `${collapsesToIcon ? "px-0 @md/data-table:px-2.5" : ""} @md/data-table:h-8 @md/data-table:w-fit`} ${action.iconOnly || collapsesToIcon ? compactToolbarIconButtonClassName : ""} ${uiClassNames.toolbarInputButton ?? ""}`,
                       children: [
                         action.icon ? /* @__PURE__ */ jsx(
                           action.icon,
@@ -6105,5 +6107,5 @@ function createDataTable(ui) {
 }
 
 export { Button, Card, CardContent, CardDescription, CardFooter, CardHeader, Checkbox, DataTableBodyRow, DataTableCardPanel, DataTableFooterSection, DataTableHeaderCell, DataTableTablePanel, DataTableToolbarSection, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuSubContent, DropdownMenuSubTrigger, Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle, Input, InputGroup, InputGroupAddon, InputGroupInput, Pagination, PaginationFirst, PaginationLast, PaginationLink, PaginationNext, PaginationPrevious, ScrollArea, ScrollBar, SelectContent, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, Separator, Skeleton, Table, TableBody, TableCaption, TableCell, TableFooter, TableHead, TableHeader, TableRow, TooltipContent, cn, createDataTable, primitiveUiKit, useColumnLayout, useControllableState, useDataTableColumns, useDataTableInstance, useDataTableState, useRowEditing };
-//# sourceMappingURL=chunk-FNJZDBIH.js.map
-//# sourceMappingURL=chunk-FNJZDBIH.js.map
+//# sourceMappingURL=chunk-BHULJHU7.js.map
+//# sourceMappingURL=chunk-BHULJHU7.js.map

@@ -27,6 +27,9 @@ type DataTableHeaderCellProps<TData> = {
   primeColumnForResize: (columnId: string, currentSize: number) => void;
   reorderColumn: (sourceColumnId: string, targetColumnId: string) => void;
   resetColumnSize: (columnId: string) => void;
+  // Rendered through flexRender inside the header def; carried as a prop so
+  // the memo comparator re-renders the selection header when it changes.
+  selectionState?: boolean | "indeterminate";
   TableHead: DataTableUiKit["TableHead"];
   uiClassNames: DataTableUiClassNames;
 };
@@ -226,6 +229,7 @@ function areDataTableHeaderCellsEqual<TData>(
     previous.primeColumnForResize === next.primeColumnForResize &&
     previous.reorderColumn === next.reorderColumn &&
     previous.resetColumnSize === next.resetColumnSize &&
+    previous.selectionState === next.selectionState &&
     sameSorting(previous.currentSorting, next.currentSorting) &&
     sameHeaderGroupHeaders(
       previous.headerGroupHeaders,

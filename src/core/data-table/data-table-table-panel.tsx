@@ -129,6 +129,13 @@ export function DataTableTablePanel<TData>({
   visibleLeafColumnCount,
   visibleLeafColumns,
 }: DataTableTablePanelProps<TData>) {
+  const selectionState: boolean | "indeterminate" =
+    table.getIsAllPageRowsSelected()
+      ? true
+      : table.getIsSomePageRowsSelected()
+        ? "indeterminate"
+        : false;
+
   return (
     <div
       data-dtp-slot="data-table-table-shell"
@@ -193,6 +200,11 @@ export function DataTableTablePanel<TData>({
                         primeColumnForResize={primeColumnForResize}
                         reorderColumn={reorderColumn}
                         resetColumnSize={resetColumnSize}
+                        selectionState={
+                          header.column.id === "__select__"
+                            ? selectionState
+                            : undefined
+                        }
                         TableHead={TableHead}
                         uiClassNames={uiClassNames}
                       />

@@ -811,6 +811,55 @@ for (const suite of suites) {
       expect(actionsHeader?.style.maxWidth).toBe("50px");
     });
 
+    it("reflects row selection in the select-all header checkbox", () => {
+      renderTable({ enableRowSelection: true });
+
+      const getSelectAll = () =>
+        screen.getByRole("checkbox", { name: "Select all visible rows" });
+
+      expect(getSelectAll().getAttribute("aria-checked")).toBe("false");
+
+      fireEvent.click(screen.getByRole("checkbox", { name: "Select row" }));
+
+      expect(getSelectAll().getAttribute("aria-checked")).toBe("true");
+
+      fireEvent.click(getSelectAll());
+
+      expect(getSelectAll().getAttribute("aria-checked")).toBe("false");
+    });
+
+    it("keeps icon-only toolbar actions square", () => {
+      renderTable({
+        toolbarActions: [
+          {
+            key: "refresh",
+            label: "Refresh",
+            icon: IconDownload,
+            iconOnly: true,
+            placement: "trailing",
+            onClick: vi.fn(),
+          },
+          {
+            key: "export",
+            label: "Export",
+            icon: IconDownload,
+            iconOnly: true,
+            onClick: vi.fn(),
+          },
+        ],
+      });
+
+      const trailingButton = screen.getByRole("button", { name: "Refresh" });
+      expect(trailingButton.className).toContain("size-7");
+      expect(trailingButton.className).not.toContain("w-fit");
+      expect(trailingButton.className).not.toContain("h-8");
+
+      const primaryButton = screen.getByRole("button", { name: "Export" });
+      expect(primaryButton.className).toContain("size-7");
+      expect(primaryButton.className).toContain("@md/data-table:size-8");
+      expect(primaryButton.className).not.toContain("w-fit");
+    });
+
     it("supports pinning columns from table options", () => {
       const onColumnPinningChange = vi.fn();
 

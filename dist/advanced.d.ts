@@ -234,6 +234,7 @@ type DataTableHeaderCellProps<TData> = {
     primeColumnForResize: (columnId: string, currentSize: number) => void;
     reorderColumn: (sourceColumnId: string, targetColumnId: string) => void;
     resetColumnSize: (columnId: string) => void;
+    selectionState?: boolean | "indeterminate";
     TableHead: DataTableUiKit["TableHead"];
     uiClassNames: DataTableUiClassNames;
 };

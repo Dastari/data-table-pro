@@ -1,5 +1,19 @@
 # Changelog
 
+## 3.0.3
+
+### Fixes
+
+- Fixed the select-all header checkbox not reflecting row selection until an unrelated layout change; the memoized header cell now re-renders when page selection state changes.
+- Fixed icon-only toolbar actions rendering taller than wide at `@md` container widths; trailing icon-only actions stay 28px squares to match the options and view-toggle buttons, and primary icon-only actions scale to a 32px square.
+
+### Validation
+
+- `pnpm lint`
+- `pnpm typecheck`
+- `pnpm test src/core/data-table/create-data-table.test.tsx`
+- `pnpm build`
+
 ## 3.0.2
 
 ### Fixes

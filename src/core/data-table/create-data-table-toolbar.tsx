@@ -266,7 +266,7 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
                         collapsesToIcon
                           ? `size-7 shrink-0 px-0 @md/data-table:h-8 @md/data-table:w-fit @md/data-table:px-2.5 ${compactToolbarIconButtonClassName}`
                           : action.iconOnly
-                            ? `size-7 shrink-0 @md/data-table:h-8 @md/data-table:w-fit ${compactToolbarIconButtonClassName}`
+                            ? `size-7 shrink-0 @md/data-table:size-8 ${compactToolbarIconButtonClassName}`
                             : "size-7 shrink-0 @md/data-table:h-8 @md/data-table:w-fit"
                       }
                       variant={action.variant ?? "outline"}
@@ -566,7 +566,7 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
                         disabled={action.disabled}
                         aria-label={action.label}
                         title={action.iconOnly ? undefined : action.label}
-                        className={`size-7 shrink-0 ${collapsesToIcon ? "px-0 @md/data-table:px-2.5" : ""} @md/data-table:h-8 @md/data-table:w-fit ${action.iconOnly || collapsesToIcon ? compactToolbarIconButtonClassName : ""} ${uiClassNames.toolbarInputButton ?? ""}`}
+                        className={`size-7 shrink-0 ${action.iconOnly ? "" : `${collapsesToIcon ? "px-0 @md/data-table:px-2.5" : ""} @md/data-table:h-8 @md/data-table:w-fit`} ${action.iconOnly || collapsesToIcon ? compactToolbarIconButtonClassName : ""} ${uiClassNames.toolbarInputButton ?? ""}`}
                       >
                         {action.icon ? (
                           <action.icon
