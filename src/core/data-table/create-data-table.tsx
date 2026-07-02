@@ -11,15 +11,16 @@ import { createDataTableEmptyState } from "./create-data-table-empty-state";
 import { createDataTablePagination } from "./create-data-table-pagination";
 import { createDataTableRowActions } from "./create-data-table-row-actions";
 import { createDataTableToolbar } from "./create-data-table-toolbar";
-import { DataTableBodyRow } from "./data-table-body-row";
-import { DataTableHeaderCell } from "./data-table-header-cell";
+import { DataTableCardPanel } from "./data-table-card-panel";
+import { DataTableFooterSection } from "./data-table-footer-section";
+import { DataTableTablePanel } from "./data-table-table-panel";
+import { DataTableToolbarSection } from "./data-table-toolbar-section";
 import { resolveDataTableLabels } from "./data-table-labels";
 import { useDataTableColumns } from "./use-data-table-columns";
 import { useDataTableInstance } from "./use-data-table-instance";
 import { useDataTableScrollViewport } from "./use-data-table-scroll-viewport";
 import {
   getColumnId,
-  isDataTableLoadingRow,
 } from "./data-table-utils";
 import { useDataTableState } from "./use-data-table-state";
 import { useDataTableToolbarFeatures } from "./use-data-table-toolbar-features";
@@ -513,42 +514,39 @@ export function createDataTable(ui: DataTableUiKit) {
               )}
             >
               {showToolbar ? (
-                <div data-dtp-slot="data-table-toolbar" className="shrink-0">
-                  <DataTableToolbar
-                    title={title}
-                    description={description}
-                    toolbarQueryValue={localSearchValue}
-                    toolbarQueryPlaceholder={resolvedToolbarQueryPlaceholder}
-                    onToolbarQueryValueChange={setLocalSearchValue}
-                    customToolbar={customToolbar}
-                    compactToolbar={compactToolbar}
-                    viewMode={currentViewMode}
-                    onViewModeChange={handleViewModeChange}
-                    enableViewToggle={enableViewToggle && Boolean(cardRenderer)}
-                    toolbarActions={effectiveToolbarActions}
-                    selectionActions={selectionActions}
-                    selectedRows={selectedRows}
-                    showHiddenRows={currentShowHiddenRows}
-                    hiddenRowsLabel={hiddenRows?.label}
-                    onShowHiddenRowsChange={handleShowHiddenRowsChange}
-                    allRows={filteredData}
-                    columnVisibilityOptions={columnVisibilityOptions}
-                    onColumnVisibilityChange={(columnId, visible) => {
-                      table.getColumn(columnId)?.toggleVisibility(visible);
-                    }}
-                    enableColumnPinning={enableColumnPinning}
-                    onColumnPinningChange={handleToolbarColumnPinningChange}
-                    columnFilters={toolbarColumnFilters}
-                    onColumnFilterChange={handleToolbarColumnFilterChange}
-                    onClearColumnFilters={handleClearColumnFilters}
-                    density={currentDensity}
-                    onDensityChange={handleDensityChange}
-                    enableDensityToggle={enableDensityToggle}
-                    labels={resolvedLabels}
-                    toolbarVisibility={toolbarVisibility}
-                    openFileDialog={fileUpload ? openFileDialog : undefined}
-                  />
-                </div>
+                <DataTableToolbarSection
+                  allRows={filteredData}
+                  columnFilters={toolbarColumnFilters}
+                  columnVisibilityOptions={columnVisibilityOptions}
+                  compactToolbar={compactToolbar}
+                  customToolbar={customToolbar}
+                  DataTableToolbar={DataTableToolbar}
+                  density={currentDensity}
+                  description={description}
+                  effectiveToolbarActions={effectiveToolbarActions}
+                  enableColumnPinning={enableColumnPinning}
+                  enableDensityToggle={enableDensityToggle}
+                  enableViewToggle={enableViewToggle && Boolean(cardRenderer)}
+                  hiddenRowsLabel={hiddenRows?.label}
+                  labels={resolvedLabels}
+                  onClearColumnFilters={handleClearColumnFilters}
+                  onColumnFilterChange={handleToolbarColumnFilterChange}
+                  onColumnPinningChange={handleToolbarColumnPinningChange}
+                  onDensityChange={handleDensityChange}
+                  onShowHiddenRowsChange={handleShowHiddenRowsChange}
+                  onToolbarQueryValueChange={setLocalSearchValue}
+                  onViewModeChange={handleViewModeChange}
+                  openFileDialog={fileUpload ? openFileDialog : undefined}
+                  selectedRows={selectedRows}
+                  selectionActions={selectionActions}
+                  showHiddenRows={currentShowHiddenRows}
+                  table={table}
+                  title={title}
+                  toolbarQueryPlaceholder={resolvedToolbarQueryPlaceholder}
+                  toolbarQueryValue={localSearchValue}
+                  toolbarVisibility={toolbarVisibility}
+                  viewMode={currentViewMode}
+                />
               ) : null}
 
             <div
@@ -556,374 +554,107 @@ export function createDataTable(ui: DataTableUiKit) {
               className={cn(flexGrow ? "flex min-h-0 flex-1 flex-col" : "")}
             >
               {currentViewMode === "card" && cardRenderer ? (
-                <div
-                  data-dtp-slot="data-table-card-shell"
-                  className={cn(
-                    "box-border border-2 border-transparent transition-colors",
-                    flexGrow ? "flex min-h-0 flex-1 flex-col" : "h-full",
-                    dragAndDrop?.isDragging &&
-                      (uiClassNames.dragActive ?? "rounded-md border-dashed"),
-                  )}
-                >
-                  <ScrollArea
-                    className={cn(
-                      flexGrow ? "min-h-0 flex-1" : "h-full",
-                      uiClassNames.cardScrollArea,
-                      tableContainerClassName,
-                    )}
-                  >
-                    <div
-                      data-dtp-slot="data-table-card-viewport"
-                      className={cn(
-                        "flex min-h-full min-w-0 flex-col",
-                        flexGrow && "min-h-0 flex-1",
-                        uiClassNames.cardViewport,
-                      )}
-                    >
-                      {shouldRenderInitialLoading ? (
-                        <DataTableCardView
-                          rows={[]}
-                          cardRenderer={cardRenderer}
-                          cardGridClassName={cardGridClassName}
-                          cardClassName={cardClassName}
-                          rowActions={rowActions}
-                          editableRows={editableRows}
-                          renderExpandedRow={renderExpandedRow}
-                          hasCardTitle={hasCardTitle}
-                          rowSelection={currentRowSelection}
-                          onRowSelectionChange={setCurrentRowSelection}
-                          enableRowSelection={enableRowSelection}
-                          editingRowId={editingRowId}
-                          onEditingRowIdChange={setEditingRowId}
-                          getRowClassName={getRowClassName}
-                          onRowClick={onRowClick}
-                          getRowDraggable={dragAndDrop?.getRowDraggable}
-                          onRowDragStart={dragAndDrop?.onRowDragStart}
-                          onRowDragEnd={dragAndDrop?.onRowDragEnd}
-                          isLoading={true}
-                          loadingRowCount={resolvedLoadingRowCount}
-                          labels={resolvedLabels}
-                        />
-                      ) : renderedRows.length ? (
-                        <DataTableCardView
-                          rows={renderedRows}
-                          cardRenderer={cardRenderer}
-                          cardGridClassName={cardGridClassName}
-                          cardClassName={cardClassName}
-                          rowActions={rowActions}
-                          editableRows={editableRows}
-                          renderExpandedRow={renderExpandedRow}
-                          hasCardTitle={hasCardTitle}
-                          rowSelection={currentRowSelection}
-                          onRowSelectionChange={setCurrentRowSelection}
-                          enableRowSelection={enableRowSelection}
-                          editingRowId={editingRowId}
-                          onEditingRowIdChange={setEditingRowId}
-                          getRowClassName={getRowClassName}
-                          onRowClick={onRowClick}
-                          getRowDraggable={dragAndDrop?.getRowDraggable}
-                          onRowDragStart={dragAndDrop?.onRowDragStart}
-                          onRowDragEnd={dragAndDrop?.onRowDragEnd}
-                          labels={resolvedLabels}
-                        />
-                      ) : (
-                        <div className="flex min-h-0 flex-1 items-center justify-center p-4">
-                          {emptyNode ?? (
-                            <DataTableEmptyState
-                              title={
-                                localSearchValue
-                                  ? resolvedLabels.noMatchingRowsTitle
-                                  : resolvedLabels.noRowsTitle
-                              }
-                              description={
-                                localSearchValue
-                                  ? resolvedLabels.noMatchingRowsDescription
-                                  : resolvedLabels.noRowsDescription
-                              }
-                            />
-                          )}
-                        </div>
-                      )}
-
-                      {infiniteScroll?.enabled &&
-                      !shouldRenderInitialLoading ? (
-                        <div className="shrink-0 px-4 pb-4">
-                          <div ref={sentinelRef} className="h-4 w-full" />
-                        </div>
-                      ) : null}
-                    </div>
-                  </ScrollArea>
-                </div>
+                <DataTableCardPanel
+                  cardClassName={cardClassName}
+                  cardGridClassName={cardGridClassName}
+                  cardRenderer={cardRenderer}
+                  currentRowSelection={currentRowSelection}
+                  DataTableCardView={DataTableCardView}
+                  DataTableEmptyState={DataTableEmptyState}
+                  dragAndDrop={dragAndDrop}
+                  editableRows={editableRows}
+                  editingRowId={editingRowId}
+                  emptyNode={emptyNode}
+                  enableRowSelection={enableRowSelection}
+                  flexGrow={flexGrow}
+                  getRowClassName={getRowClassName}
+                  hasCardTitle={hasCardTitle}
+                  infiniteScroll={infiniteScroll}
+                  localSearchValue={localSearchValue}
+                  onRowClick={onRowClick}
+                  renderedRows={renderedRows}
+                  renderExpandedRow={renderExpandedRow}
+                  resolvedLabels={resolvedLabels}
+                  resolvedLoadingRowCount={resolvedLoadingRowCount}
+                  rowActions={rowActions}
+                  ScrollArea={ScrollArea}
+                  sentinelRef={sentinelRef}
+                  setCurrentRowSelection={setCurrentRowSelection}
+                  setEditingRowId={setEditingRowId}
+                  shouldRenderInitialLoading={shouldRenderInitialLoading}
+                  tableContainerClassName={tableContainerClassName}
+                  uiClassNames={uiClassNames}
+                />
               ) : (
-                <div
-                  data-dtp-slot="data-table-table-shell"
-                  className={cn(
-                    "box-border border-2 border-transparent transition-colors",
-                    flexGrow ? "flex min-h-0 flex-1 flex-col" : "h-full",
-                    dragAndDrop?.isDragging &&
-                      (uiClassNames.dragActive ?? "rounded-md border-dashed"),
-                  )}
-                >
-                  <div
-                    ref={tableScrollContainerRef}
-                    className={cn(
-                      flexGrow ? "flex min-h-0 flex-1 flex-col" : "h-full",
-                    )}
-                  >
-                    <ScrollArea
-                      className={cn(
-                        "rounded-md border",
-                        flexGrow ? "min-h-0 flex-1" : "h-full",
-                        uiClassNames.tableContainer,
-                        uiClassNames.tableScrollArea,
-                        tableContainerClassName,
-                      )}
-                    >
-                      <div className="min-h-full">
-                        <Table
-                          className={cn(
-                            "w-full table-fixed border-separate border-spacing-0",
-                            tableClassName,
-                          )}
-                          style={{
-                            minWidth:
-                              layoutMode === "fill"
-                                ? fillMinWidth || undefined
-                                : undefined,
-                            width:
-                              layoutMode === "fit"
-                                ? table.getTotalSize()
-                                : "100%",
-                          }}
-                        >
-                          <colgroup>
-                            {table.getVisibleLeafColumns().map((column) => {
-                              const layout = getColumnLayout(column.id);
-                              return (
-                                <col
-                                  key={column.id}
-                                  style={layout.colStyle}
-                                />
-                              );
-                            })}
-                          </colgroup>
-                          <TableHeader
-                            className={cn(
-                              stickyHeader
-                                ? (uiClassNames.tableStickyHeader ??
-                                  "sticky top-0 z-30 backdrop-blur")
-                                : undefined,
-                            )}
-                          >
-                            {table.getHeaderGroups().map((headerGroup) => (
-                              <TableRow key={headerGroup.id}>
-                                {headerGroup.headers.map((header) => {
-                                  const layout = getColumnLayout(
-                                    header.column.id,
-                                  );
-                                  return (
-                                    <DataTableHeaderCell
-                                      key={header.id}
-                                      currentDensity={currentDensity}
-                                      currentSorting={currentSorting}
-                                      draggedColumnIdRef={draggedColumnIdRef}
-                                      enableColumnReordering={
-                                        enableColumnReordering
-                                      }
-                                      enableColumnResizing={
-                                        enableColumnResizing
-                                      }
-                                      header={header}
-                                      headerGroupHeaders={headerGroup.headers}
-                                      layout={layout}
-                                      primeColumnForResize={
-                                        primeColumnForResize
-                                      }
-                                      reorderColumn={reorderColumn}
-                                      resetColumnSize={resetColumnSize}
-                                      TableHead={TableHead}
-                                      uiClassNames={uiClassNames}
-                                    />
-                                  );
-                                })}
-                              </TableRow>
-                            ))}
-                          </TableHeader>
-                          <TableBody>
-                            {renderedRows.length ? (
-                              <>
-                                {virtualPaddingTop > 0 ? (
-                                  <TableRow aria-hidden="true">
-                                    <TableCell
-                                      colSpan={Math.max(
-                                        1,
-                                        visibleLeafColumnCount,
-                                      )}
-                                      className="border-b-0 p-0"
-                                      style={{ height: virtualPaddingTop }}
-                                    />
-                                  </TableRow>
-                                ) : null}
-                                {rowsToRender.map(({ row, rowIndex }) => {
-                                  const originalRow = row.original;
-                                  const isInitialLoadingRow =
-                                    isDataTableLoadingRow(originalRow);
-                                  const loadingState = isInitialLoadingRow
-                                    ? { isLoading: true }
-                                    : getRowLoadingState?.(
-                                        originalRow,
-                                        rowIndex,
-                                      );
-                                  const resolvedLoadingState =
-                                    typeof loadingState === "boolean"
-                                      ? { isLoading: loadingState }
-                                      : loadingState;
-                                  const isEditing = editingRowId === row.id;
-                                  const isDraggable = isInitialLoadingRow
-                                    ? false
-                                    : (dragAndDrop?.getRowDraggable?.(
-                                        originalRow,
-                                      ) ?? false);
-
-                                  return (
-                                    <DataTableBodyRow
-                                      key={row.id}
-                                      columnLayouts={
-                                        columnLayout.columnLayouts
-                                      }
-                                      components={bodyRowComponents}
-                                      currentDensity={currentDensity}
-                                      draftValues={draftValues}
-                                      dragAndDrop={dragAndDrop}
-                                      explicitCustomCellColumnIds={
-                                        explicitCustomCellColumnIds
-                                      }
-                                      getRowClassName={getRowClassName}
-                                      isDraggable={isDraggable}
-                                      isEditing={isEditing}
-                                      isExpanded={row.getIsExpanded()}
-                                      isInitialLoadingRow={
-                                        isInitialLoadingRow
-                                      }
-                                      isSelected={row.getIsSelected()}
-                                      loadingState={resolvedLoadingState}
-                                      onRowClick={onRowClick}
-                                      originalRow={originalRow}
-                                      renderExpandedRow={renderExpandedRow}
-                                      row={row}
-                                      rowIndex={rowIndex}
-                                      setDraftValues={setDraftValues}
-                                      uiClassNames={uiClassNames}
-                                      visibleCells={row.getVisibleCells()}
-                                      visibleLeafColumnCount={
-                                        visibleLeafColumnCount
-                                      }
-                                    />
-                                  );
-                                })}
-                                {virtualPaddingBottom > 0 ? (
-                                  <TableRow aria-hidden="true">
-                                    <TableCell
-                                      colSpan={Math.max(
-                                        1,
-                                        visibleLeafColumnCount,
-                                      )}
-                                      className="border-b-0 p-0"
-                                      style={{ height: virtualPaddingBottom }}
-                                    />
-                                  </TableRow>
-                                ) : null}
-                              </>
-                            ) : (
-                              <TableRow>
-                                <TableCell
-                                  colSpan={Math.max(1, visibleLeafColumnCount)}
-                                  className="h-full grow"
-                                >
-                                  <div className="flex h-full min-h-full w-full grow items-center justify-center">
-                                    {emptyNode ?? (
-                                      <DataTableEmptyState
-                                        title={
-                                          localSearchValue
-                                            ? resolvedLabels.noMatchingRowsTitle
-                                            : resolvedLabels.noRowsTitle
-                                        }
-                                        description={
-                                          localSearchValue
-                                            ? resolvedLabels.noMatchingRowsDescription
-                                            : resolvedLabels.noRowsDescription
-                                        }
-                                      />
-                                    )}
-                                  </div>
-                                </TableCell>
-                              </TableRow>
-                            )}
-                          </TableBody>
-                          {summaryRows.length ? (
-                            <TableFooter>
-                              {summaryRows.map((summaryRow) => (
-                                <TableRow key={summaryRow.key}>
-                                  {visibleLeafColumns.map((column, index) => {
-                                    const content =
-                                      summaryRow.cells[column.id] ??
-                                      (index === 0 ? summaryRow.label : null);
-                                    return (
-                                      <TableCell
-                                        key={`${summaryRow.key}-${column.id}`}
-                                        className={cn(
-                                          "border-b font-medium",
-                                          uiClassNames.cellBorder,
-                                        )}
-                                      >
-                                        {typeof content === "function"
-                                          ? content({
-                                              rows: table
-                                                .getFilteredRowModel()
-                                                .rows.map((row) => row.original),
-                                              columnId: column.id,
-                                            })
-                                          : content}
-                                      </TableCell>
-                                    );
-                                  })}
-                                </TableRow>
-                              ))}
-                            </TableFooter>
-                          ) : null}
-                        </Table>
-                      </div>
-
-                      {infiniteScroll?.enabled &&
-                      renderedRows.length &&
-                      !shouldRenderInitialLoading ? (
-                        <div className="px-4 pb-4">
-                          <div ref={sentinelRef} className="h-4 w-full" />
-                        </div>
-                      ) : null}
-                      <ScrollBar orientation="horizontal" />
-                    </ScrollArea>
-                  </div>
-                </div>
+                <DataTableTablePanel
+                  bodyRowComponents={bodyRowComponents}
+                  columnLayouts={columnLayout.columnLayouts}
+                  currentDensity={currentDensity}
+                  currentSorting={currentSorting}
+                  DataTableEmptyState={DataTableEmptyState}
+                  dragAndDrop={dragAndDrop}
+                  draggedColumnIdRef={draggedColumnIdRef}
+                  draftValues={draftValues}
+                  editingRowId={editingRowId}
+                  emptyNode={emptyNode}
+                  enableColumnReordering={enableColumnReordering}
+                  enableColumnResizing={enableColumnResizing}
+                  explicitCustomCellColumnIds={explicitCustomCellColumnIds}
+                  fillMinWidth={fillMinWidth}
+                  flexGrow={flexGrow}
+                  getColumnLayout={getColumnLayout}
+                  getRowClassName={getRowClassName}
+                  getRowLoadingState={getRowLoadingState}
+                  infiniteScroll={infiniteScroll}
+                  layoutMode={layoutMode}
+                  localSearchValue={localSearchValue}
+                  onRowClick={onRowClick}
+                  primeColumnForResize={primeColumnForResize}
+                  renderedRows={renderedRows}
+                  renderExpandedRow={renderExpandedRow}
+                  reorderColumn={reorderColumn}
+                  resetColumnSize={resetColumnSize}
+                  resolvedLabels={resolvedLabels}
+                  rowsToRender={rowsToRender}
+                  ScrollArea={ScrollArea}
+                  ScrollBar={ScrollBar}
+                  sentinelRef={sentinelRef}
+                  setDraftValues={setDraftValues}
+                  shouldRenderInitialLoading={shouldRenderInitialLoading}
+                  stickyHeader={stickyHeader}
+                  summaryRows={summaryRows}
+                  table={table}
+                  tableClassName={tableClassName}
+                  tableContainerClassName={tableContainerClassName}
+                  Table={Table}
+                  TableBody={TableBody}
+                  TableCell={TableCell}
+                  TableFooter={TableFooter}
+                  TableHead={TableHead}
+                  TableHeader={TableHeader}
+                  TableRow={TableRow}
+                  tableScrollContainerRef={tableScrollContainerRef}
+                  uiClassNames={uiClassNames}
+                  virtualPaddingBottom={virtualPaddingBottom}
+                  virtualPaddingTop={virtualPaddingTop}
+                  visibleLeafColumnCount={visibleLeafColumnCount}
+                  visibleLeafColumns={visibleLeafColumns}
+                />
               )}
             </div>
-            {(showFooter && !infiniteScroll?.enabled) || children ? (
-              <div data-dtp-slot="data-table-footer" className="shrink-0">
-                {showFooter && !infiniteScroll?.enabled ? (
-                  <DataTableFooter
-                    pageIndex={currentPagination.pageIndex}
-                    pageCount={effectivePageCount}
-                    pageSize={currentPagination.pageSize}
-                    totalRowCount={footerTotalRowCount}
-                    rowsPerPageOptions={rowsPerPageOptions}
-                    onPageIndexChange={handleFooterPageIndexChange}
-                    onPageSizeChange={handleFooterPageSizeChange}
-                    labels={resolvedLabels}
-                  />
-                ) : null}
-                {children}
-              </div>
-            ) : null}
+            <DataTableFooterSection
+              currentPagination={currentPagination}
+              DataTableFooter={DataTableFooter}
+              effectivePageCount={effectivePageCount}
+              footerTotalRowCount={footerTotalRowCount}
+              handleFooterPageIndexChange={handleFooterPageIndexChange}
+              handleFooterPageSizeChange={handleFooterPageSizeChange}
+              labels={resolvedLabels}
+              rowsPerPageOptions={rowsPerPageOptions}
+              showFooter={showFooter && !infiniteScroll?.enabled}
+            >
+              {children}
+            </DataTableFooterSection>
           </div>
         </div>
         </div>
