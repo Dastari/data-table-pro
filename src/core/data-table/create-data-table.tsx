@@ -1,30 +1,9 @@
 import * as React from "react";
 import { flushSync } from "react-dom";
-import {
-  getExpandedRowModel,
-  getFilteredRowModel,
-  functionalUpdate,
-  getCoreRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  useReactTable,
-} from "@tanstack/react-table";
-import { useVirtualizer } from "@tanstack/react-virtual";
 import type {
-  ColumnFiltersState,
-  ColumnOrderState,
-  ColumnPinningState,
-  ColumnSizingState,
-  ExpandedState,
-  OnChangeFn,
-  PaginationState,
-  SortingState,
   Table as TanStackTable,
-  VisibilityState,
 } from "@tanstack/react-table";
-import type {
-  DataTableProps,
-} from "../types";
+import type { DataTableProps } from "../types";
 import type { DataTableUiKit } from "../ui-kit";
 import { cn } from "../../lib/utils";
 import { createDataTableCardView } from "./create-data-table-card-view";
@@ -36,14 +15,11 @@ import { DataTableBodyRow } from "./data-table-body-row";
 import { DataTableHeaderCell } from "./data-table-header-cell";
 import { resolveDataTableLabels } from "./data-table-labels";
 import { useDataTableColumns } from "./use-data-table-columns";
-import { useDataTableInfiniteScroll } from "./use-data-table-infinite-scroll";
-import { useDataTablePaginationClamp } from "./use-data-table-pagination-clamp";
+import { useDataTableInstance } from "./use-data-table-instance";
 import { useDataTableScrollViewport } from "./use-data-table-scroll-viewport";
 import {
   getColumnId,
   isDataTableLoadingRow,
-  isUtilityColumnId,
-  moveColumnInOrder,
 } from "./data-table-utils";
 import { useDataTableState } from "./use-data-table-state";
 import { useDataTableToolbarFeatures } from "./use-data-table-toolbar-features";
@@ -312,212 +288,69 @@ export function createDataTable(ui: DataTableUiKit) {
       tableRef,
     });
 
-    const tableState = React.useMemo(
-      () => ({
-        sorting: currentSorting,
-        pagination: currentPagination,
-        rowSelection: currentRowSelection,
-        columnVisibility: effectiveColumnVisibility,
-        columnFilters: currentColumnFilters,
-        globalFilter: globalFilterValue,
-        expanded: currentExpanded,
-        columnOrder: currentColumnOrder,
-        columnPinning: currentColumnPinning,
-        columnSizing: currentColumnSizing,
-      }),
-      [
-        currentColumnFilters,
-        currentColumnOrder,
-        currentColumnPinning,
-        currentColumnSizing,
-        currentExpanded,
-        currentPagination,
-        currentRowSelection,
-        currentSorting,
-        effectiveColumnVisibility,
-        globalFilterValue,
-      ],
-    );
-    const handleSortingChange = React.useCallback<OnChangeFn<SortingState>>(
-      (updater) => {
-        setCurrentSorting(updater);
-      },
-      [setCurrentSorting],
-    );
-    const handlePaginationChange = React.useCallback<
-      OnChangeFn<PaginationState>
-    >(
-      (updater) => {
-        const nextValue =
-          typeof updater === "function" ? updater(currentPagination) : updater;
-
-        if (pageIndex === undefined || pageSize === undefined) {
-          setLocalPagination((current) => ({
-            pageIndex:
-              pageIndex === undefined ? nextValue.pageIndex : current.pageIndex,
-            pageSize:
-              pageSize === undefined ? nextValue.pageSize : current.pageSize,
-          }));
-        }
-
-        onPageIndexChange?.(nextValue.pageIndex);
-        onPageSizeChange?.(nextValue.pageSize);
-      },
-      [
-        currentPagination,
-        onPageIndexChange,
-        onPageSizeChange,
-        pageIndex,
-        pageSize,
-        setLocalPagination,
-      ],
-    );
-    const handleRowSelectionChange = React.useCallback<
-      OnChangeFn<Record<string, boolean>>
-    >(
-      (updater) => {
-        setCurrentRowSelection(updater);
-      },
-      [setCurrentRowSelection],
-    );
-    const handleColumnVisibilityChange = React.useCallback<
-      OnChangeFn<VisibilityState>
-    >(
-      (updater) => {
-        setCurrentColumnVisibility(updater);
-      },
-      [setCurrentColumnVisibility],
-    );
-    const handleColumnFiltersChange = React.useCallback<
-      OnChangeFn<ColumnFiltersState>
-    >(
-      (updater) => {
-        setCurrentColumnFilters(updater);
-      },
-      [setCurrentColumnFilters],
-    );
-    const handleExpandedChange = React.useCallback<OnChangeFn<ExpandedState>>(
-      (updater) => {
-        setCurrentExpanded(updater);
-      },
-      [setCurrentExpanded],
-    );
-    const handleColumnOrderChange = React.useCallback<
-      OnChangeFn<ColumnOrderState>
-    >(
-      (updater) => {
-        setCurrentColumnOrder(updater);
-      },
-      [setCurrentColumnOrder],
-    );
-    const handleColumnPinningChange = React.useCallback<
-      OnChangeFn<ColumnPinningState>
-    >(
-      (updater) => {
-        setCurrentColumnPinning(updater);
-      },
-      [setCurrentColumnPinning],
-    );
-    const handleColumnSizingChange = React.useCallback<
-      OnChangeFn<ColumnSizingState>
-    >((updater) => {
-      setLocalColumnSizing((current) => functionalUpdate(updater, current));
-    }, [setLocalColumnSizing]);
-
-    const table = useReactTable({
-      data: tableData,
-      columns: tableColumns,
-      getCoreRowModel: getCoreRowModel(),
-      getFilteredRowModel: manualFiltering ? undefined : getFilteredRowModel(),
-      getSortedRowModel: manualSorting ? undefined : getSortedRowModel(),
-      getExpandedRowModel: renderExpandedRow ? getExpandedRowModel() : undefined,
-      getPaginationRowModel:
-        manualPagination || infiniteScroll?.enabled
-          ? undefined
-          : getPaginationRowModel(),
-      enableRowSelection,
-      enableMultiRowSelection: enableRowSelection,
-      enableColumnResizing,
-      columnResizeMode,
-      getRowId: tableGetRowId,
-      getRowCanExpand: renderExpandedRow
-        ? (row) => getRowCanExpand?.(row.original) ?? true
-        : undefined,
-      globalFilterFn,
-      manualSorting,
-      manualFiltering,
-      manualPagination: manualPagination || Boolean(infiniteScroll?.enabled),
-      defaultColumn,
+    const {
+      effectivePageCount,
+      footerTotalRowCount,
+      handleFooterPageIndexChange,
+      handleFooterPageSizeChange,
+      renderedRows,
+      reorderColumn,
+      rowsToRender,
+      sentinelRef,
+      table,
+      virtualPaddingBottom,
+      virtualPaddingTop,
+      visibleLeafColumns,
+    } = useDataTableInstance({
       autoResetPageIndex: false,
-      state: tableState,
-      onSortingChange: handleSortingChange,
-      onPaginationChange: handlePaginationChange,
-      onRowSelectionChange: handleRowSelectionChange,
-      onColumnVisibilityChange: handleColumnVisibilityChange,
-      onColumnFiltersChange: handleColumnFiltersChange,
-      onExpandedChange: handleExpandedChange,
-      onColumnOrderChange: handleColumnOrderChange,
-      onColumnPinningChange: handleColumnPinningChange,
-      onColumnSizingChange: handleColumnSizingChange,
+      columnResizeMode,
+      currentColumnFilters,
+      currentColumnOrder,
+      currentColumnPinning,
+      currentColumnSizing,
+      currentExpanded,
+      currentPagination,
+      currentRowSelection,
+      currentSorting,
+      currentViewMode,
+      defaultColumn,
+      effectiveColumnVisibility,
+      enableColumnResizing,
+      enableRowSelection,
+      getRowCanExpand,
+      globalFilterFn,
+      globalFilterValue,
+      handleColumnFiltersChange: setCurrentColumnFilters,
+      handleColumnOrderChange: setCurrentColumnOrder,
+      handleColumnPinningChange: setCurrentColumnPinning,
+      handleColumnVisibilityChange: setCurrentColumnVisibility,
+      handleExpandedChange: setCurrentExpanded,
+      infiniteScroll,
+      manualFiltering,
+      manualPagination,
+      manualSorting,
+      onPageIndexChange,
+      onPageSizeChange,
+      pageCount,
+      pageIndex,
+      pageSize,
+      renderExpandedRow,
+      setCurrentRowSelection,
+      setCurrentSorting,
+      setLocalColumnSizing,
+      setLocalPagination,
+      shouldRenderInitialLoading,
+      tableColumns,
+      tableData,
+      tableGetRowId,
+      tableRef,
+      tableScrollElement,
+      toolbarFilteredData,
+      totalRowCount,
+      virtualization,
+      viewportHeight,
     });
-    tableRef.current = table;
     const columnSizing = currentColumnSizing;
-    const visibleLeafColumns = table.getVisibleLeafColumns();
-    const reorderColumn = React.useCallback(
-      (sourceColumnId: string, targetColumnId: string) => {
-        if (sourceColumnId === targetColumnId) {
-          return;
-        }
-
-        const defaultOrder = table
-          .getAllLeafColumns()
-          .map((column) => column.id)
-          .filter((columnId) => !isUtilityColumnId(columnId));
-        const nextOrder = moveColumnInOrder(
-          currentColumnOrder.length ? currentColumnOrder : defaultOrder,
-          sourceColumnId,
-          targetColumnId,
-        );
-        handleColumnOrderChange(nextOrder);
-      },
-      [currentColumnOrder, handleColumnOrderChange, table],
-    );
-
-    const renderedRows = table.getRowModel().rows;
-    const virtualizationConfig =
-      typeof virtualization === "object" ? virtualization : undefined;
-    const enableVirtualization =
-      currentViewMode === "table" &&
-      !shouldRenderInitialLoading &&
-      (virtualization === true || virtualizationConfig?.enabled === true);
-    const shouldUseVirtualRows =
-      enableVirtualization && Boolean(tableScrollElement) && viewportHeight > 0;
-    const rowVirtualizer = useVirtualizer({
-      count: enableVirtualization ? renderedRows.length : 0,
-      enabled: shouldUseVirtualRows,
-      estimateSize: () => virtualizationConfig?.estimateRowHeight ?? 48,
-      getScrollElement: () => tableScrollElement,
-      overscan: virtualizationConfig?.overscan ?? 8,
-    });
-    const virtualItems = shouldUseVirtualRows
-      ? rowVirtualizer.getVirtualItems()
-      : [];
-    const rowsToRender = shouldUseVirtualRows
-      ? virtualItems.flatMap((virtualItem) => {
-          const row = renderedRows[virtualItem.index];
-          return row ? [{ row, rowIndex: virtualItem.index }] : [];
-        })
-      : renderedRows.map((row, rowIndex) => ({ row, rowIndex }));
-    const virtualPaddingTop = shouldUseVirtualRows
-      ? (virtualItems[0]?.start ?? 0)
-      : 0;
-    const virtualPaddingBottom = shouldUseVirtualRows
-      ? Math.max(
-          0,
-          rowVirtualizer.getTotalSize() -
-            (virtualItems.at(-1)?.end ?? virtualPaddingTop),
-        )
-      : 0;
 
     const columnLayout = useColumnLayout({
       columns,
@@ -598,81 +431,6 @@ export function createDataTable(ui: DataTableUiKit) {
       [explicitlySizedColumnIds, table],
     );
 
-    const derivedTotalRowCount =
-      manualPagination || infiniteScroll?.enabled
-        ? toolbarFilteredData.length
-        : table.getFilteredRowModel().rows.length;
-    const effectiveTotalRowCount = totalRowCount ?? derivedTotalRowCount;
-    const footerTotalRowCount = totalRowCount ?? effectiveTotalRowCount;
-    const effectivePageCount = shouldRenderInitialLoading
-      ? 1
-      : (pageCount ??
-        (manualPagination || infiniteScroll?.enabled
-          ? Math.max(
-              1,
-              Math.ceil(effectiveTotalRowCount / currentPagination.pageSize),
-            )
-          : table.getPageCount()));
-    const maxPageIndex = Math.max(0, effectivePageCount - 1);
-
-    const setLocalPageIndex = React.useCallback(
-      (nextPageIndex: number) => {
-        if (pageIndex !== undefined) {
-          return;
-        }
-
-        setLocalPagination((current) =>
-          current.pageIndex === nextPageIndex
-            ? current
-            : { ...current, pageIndex: nextPageIndex },
-        );
-      },
-      [pageIndex, setLocalPagination],
-    );
-    useDataTablePaginationClamp({
-      enabled: !shouldRenderInitialLoading && !infiniteScroll?.enabled,
-      maxPageIndex,
-      onPageIndexChange,
-      pageIndex: currentPagination.pageIndex,
-      setLocalPageIndex,
-    });
-
-    const handleFooterPageIndexChange = React.useCallback(
-      (nextPageIndex: number) => {
-        onPageIndexChange?.(nextPageIndex);
-        if (pageIndex === undefined) {
-          setLocalPagination((current) =>
-            current.pageIndex === nextPageIndex
-              ? current
-              : { ...current, pageIndex: nextPageIndex },
-          );
-        }
-      },
-      [onPageIndexChange, pageIndex, setLocalPagination],
-    );
-    const handleFooterPageSizeChange = React.useCallback(
-      (nextPageSize: number) => {
-        onPageIndexChange?.(0);
-        onPageSizeChange?.(nextPageSize);
-        if (pageSize === undefined) {
-          setLocalPagination({
-            pageIndex: 0,
-            pageSize: nextPageSize,
-          });
-        }
-      },
-      [onPageIndexChange, onPageSizeChange, pageSize, setLocalPagination],
-    );
-
-    const sentinelRef = useDataTableInfiniteScroll({
-      enabled: Boolean(infiniteScroll?.enabled),
-      hasMore: Boolean(infiniteScroll?.hasMore),
-      isLoadingMore: infiniteScroll?.isLoadingMore,
-      onLoadMore: () => {
-        void infiniteScroll?.onLoadMore();
-      },
-    });
-
     const filteredData = table
       .getFilteredRowModel()
       .rows.map((row) => row.original);
@@ -697,8 +455,8 @@ export function createDataTable(ui: DataTableUiKit) {
       csvExport,
       effectiveColumnVisibility,
       enableColumnFilters,
-      handleColumnFiltersChange,
-      handleColumnPinningChange,
+      handleColumnFiltersChange: setCurrentColumnFilters,
+      handleColumnPinningChange: setCurrentColumnPinning,
       labels: resolvedLabels,
       table,
       toolbarActions,
