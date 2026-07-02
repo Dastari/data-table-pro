@@ -18,7 +18,8 @@
   ],
   "files": [
     "dist",
-    "styles.css"
+    "styles.css",
+    "styles.css.d.ts"
   ],
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -48,6 +49,7 @@
       "import": "./dist/types.js"
     },
     "./styles.css": {
+      "types": "./styles.css.d.ts",
       "style": "./styles.css",
       "default": "./styles.css"
     },

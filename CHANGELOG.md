@@ -41,6 +41,7 @@ This is the v3 major release line. It includes the full v3 remediation work afte
 - GitHub installs now use committed `dist/` output.
   - The package no longer relies on an install-time `prepare` script.
   - This avoids pnpm supply-chain build-script allowlist requirements in consuming apps.
+- `data-table-pro/styles.css` now has a TypeScript declaration for side-effect CSS imports.
 
 ### New public APIs
 
