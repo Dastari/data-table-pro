@@ -60,7 +60,6 @@
     "demo:preview": "vite preview --config demo/vite.config.ts",
     "demo:typecheck": "tsc -p demo/tsconfig.json --noEmit",
     "lint": "eslint src --max-warnings=0",
-    "prepare": "pnpm build",
     "test": "vitest run --environment jsdom",
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "pnpm build"

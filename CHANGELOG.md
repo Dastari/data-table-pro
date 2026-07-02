@@ -38,6 +38,9 @@ This is the v3 major release line. It includes the full v3 remediation work afte
   - Public types remain in `data-table-pro/types`.
   - Extracted composition helpers are exported only from `data-table-pro/advanced`.
   - Deep imports from source files, generated chunks, or `dist/chunk-*` files are unsupported.
+- GitHub installs now use committed `dist/` output.
+  - The package no longer relies on an install-time `prepare` script.
+  - This avoids pnpm supply-chain build-script allowlist requirements in consuming apps.
 
 ### New public APIs
 
@@ -259,6 +262,7 @@ import { useColumnLayout } from "data-table-pro/advanced";
 - `pnpm build`
 - `pnpm demo:build`
 - GitHub Actions CI on `main`
+- Scratch GitHub install check with `pnpm add github:Dastari/data-table-pro#main`
 
 ## 2.0.5
 
