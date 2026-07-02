@@ -10,10 +10,8 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { IconChevronDown } from "../icons";
 import type {
   ColumnFiltersState,
-  ColumnDef,
   ColumnOrderState,
   ColumnPinningState,
   ColumnSizingState,
@@ -43,13 +41,12 @@ import {
   usePersistDataTableColumnPrefs,
 } from "./use-data-table-column-prefs";
 import { useDataTableContainerWidth } from "./use-data-table-container-width";
+import { useDataTableColumns } from "./use-data-table-columns";
 import { useDataTableInfiniteScroll } from "./use-data-table-infinite-scroll";
 import { useDataTablePaginationClamp } from "./use-data-table-pagination-clamp";
 import { useDataTableScrollViewport } from "./use-data-table-scroll-viewport";
 import {
-  UTILITY_COLUMN_SIZE,
   createDataTableLoadingRows,
-  decorateFilterableColumn,
   getColumnId,
   getDataTableLoadingRowId,
   getInitialColumnPinning,
@@ -512,206 +509,13 @@ export function createDataTable(ui: DataTableUiKit) {
         .filter((row): row is TData => Boolean(row));
     }, [currentRowSelection, rowById, shouldResolveSelectedRows]);
 
-    const selectRowRange = React.useCallback(
-      (targetRowId: string, selected: boolean) => {
-        const tableInstance = tableRef.current;
-        if (!tableInstance || !lastSelectedRowIdRef.current) {
-          return;
-        }
-
-        const rows = tableInstance
-          .getRowModel()
-          .rows.filter((row) => !isDataTableLoadingRow(row.original));
-        const startIndex = rows.findIndex(
-          (row) => row.id === lastSelectedRowIdRef.current,
-        );
-        const endIndex = rows.findIndex((row) => row.id === targetRowId);
-
-        if (startIndex < 0 || endIndex < 0) {
-          return;
-        }
-
-        const from = Math.min(startIndex, endIndex);
-        const to = Math.max(startIndex, endIndex);
-        tableInstance.setRowSelection((current) => {
-          const next = { ...current };
-          for (const row of rows.slice(from, to + 1)) {
-            if (selected) {
-              next[row.id] = true;
-            } else {
-              delete next[row.id];
-            }
-          }
-          return next;
-        });
-      },
-      [],
-    );
-
-    const tableColumns = React.useMemo<Array<ColumnDef<TData, unknown>>>(() => {
-      const defs: Array<ColumnDef<TData, unknown>> = [];
-
-      if (renderExpandedRow) {
-        defs.push({
-          id: "__expand__",
-          enableResizing: false,
-          enableSorting: false,
-          enableHiding: false,
-          size: UTILITY_COLUMN_SIZE,
-          minSize: UTILITY_COLUMN_SIZE,
-          maxSize: UTILITY_COLUMN_SIZE,
-          header: () => <span className="sr-only">{resolvedLabels.expandRow}</span>,
-          cell: ({ row }) => {
-            const canExpand =
-              getRowCanExpand?.(row.original) ?? Boolean(renderExpandedRow);
-            if (!canExpand) {
-              return null;
-            }
-
-            const isExpanded = row.getIsExpanded();
-            return (
-              <div className="flex items-center justify-center">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label={
-                    isExpanded
-                      ? resolvedLabels.collapseRow
-                      : resolvedLabels.expandRow
-                  }
-                  aria-expanded={isExpanded}
-                  onClick={() => row.toggleExpanded()}
-                >
-                  <IconChevronDown
-                    className={cn(
-                      "transition-transform",
-                      isExpanded ? "rotate-0" : "-rotate-90",
-                    )}
-                  />
-                </Button>
-              </div>
-            );
-          },
-        });
-      }
-
-      if (enableRowSelection) {
-        defs.push({
-          id: "__select__",
-          enableResizing: false,
-          enableSorting: false,
-          enableHiding: false,
-          size: UTILITY_COLUMN_SIZE,
-          minSize: UTILITY_COLUMN_SIZE,
-          maxSize: UTILITY_COLUMN_SIZE,
-          header: ({ table }) => (
-            <div className="flex items-center justify-center">
-              <Checkbox
-                checked={table.getIsAllPageRowsSelected()}
-                onCheckedChange={(checked: boolean | "indeterminate") => {
-                  table.toggleAllPageRowsSelected(checked === true);
-                }}
-                aria-label="Select all visible rows"
-              />
-            </div>
-          ),
-          cell: ({ row }) => (
-            <div className="flex items-center justify-center">
-              <Checkbox
-                checked={row.getIsSelected()}
-                onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
-                  if (!event.shiftKey || !lastSelectedRowIdRef.current) {
-                    lastSelectedRowIdRef.current = row.id;
-                    return;
-                  }
-
-                  event.preventDefault();
-                  event.stopPropagation();
-                  selectRowRange(row.id, !row.getIsSelected());
-                  lastSelectedRowIdRef.current = row.id;
-                }}
-                onCheckedChange={(checked: boolean | "indeterminate") => {
-                  lastSelectedRowIdRef.current = row.id;
-                  row.toggleSelected(checked === true);
-                }}
-                aria-label="Select row"
-              />
-            </div>
-          ),
-        });
-      }
-
-      defs.push(...columns.map((column) => decorateFilterableColumn(column)));
-
-      if (rowActions.length || editableRows) {
-        defs.push({
-          id: "__actions__",
-          enableSorting: false,
-          enableResizing: false,
-          enableHiding: false,
-          size: UTILITY_COLUMN_SIZE,
-          minSize: UTILITY_COLUMN_SIZE,
-          maxSize: UTILITY_COLUMN_SIZE,
-          header: () => <span className="sr-only">{resolvedLabels.actions}</span>,
-          cell: ({ row }) => {
-            const rowId = row.id;
-            const isEditing = editingRowId === rowId;
-
-            if (isEditing) {
-              return (
-                <div className="flex w-full items-center justify-end gap-2">
-                  <Button
-                    type="button"
-                    size="sm"
-                    disabled={isSavingEdit}
-                    onClick={() => {
-                      void saveEdit(row.original);
-                    }}
-                  >
-                    {resolvedLabels.saveEdit}
-                  </Button>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        type="button"
-                        size="icon-sm"
-                        variant="ghost"
-                        onClick={cancelEditing}
-                      >
-                        <IconChevronDown className="rotate-45" />
-                        <span className="sr-only">
-                          {resolvedLabels.cancelEdit}
-                        </span>
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>{resolvedLabels.cancelEdit}</TooltipContent>
-                  </Tooltip>
-                </div>
-              );
-            }
-
-            return (
-              <div className="flex w-full items-center justify-center">
-                <DataTableRowActions
-                  row={row.original}
-                  rowActions={rowActions}
-                  editableRows={editableRows}
-                  isEditing={false}
-                  onStartEditing={() => {
-                    startEditingRow(row.original, row.id);
-                  }}
-                  onCancelEditing={() => {}}
-                  labels={resolvedLabels}
-                />
-              </div>
-            );
-          },
-        });
-      }
-
-      return defs;
-    }, [
+    const tableColumns = useDataTableColumns<TData>({
+      Button,
+      Checkbox,
+      DataTableRowActions,
+      Tooltip,
+      TooltipContent,
+      TooltipTrigger,
       cancelEditing,
       columns,
       editableRows,
@@ -719,13 +523,14 @@ export function createDataTable(ui: DataTableUiKit) {
       enableRowSelection,
       getRowCanExpand,
       isSavingEdit,
+      labels: resolvedLabels,
+      lastSelectedRowIdRef,
       renderExpandedRow,
-      resolvedLabels,
       rowActions,
       saveEdit,
-      selectRowRange,
       startEditingRow,
-    ]);
+      tableRef,
+    });
 
     const tableState = React.useMemo(
       () => ({
