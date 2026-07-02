@@ -724,6 +724,24 @@ for (const suite of suites) {
       expect(onColumnOrderChange).toHaveBeenCalledWith(["role", "name"]);
     });
 
+    it("keeps header sort icons constrained to normal icon size", () => {
+      renderTable();
+
+      const sortButton = screen.getByRole("button", { name: "Name" });
+      const unsortedIcon = sortButton.querySelector("svg");
+
+      expect(unsortedIcon?.getAttribute("class")).toContain("size-4");
+      expect(unsortedIcon?.getAttribute("width")).toBe("1em");
+      expect(unsortedIcon?.getAttribute("height")).toBe("1em");
+
+      fireEvent.click(sortButton);
+
+      const sortedIcon = sortButton.querySelector("svg");
+      expect(sortedIcon?.getAttribute("class")).toContain("size-4");
+      expect(sortedIcon?.getAttribute("width")).toBe("1em");
+      expect(sortedIcon?.getAttribute("height")).toBe("1em");
+    });
+
     it("supports pinning columns from table options", () => {
       const onColumnPinningChange = vi.fn();
 

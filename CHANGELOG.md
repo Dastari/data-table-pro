@@ -1,5 +1,21 @@
 # Changelog
 
+## 3.0.1
+
+### Fixes
+
+- Fixed oversized table header sort icons after the Tabler icon dependency was replaced with local SVG components.
+- Added default `width` and `height` attributes to local SVG icons so unclassed icons cannot render at browser fallback SVG dimensions.
+- Explicitly constrained sorted and unsorted header sort indicators to `size-4`.
+
+### Validation
+
+- `pnpm lint`
+- `pnpm typecheck`
+- `pnpm test`
+- `pnpm build`
+- `pnpm demo:build`
+
 ## 3.0.0
 
 This is the v3 major release line. It includes the full v3 remediation work after the last documented v2 release (`2.0.5`): package cleanup, React 19.2 compatibility, built-in filtering, accessibility fixes, performance-oriented internals, pro-table features, and card virtualization. This project is distributed from GitHub refs such as `github:Dastari/data-table-pro#v3.0.0`; it is not published to npm.

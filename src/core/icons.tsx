@@ -11,6 +11,8 @@ function Icon({
     <svg
       aria-hidden="true"
       focusable="false"
+      width="1em"
+      height="1em"
       viewBox={viewBox}
       fill="none"
       stroke="currentColor"

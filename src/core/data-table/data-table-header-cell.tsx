@@ -161,7 +161,7 @@ function DataTableHeaderCellInner<TData>({
             <>
               <IconChevronDown
                 className={cn(
-                  "shrink-0 transition-transform",
+                  "size-4 shrink-0 transition-transform",
                   sortingState === "desc" ? "rotate-0" : "rotate-180",
                 )}
               />
@@ -174,7 +174,7 @@ function DataTableHeaderCellInner<TData>({
           ) : (
             <IconSelector
               className={cn(
-                "shrink-0",
+                "size-4 shrink-0",
                 uiClassNames.headerSortIcon ?? "opacity-70",
               )}
             />

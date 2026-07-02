@@ -245,6 +245,8 @@ function Icon({
     {
       "aria-hidden": "true",
       focusable: "false",
+      width: "1em",
+      height: "1em",
       viewBox,
       fill: "none",
       stroke: "currentColor",
@@ -2628,7 +2630,7 @@ function DataTableHeaderCellInner({
                   IconChevronDown,
                   {
                     className: cn(
-                      "shrink-0 transition-transform",
+                      "size-4 shrink-0 transition-transform",
                       sortingState === "desc" ? "rotate-0" : "rotate-180"
                     )
                   }
@@ -2638,7 +2640,7 @@ function DataTableHeaderCellInner({
                 IconSelector,
                 {
                   className: cn(
-                    "shrink-0",
+                    "size-4 shrink-0",
                     uiClassNames.headerSortIcon ?? "opacity-70"
                   )
                 }
@@ -6044,5 +6046,5 @@ function createDataTable(ui) {
 }
 
 export { Button, Card, CardContent, CardDescription, CardFooter, CardHeader, Checkbox, DataTableBodyRow, DataTableCardPanel, DataTableFooterSection, DataTableHeaderCell, DataTableTablePanel, DataTableToolbarSection, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuSubContent, DropdownMenuSubTrigger, Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle, Input, InputGroup, InputGroupAddon, InputGroupInput, Pagination, PaginationFirst, PaginationLast, PaginationLink, PaginationNext, PaginationPrevious, ScrollArea, ScrollBar, SelectContent, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, Separator, Skeleton, Table, TableBody, TableCaption, TableCell, TableFooter, TableHead, TableHeader, TableRow, TooltipContent, cn, createDataTable, primitiveUiKit, useColumnLayout, useControllableState, useDataTableColumns, useDataTableInstance, useDataTableState, useRowEditing };
-//# sourceMappingURL=chunk-5YWDT56N.js.map
-//# sourceMappingURL=chunk-5YWDT56N.js.map
+//# sourceMappingURL=chunk-QOCSW6XN.js.map
+//# sourceMappingURL=chunk-QOCSW6XN.js.map
