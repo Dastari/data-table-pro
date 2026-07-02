@@ -10,6 +10,7 @@ import { useDataTableScrollViewport } from "./use-data-table-scroll-viewport";
 type DataTableCardPanelProps<TData> = {
   cardClassName: string | undefined;
   cardGridClassName: string | undefined;
+  cardSizing: DataTableProps<TData>["cardSizing"];
   cardRenderer: NonNullable<DataTableProps<TData>["cardRenderer"]>;
   currentRowSelection: Record<string, boolean>;
   DataTableCardView: React.ElementType;
@@ -43,6 +44,7 @@ type DataTableCardPanelProps<TData> = {
 export function DataTableCardPanel<TData>({
   cardClassName,
   cardGridClassName,
+  cardSizing,
   cardRenderer,
   currentRowSelection,
   DataTableCardView,
@@ -116,6 +118,7 @@ export function DataTableCardPanel<TData>({
       cardRenderer={cardRenderer}
       cardGridClassName={cardGridClassName}
       cardClassName={cardClassName}
+      cardSizing={cardSizing}
       rowActions={rowActions}
       editableRows={editableRows}
       renderExpandedRow={renderExpandedRow}

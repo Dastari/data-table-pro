@@ -20,6 +20,7 @@ export type DataTableColumnType = "text" | "numeric" | "date";
 export type DataTableColumnFixed = "left" | "right";
 export type DataTableContainerBreakpoint = "sm" | "md" | "lg" | "xl" | "2xl";
 export type DataTableDensity = "compact" | "comfortable" | "spacious";
+export type DataTableCardSizing = "fixed" | "content" | "fluid";
 export type DataTableCellOverflow =
   | "truncate"
   | "clip"
@@ -371,6 +372,7 @@ export type DataTableProps<TData> = {
   labels?: Partial<DataTableLabels>;
   summaryRows?: Array<DataTableSummaryRow<TData>>;
   cardRenderer?: (props: DataTableCardRendererProps<TData>) => React.ReactNode;
+  cardSizing?: DataTableCardSizing;
   cardGridClassName?: string;
   cardClassName?: string;
   viewMode?: DataTableViewMode;

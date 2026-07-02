@@ -31,10 +31,10 @@ Dedicated subpath exports are also available:
 ## Installation
 
 ```bash
-pnpm add github:Dastari/data-table-pro#v3.0.5
+pnpm add github:Dastari/data-table-pro#v3.0.6
 ```
 
-This package is installed from GitHub refs. It is not published to npm. Release tags such as `v3.0.5` include committed `dist/` output, so consumers do not need to allow package build scripts during install.
+This package is installed from GitHub refs. It is not published to npm. Release tags such as `v3.0.6` include committed `dist/` output, so consumers do not need to allow package build scripts during install.
 
 Peer dependencies:
 
@@ -140,17 +140,21 @@ Remaining parent requirement:
 
 - the nearest height-constrained parent must provide a real flex sizing boundary such as `h-full`, `h-screen`, or a fixed-height panel plus `min-h-0`
 
-For card mode, use `cardGridClassName` instead of targeting internal DOM:
+Card mode supports three built-in sizing modes:
 
 ```tsx
 <DataTable
   viewMode="card"
   cardRenderer={renderCard}
-  cardGridClassName="grid-cols-1 sm:grid-cols-2 xl:grid-cols-3"
+  cardSizing="content"
 />
 ```
 
-By default, card mode uses start-aligned tracks capped at `18rem`, so one to three narrow rendered cards do not stretch across a wide container. Use `cardGridClassName` and `cardClassName` when you intentionally want full-width card tracks or stretched card items.
+- `cardSizing="fixed"` is the default. It uses start-aligned grid tracks capped at `18rem`.
+- `cardSizing="content"` uses `flex` and `flex-wrap`; card items are `w-fit max-w-full`, so renderer content determines each card width.
+- `cardSizing="fluid"` uses responsive `1fr` grid tracks and stretches card items/renderers to the track width.
+
+Use `cardGridClassName` and `cardClassName` as low-level overrides only when the built-in sizing modes are not enough.
 
 Card mode can virtualize large card sets:
 

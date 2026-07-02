@@ -1634,6 +1634,7 @@ function useDataTableScrollViewport(containerRef, refreshKey) {
 function DataTableCardPanel({
   cardClassName,
   cardGridClassName,
+  cardSizing,
   cardRenderer,
   currentRowSelection,
   DataTableCardView,
@@ -1693,6 +1694,7 @@ function DataTableCardPanel({
       cardRenderer,
       cardGridClassName,
       cardClassName,
+      cardSizing,
       rowActions,
       editableRows,
       renderExpandedRow,
@@ -4128,6 +4130,7 @@ function createDataTableCardView(ui, DataTableRowActions) {
   return function DataTableCardView({
     rows,
     cardRenderer,
+    cardSizing = "fixed",
     cardGridClassName,
     cardClassName,
     rowActions,
@@ -4148,14 +4151,16 @@ function createDataTableCardView(ui, DataTableRowActions) {
     loadingRowCount = 5,
     labels
   }) {
-    const resolvedCardGridClassName = cardGridClassName ?? "grid-cols-[repeat(auto-fill,minmax(min(18rem,100%),18rem))] justify-start";
+    const resolvedCardSizing = cardSizing ?? "fixed";
+    const resolvedCardGridClassName = cardGridClassName ? cn("grid", cardGridClassName) : getCardGridClassName(resolvedCardSizing);
     const cardGridClasses = cn(
-      "grid min-h-0 w-full gap-4 p-1",
+      "min-h-0 w-full gap-4 p-1",
       uiClassNames.cardGrid,
       resolvedCardGridClassName
     );
     const cardItemClasses = (stateClassName) => cn(
       "relative min-w-0 max-w-full gap-0 overflow-hidden bg-transparent p-0",
+      getCardItemClassName(resolvedCardSizing),
       uiClassNames.cardItem,
       cardClassName,
       stateClassName
@@ -4257,7 +4262,8 @@ function createDataTableCardView(ui, DataTableRowActions) {
                     role: onRowClick ? "button" : void 0,
                     tabIndex: onRowClick ? 0 : void 0,
                     className: cn(
-                      "flex min-h-0 max-w-full min-w-0 flex-1 overflow-hidden rounded-[inherit] [&>*]:min-w-0",
+                      "flex min-h-0 max-w-full min-w-0 overflow-hidden rounded-[inherit] [&>*]:min-w-0",
+                      getCardRendererClassName(resolvedCardSizing),
                       onRowClick && "cursor-pointer focus-visible:outline-none"
                     ),
                     onClick: (event) => {
@@ -4361,6 +4367,39 @@ function createDataTableCardView(ui, DataTableRowActions) {
       }
     );
   };
+}
+function getCardGridClassName(cardSizing) {
+  switch (cardSizing) {
+    case "content":
+      return "flex flex-wrap items-start justify-start";
+    case "fluid":
+      return "grid grid-cols-[repeat(auto-fit,minmax(min(18rem,100%),1fr))]";
+    case "fixed":
+    default:
+      return "grid grid-cols-[repeat(auto-fill,minmax(min(18rem,100%),18rem))] justify-start";
+  }
+}
+function getCardItemClassName(cardSizing) {
+  switch (cardSizing) {
+    case "content":
+      return "w-fit";
+    case "fluid":
+      return "w-full";
+    case "fixed":
+    default:
+      return void 0;
+  }
+}
+function getCardRendererClassName(cardSizing) {
+  switch (cardSizing) {
+    case "content":
+      return "w-fit";
+    case "fluid":
+      return "w-full flex-1 [&>*]:w-full";
+    case "fixed":
+    default:
+      return "flex-1";
+  }
 }
 function updateRowSelection(rowSelection, rowId, isSelected) {
   if (isSelected) {
@@ -5565,6 +5604,7 @@ function createDataTable(ui) {
     labels,
     summaryRows = [],
     cardRenderer,
+    cardSizing,
     cardGridClassName,
     cardClassName,
     viewMode,
@@ -5992,6 +6032,7 @@ function createDataTable(ui) {
                           {
                             cardClassName,
                             cardGridClassName,
+                            cardSizing,
                             cardRenderer,
                             currentRowSelection,
                             DataTableCardView,
@@ -6107,5 +6148,5 @@ function createDataTable(ui) {
 }
 
 export { Button, Card, CardContent, CardDescription, CardFooter, CardHeader, Checkbox, DataTableBodyRow, DataTableCardPanel, DataTableFooterSection, DataTableHeaderCell, DataTableTablePanel, DataTableToolbarSection, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuSubContent, DropdownMenuSubTrigger, Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle, Input, InputGroup, InputGroupAddon, InputGroupInput, Pagination, PaginationFirst, PaginationLast, PaginationLink, PaginationNext, PaginationPrevious, ScrollArea, ScrollBar, SelectContent, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, Separator, Skeleton, Table, TableBody, TableCaption, TableCell, TableFooter, TableHead, TableHeader, TableRow, TooltipContent, cn, createDataTable, primitiveUiKit, useColumnLayout, useControllableState, useDataTableColumns, useDataTableInstance, useDataTableState, useRowEditing };
-//# sourceMappingURL=chunk-2NZEMRL6.js.map
-//# sourceMappingURL=chunk-2NZEMRL6.js.map
+//# sourceMappingURL=chunk-BWUSOBIM.js.map
+//# sourceMappingURL=chunk-BWUSOBIM.js.map

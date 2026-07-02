@@ -1,5 +1,23 @@
 # Changelog
 
+## 3.0.6
+
+### Features
+
+- Added `cardSizing?: "fixed" | "content" | "fluid"` to `DataTable`.
+- `cardSizing="content"` renders the card layout as a wrapping flex row with fit-content card items, so narrow media cards and wider collection cards can keep their renderer-defined width.
+- `cardSizing="fluid"` restores full-width responsive card tracks for consumers that want stretched cards.
+- `cardGridClassName` and `cardClassName` remain available as low-level layout overrides.
+- Added demo coverage for content-sized narrow media cards and a wider collection card.
+
+### Validation
+
+- `pnpm lint`
+- `pnpm typecheck`
+- `pnpm test`
+- `pnpm build`
+- `pnpm demo:build`
+
 ## 3.0.5
 
 ### Notes

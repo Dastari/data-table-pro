@@ -114,6 +114,7 @@ export function createDataTable(ui: DataTableUiKit) {
     labels,
     summaryRows = [],
     cardRenderer,
+    cardSizing,
     cardGridClassName,
     cardClassName,
     viewMode,
@@ -557,6 +558,7 @@ export function createDataTable(ui: DataTableUiKit) {
                 <DataTableCardPanel
                   cardClassName={cardClassName}
                   cardGridClassName={cardGridClassName}
+                  cardSizing={cardSizing}
                   cardRenderer={cardRenderer}
                   currentRowSelection={currentRowSelection}
                   DataTableCardView={DataTableCardView}

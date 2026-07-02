@@ -7,6 +7,7 @@ type DataTableColumnType = "text" | "numeric" | "date";
 type DataTableColumnFixed = "left" | "right";
 type DataTableContainerBreakpoint = "sm" | "md" | "lg" | "xl" | "2xl";
 type DataTableDensity = "compact" | "comfortable" | "spacious";
+type DataTableCardSizing = "fixed" | "content" | "fluid";
 type DataTableCellOverflow = "truncate" | "clip" | "wrap" | "visible";
 type DataTableColumnFilterType = "text" | "select" | "multi";
 declare const DATA_TABLE_CONTAINER_BREAKPOINT_WIDTHS: Record<DataTableContainerBreakpoint, number>;
@@ -311,6 +312,7 @@ type DataTableProps<TData> = {
     labels?: Partial<DataTableLabels>;
     summaryRows?: Array<DataTableSummaryRow<TData>>;
     cardRenderer?: (props: DataTableCardRendererProps<TData>) => React.ReactNode;
+    cardSizing?: DataTableCardSizing;
     cardGridClassName?: string;
     cardClassName?: string;
     viewMode?: DataTableViewMode;
@@ -360,4 +362,4 @@ declare function hideOnClassName(hideOn: DataTableContainerBreakpoint | Array<Da
 declare function isHiddenAtContainerWidth(hideOn: DataTableContainerBreakpoint | Array<DataTableContainerBreakpoint> | undefined, containerWidth: number): boolean;
 declare function rowSelectionStateFromRows<TData>(rows: Array<Row<TData>>): TData[];
 
-export { DATA_TABLE_CONTAINER_BREAKPOINT_WIDTHS, type DataTableAlign, type DataTableCardRendererProps, type DataTableCardVirtualizationConfig, type DataTableCellEditRenderProps, type DataTableCellOverflow, type DataTableColumnDef, type DataTableColumnFilterConfig, type DataTableColumnFilterOption, type DataTableColumnFilterType, type DataTableColumnFixed, type DataTableColumnMeta, type DataTableColumnPrefs, type DataTableColumnType, type DataTableColumnVisibilityOption, type DataTableContainerBreakpoint, type DataTableCsvExportOptions, type DataTableDensity, type DataTableDragAndDropConfig, type DataTableEditableRowsConfig, type DataTableEmptyStateContext, type DataTableExpandedRowProps, type DataTableFileUploadConfig, type DataTableHiddenRowsConfig, type DataTableInfiniteScroll, type DataTableLabels, type DataTableLoadingState, type DataTableProps, type DataTableRowAction, type DataTableRowLoadingState, type DataTableSelectionAction, type DataTableSummaryRow, type DataTableToolbarAction, type DataTableToolbarVisibility, type DataTableViewMode, type DataTableVirtualizationConfig, alignClassName, canEditRow, canUseRowAction, cellAlignClassName, headerAlignClassName, hideOnClassName, isHiddenAtContainerWidth, isRowVisible, resolveColumnAlign, resolveRowActionLabel, rowSelectionStateFromRows };
+export { DATA_TABLE_CONTAINER_BREAKPOINT_WIDTHS, type DataTableAlign, type DataTableCardRendererProps, type DataTableCardSizing, type DataTableCardVirtualizationConfig, type DataTableCellEditRenderProps, type DataTableCellOverflow, type DataTableColumnDef, type DataTableColumnFilterConfig, type DataTableColumnFilterOption, type DataTableColumnFilterType, type DataTableColumnFixed, type DataTableColumnMeta, type DataTableColumnPrefs, type DataTableColumnType, type DataTableColumnVisibilityOption, type DataTableContainerBreakpoint, type DataTableCsvExportOptions, type DataTableDensity, type DataTableDragAndDropConfig, type DataTableEditableRowsConfig, type DataTableEmptyStateContext, type DataTableExpandedRowProps, type DataTableFileUploadConfig, type DataTableHiddenRowsConfig, type DataTableInfiniteScroll, type DataTableLabels, type DataTableLoadingState, type DataTableProps, type DataTableRowAction, type DataTableRowLoadingState, type DataTableSelectionAction, type DataTableSummaryRow, type DataTableToolbarAction, type DataTableToolbarVisibility, type DataTableViewMode, type DataTableVirtualizationConfig, alignClassName, canEditRow, canUseRowAction, cellAlignClassName, headerAlignClassName, hideOnClassName, isHiddenAtContainerWidth, isRowVisible, resolveColumnAlign, resolveRowActionLabel, rowSelectionStateFromRows };

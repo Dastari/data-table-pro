@@ -1220,6 +1220,82 @@ for (const suite of suites) {
       expect(customCard.className).toContain("w-48");
     });
 
+    it("supports content-sized cards without layout class overrides", () => {
+      const { container } = renderTable({
+        data: [
+          { id: "media", name: "Media card" },
+          { id: "collection", name: "Collection card" },
+        ],
+        viewMode: "card",
+        cardSizing: "content",
+        cardRenderer: ({ row }) => (
+          <div
+            data-testid={`${row.id}-card`}
+            className={row.id === "media" ? "w-48" : "w-96"}
+          >
+            {row.name}
+          </div>
+        ),
+      });
+
+      const grid = container.querySelector(
+        '[data-dtp-slot="data-table-card-grid"]',
+      );
+      const cards = Array.from(
+        container.querySelectorAll('[data-dtp-slot="data-table-card-item"]'),
+      );
+      const renderer = container.querySelector(
+        '[data-dtp-slot="data-table-card-renderer"]',
+      );
+
+      expect(grid?.className.split(/\s+/)).toContain("flex");
+      expect(grid?.className).toContain("flex-wrap");
+      expect(grid?.className).toContain("justify-start");
+      expect(grid?.className).not.toContain("grid-cols");
+      expect(cards).toHaveLength(2);
+      for (const card of cards) {
+        expect(card.className.split(/\s+/)).toContain("w-fit");
+        expect(card.className).toContain("max-w-full");
+        expect(card.className.split(/\s+/)).not.toContain("w-full");
+      }
+      expect(renderer?.className.split(/\s+/)).toContain("w-fit");
+      expect(renderer?.className).not.toContain("flex-1");
+      expect(renderer?.className).not.toContain("[&>*]:w-full");
+      expect(screen.getByTestId("media-card").className).toContain("w-48");
+      expect(screen.getByTestId("collection-card").className).toContain(
+        "w-96",
+      );
+    });
+
+    it("supports fluid card sizing for full-width grid tracks", () => {
+      const { container } = renderTable({
+        viewMode: "card",
+        cardSizing: "fluid",
+        cardRenderer: ({ row }) => (
+          <div data-testid="fluid-card">{row.name}</div>
+        ),
+      });
+
+      const grid = container.querySelector(
+        '[data-dtp-slot="data-table-card-grid"]',
+      );
+      const card = container.querySelector(
+        '[data-dtp-slot="data-table-card-item"]',
+      );
+      const renderer = container.querySelector(
+        '[data-dtp-slot="data-table-card-renderer"]',
+      );
+
+      expect(grid?.className.split(/\s+/)).toContain("grid");
+      expect(grid?.className).toContain(
+        "grid-cols-[repeat(auto-fit,minmax(min(18rem,100%),1fr))]",
+      );
+      expect(card?.className.split(/\s+/)).toContain("w-full");
+      expect(renderer?.className.split(/\s+/)).toContain("w-full");
+      expect(renderer?.className).toContain("flex-1");
+      expect(renderer?.className).toContain("[&>*]:w-full");
+    });
+
     it("applies supported card grid classes for wide card layouts", () => {
       const { container } = renderTable({
         viewMode: "card",

@@ -654,10 +654,10 @@ export function DemoApp() {
         <section className="demo-panel shrink-0 rounded-xl border border-border bg-card p-4 shadow-sm">
           <div className="mb-3 flex flex-col gap-1">
             <h2 className="text-sm font-semibold tracking-tight">
-              Sparse card layout
+              Content-sized cards
             </h2>
             <p className="text-sm text-muted-foreground">
-              Default card tracks stay compact with one to three rows.
+              Narrow media cards and wider collection cards keep their own width.
             </p>
           </div>
           <TooltipProvider>
@@ -666,7 +666,8 @@ export function DemoApp() {
               data={sparseCardRows}
               getRowId={(row) => row.id}
               viewMode="card"
-              cardRenderer={({ row }) => <SparseEmployeeCard row={row} />}
+              cardSizing="content"
+              cardRenderer={({ row }) => <ContentSizedEmployeeCard row={row} />}
               showToolbar={false}
               showFooter={false}
               tableContainerClassName="border-0"
@@ -746,7 +747,32 @@ function EmployeeCard({
   );
 }
 
-function SparseEmployeeCard({ row }: { row: Employee }) {
+function ContentSizedEmployeeCard({ row }: { row: Employee }) {
+  const isCollectionCard = row.id.endsWith("002");
+
+  if (isCollectionCard) {
+    return (
+      <div className="flex w-96 max-w-full flex-col gap-3 rounded-lg border border-border bg-background p-4 shadow-sm">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="truncate text-sm font-semibold">
+              {row.department} collection
+            </div>
+            <div className="truncate text-xs text-muted-foreground">
+              {row.role} group managed by {row.manager}
+            </div>
+          </div>
+          <StatusBadge status={row.status} />
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          <Metric label="Score" value={String(row.score)} />
+          <Metric label="Priority" value={startCase(row.priority)} />
+          <Metric label="Budget" value={formatCurrency(row.budget)} />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex w-48 flex-col gap-3 rounded-lg border border-border bg-background p-3 shadow-sm">
       <div>
