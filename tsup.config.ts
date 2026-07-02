@@ -15,6 +15,7 @@ export default defineConfig({
     thegridcn: "src/entries/thegridcn.ts",
     "url-state": "src/entries/url-state.ts",
     types: "src/entries/types.ts",
+    advanced: "src/entries/advanced.ts",
   },
   external,
   format: ["esm"],

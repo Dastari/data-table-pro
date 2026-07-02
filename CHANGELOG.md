@@ -1,5 +1,265 @@
 # Changelog
 
+## 3.0.0
+
+This is the v3 major release line. It includes the full v3 remediation work after the last documented v2 release (`2.0.5`): package cleanup, React 19.2 compatibility, built-in filtering, accessibility fixes, performance-oriented internals, pro-table features, and card virtualization. This project is distributed from GitHub refs such as `github:Dastari/data-table-pro#v3.0.0`; it is not published to npm.
+
+### Breaking changes
+
+- The package is ESM-only.
+  - Removed CommonJS output from the build.
+  - Removed the `main` package field.
+  - Removed every `exports.*.require` condition.
+  - Replace `require("data-table-pro")` with ESM imports such as `import { DataTable } from "data-table-pro"`.
+- React peer dependencies are now `react@^19.2.0` and `react-dom@^19.2.0`.
+  - This matches the library's use of React 19.2 APIs.
+- `nuqs` moved from a hard dependency to an optional peer dependency.
+  - Only consumers importing `data-table-pro/url-state` need `nuqs`.
+  - Consumers that use URL state must keep a compatible `nuqs` setup in the app.
+- `@tabler/icons-react` was removed from runtime dependencies.
+  - The table now uses local icon components.
+  - Apps that were accidentally relying on `data-table-pro` to install Tabler icons must add their own icon dependency.
+- Toolbar search now filters client-side rows by default.
+  - For server-side filtering, set `manualFiltering`.
+  - For a display-only toolbar query input, set `enableToolbarQueryFiltering={false}`.
+- Column filter metadata now renders built-in toolbar filter controls by default when filters are enabled.
+  - Disable table-owned filtering with `manualFiltering`.
+  - Disable toolbar filter UI by omitting `column.meta.filter` or setting `enableColumnFilters={false}`.
+- `viewMode`, `showHiddenRows`, and `density` now use the same controlled/uncontrolled model as sorting, selection, visibility, filters, pinning, expansion, and column order.
+  - Passing only a callback no longer means the table is inert; the table keeps local state when the value prop is omitted.
+- `column.meta.fixed` is now treated as initial/static pinning input.
+  - Use `columnPinning` and `onColumnPinningChange` for fully controlled pin state.
+- URL sort state now writes the full TanStack `SortingState` array.
+  - Old single-column URL sort values still decode as a fallback.
+  - Multi-sort URLs now use a JSON-encoded array in the existing sort query key.
+- The public package surface is now explicit.
+  - Stable adapter entrypoints remain `data-table-pro`, `data-table-pro/heroui`, and `data-table-pro/thegridcn`.
+  - `useDataTableUrlState` remains in `data-table-pro/url-state`.
+  - Public types remain in `data-table-pro/types`.
+  - Extracted composition helpers are exported only from `data-table-pro/advanced`.
+  - Deep imports from source files, generated chunks, or `dist/chunk-*` files are unsupported.
+
+### New public APIs
+
+- Added `data-table-pro/advanced` for adapter authors and advanced composition users.
+  - Runtime exports: `createDataTable`, `primitiveUiKit`, `useControllableState`, `useStableCallback`, `useColumnLayout`, `useDataTableState`, `useDataTableInstance`, `useDataTableColumns`, `useRowEditing`, `DataTableHeaderCell`, `DataTableBodyRow`, `DataTableCardPanel`, `DataTableTablePanel`, `DataTableToolbarSection`, and `DataTableFooterSection`.
+  - Type exports: `DataTableUiKit`, `DataTableUiClassNames`, `DataTableColumnLayout`, `DataTableRowsToRender`, and all public `DataTable*` types.
+- Added client filtering props:
+  - `manualFiltering`
+  - `enableToolbarQueryFiltering`
+  - `globalFilterFn`
+  - `columnFilters`
+  - `onColumnFiltersChange`
+  - `enableColumnFilters`
+- Added toolbar-chip column filters through `column.meta.filter`:
+  - `type: "text"`
+  - `type: "select"`
+  - `type: "multi"`
+  - `options`
+  - `getOptionValue`
+- Added row expansion:
+  - `expanded`
+  - `onExpandedChange`
+  - `getRowCanExpand`
+  - `renderExpandedRow`
+- Added column reordering:
+  - `columnOrder`
+  - `onColumnOrderChange`
+  - `enableColumnReordering`
+- Added controlled column pinning:
+  - `columnPinning`
+  - `onColumnPinningChange`
+  - `enableColumnPinning`
+- Added CSV export:
+  - `csvExport`
+  - `DataTableCsvExportOptions`
+- Added density controls:
+  - `density`
+  - `onDensityChange`
+  - `enableDensityToggle`
+- Added persisted column preferences:
+  - `columnPrefsKey`
+  - persists uncontrolled visibility, sizing, order, pinning, and density to `localStorage`
+- Added i18n labels:
+  - `labels`
+  - `DataTableLabels`
+- Added summary rows:
+  - `summaryRows`
+  - `DataTableSummaryRow`
+- Added RTL layout support:
+  - `dir`
+  - pinned columns now use logical inline offsets internally.
+- Added editing value hooks:
+  - `column.meta.parseEditValue`
+  - `column.meta.formatEditValue`
+  - `column.meta.renderEditCell`
+
+### Card virtualization
+
+- `virtualization` now supports both table rows and card rows.
+- Table mode remains enabled with `virtualization={true}` or `virtualization={{ enabled: true }}`.
+- Card mode is enabled with:
+
+```tsx
+<DataTable
+  viewMode="card"
+  cardRenderer={renderCard}
+  virtualization={{
+    card: {
+      enabled: true,
+      estimateCardHeight: 280,
+      overscan: 4,
+      lanes: "auto",
+    },
+  }}
+/>
+```
+
+- `virtualization.card.lanes` accepts a positive number or `"auto"`.
+  - `"auto"` derives the lane count from the card viewport width.
+  - Numeric lanes are clamped to at least `1`.
+- Before the scroll viewport is measurable, card mode renders the full card set instead of rendering a blank viewport.
+
+### Fixes and hardening
+
+- Fixed default/custom cell detection so TanStack default cells no longer suppress library formatting.
+- Restored primitive cell truncation, custom-cell clipping, date formatting, and muted null/empty fallbacks.
+- Added regression tests for cell fallback behavior, date formatting, and overflow policy.
+- Added `aria-sort` to sortable headers.
+- Made clickable table rows and cards keyboard-reachable with Enter/Space activation.
+- Added shift-click range selection.
+- Improved inline editing type preservation for numbers, booleans, dates, and datetimes where inferable.
+- Added CI at `.github/workflows/ci.yml`.
+
+### Performance and architecture
+
+- Split the former monolithic factory into focused modules for state, layout, editing, table instance creation, column construction, toolbar features, rows, headers, and render panels.
+- Memoized table body rows and added regression coverage so editing input changes rerender only the active editing row.
+- Centralized column layout calculation in `useColumnLayout`.
+- Quantized responsive container width state to breakpoint buckets.
+- Stabilized render callbacks with latest-ref helpers instead of using `React.useEffectEvent` for render-time handlers.
+- Kept `React.useEffectEvent` scoped to effect-internal callback usage.
+
+### v2 to v3 migration
+
+1. Pin the GitHub dependency to the release tag:
+
+```json
+{
+  "dependencies": {
+    "data-table-pro": "github:Dastari/data-table-pro#v3.0.0"
+  }
+}
+```
+
+2. Ensure the app uses React 19.2:
+
+```json
+{
+  "dependencies": {
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  }
+}
+```
+
+3. Replace CommonJS imports:
+
+```ts
+// Before
+const { DataTable } = require("data-table-pro");
+
+// After
+import { DataTable } from "data-table-pro";
+```
+
+4. Keep existing adapter imports unless changing UI kits:
+
+```ts
+import { DataTable } from "data-table-pro";
+import { DataTable as HeroDataTable } from "data-table-pro/heroui";
+import { DataTable as GridcnDataTable } from "data-table-pro/thegridcn";
+```
+
+5. Keep URL state on the dedicated subpath and install `nuqs` only when using it:
+
+```ts
+import { useDataTableUrlState } from "data-table-pro/url-state";
+```
+
+6. Audit every server-filtered table. Add `manualFiltering` when row filtering is owned by the app or API:
+
+```tsx
+<DataTable
+  toolbarQueryValue={query}
+  onToolbarQueryValueChange={setQuery}
+  manualFiltering
+/>
+```
+
+7. For display-only toolbar search, keep the input but disable table-owned query filtering:
+
+```tsx
+<DataTable enableToolbarQueryFiltering={false} />
+```
+
+8. Move custom filter toolbar code to column metadata where possible:
+
+```tsx
+const columns = [
+  {
+    accessorKey: "status",
+    header: "Status",
+    meta: {
+      filter: {
+        type: "multi",
+        options: ["active", "paused", "archived"],
+      },
+    },
+  },
+] satisfies Array<DataTableColumnDef<Row>>;
+```
+
+9. If a table previously controlled `viewMode` or `showHiddenRows`, keep passing both the value and callback. If the app only needs local state, pass only `enableViewToggle` or `hiddenRows`; the table now manages the value.
+
+10. If the app persisted only the first sort in URLs, no code change is required for compatibility, but new URLs will encode the full sorting array.
+
+11. If the app depends on column pinning, use the new controlled props:
+
+```tsx
+<DataTable
+  columnPinning={columnPinning}
+  onColumnPinningChange={setColumnPinning}
+  enableColumnPinning
+/>
+```
+
+12. If the app deep-imported internals, replace those imports with `data-table-pro/advanced` or remove them:
+
+```ts
+// Before, unsupported
+import { useColumnLayout } from "data-table-pro/dist/chunk-DFFGAKKZ.js";
+
+// After
+import { useColumnLayout } from "data-table-pro/advanced";
+```
+
+13. If jumping from v2.0.0 or earlier, also apply the v2.0.1 toolbar-query migration:
+  - `searchValue` -> `toolbarQueryValue`
+  - `onSearchValueChange` -> `onToolbarQueryValueChange`
+  - `searchPlaceholder` -> `toolbarQueryPlaceholder`
+  - `searchDebounceMs` -> `toolbarQueryDebounceMs`
+  - custom empty-state context `searchValue` -> `toolbarQueryValue`
+
+### Validation
+
+- `pnpm lint`
+- `pnpm typecheck`
+- `pnpm test`
+- `pnpm build`
+- `pnpm demo:build`
+- GitHub Actions CI on `main`
+
 ## 2.0.5
 
 This release adds a library-level cell overflow policy so consumers do not have to hand-style truncation and clipping on every table.

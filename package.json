@@ -39,6 +39,10 @@
       "types": "./dist/url-state.d.ts",
       "import": "./dist/url-state.js"
     },
+    "./advanced": {
+      "types": "./dist/advanced.d.ts",
+      "import": "./dist/advanced.js"
+    },
     "./types": {
       "types": "./dist/types.d.ts",
       "import": "./dist/types.js"
