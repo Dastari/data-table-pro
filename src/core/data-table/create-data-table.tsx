@@ -584,6 +584,7 @@ export function createDataTable(ui: DataTableUiKit) {
                   shouldRenderInitialLoading={shouldRenderInitialLoading}
                   tableContainerClassName={tableContainerClassName}
                   uiClassNames={uiClassNames}
+                  virtualization={virtualization}
                 />
               ) : (
                 <DataTableTablePanel

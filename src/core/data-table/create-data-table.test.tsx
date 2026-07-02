@@ -913,6 +913,27 @@ for (const suite of suites) {
       ).toBeGreaterThan(0);
     });
 
+    it("renders card rows with card virtualization before viewport discovery", () => {
+      renderTable({
+        data: [
+          { id: "1", name: "Ada" },
+          { id: "2", name: "Grace" },
+        ],
+        viewMode: "card",
+        cardRenderer: ({ row }) => <div>{row.name}</div>,
+        virtualization: {
+          card: {
+            enabled: true,
+            estimateCardHeight: 180,
+            lanes: 2,
+          },
+        },
+      });
+
+      expect(screen.getByText("Ada")).toBeTruthy();
+      expect(screen.getByText("Grace")).toBeTruthy();
+    });
+
     it("uses a constrained flex chain for flexGrow table mode", () => {
       const { container } = render(
         <div className="flex h-96 min-h-0 flex-col">

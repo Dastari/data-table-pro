@@ -363,7 +363,7 @@ Removed in `2.0.1`:
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `virtualization` | `boolean \| DataTableVirtualizationConfig` | `undefined` | Enables opt-in row virtualization in table mode. Use `{ estimateRowHeight, overscan }` to tune the virtual row window. |
+| `virtualization` | `boolean \| DataTableVirtualizationConfig` | `undefined` | Enables opt-in row virtualization in table mode and optional card virtualization via `virtualization.card`. Use `estimateRowHeight`, `estimateCardHeight`, `overscan`, and `lanes` to tune the virtual windows. |
 
 Virtualization is intentionally disabled until the table scroll viewport has a measurable height, so collapsed or server-like test environments still render rows instead of a blank virtual window.
 

@@ -228,7 +228,7 @@ Run the bundled demo workbench:
 pnpm demo
 ```
 
-The demo uses generated employee data and can switch between the shadcn, HeroUI, and The Gridcn adapters. It exercises selection, sorting, local automatic pagination, optional row virtualization, column resizing, search, custom filter rows inside the table toolbar, custom toolbar controls, row actions, selection actions, inline editing, card view, hidden rows, infinite scroll, file upload hooks, drag hooks, and loading states.
+The demo uses generated employee data and can switch between the shadcn, HeroUI, and The Gridcn adapters. It exercises selection, sorting, local automatic pagination, optional table/card virtualization, column resizing, search, custom filter rows inside the table toolbar, custom toolbar controls, row actions, selection actions, inline editing, card view, hidden rows, infinite scroll, file upload hooks, drag hooks, and loading states.
 
 Toolbar query note:
 
