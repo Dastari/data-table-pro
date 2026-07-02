@@ -1,5 +1,22 @@
 # Changelog
 
+## 3.0.4
+
+### Fixes
+
+- Changed the default card view grid from stretching `1fr` tracks to start-aligned tracks capped at `18rem`.
+- Removed default card item `w-full` and renderer child `w-full` forcing so narrow custom cards keep their intended width.
+- Preserved opt-in stretched layouts through `cardGridClassName`, `cardClassName`, and renderer-owned width classes.
+- Added demo coverage for one to three narrow cards in a wide container.
+
+### Validation
+
+- `pnpm lint`
+- `pnpm typecheck`
+- `pnpm test`
+- `pnpm build`
+- `pnpm demo:build`
+
 ## 3.0.3
 
 ### Fixes

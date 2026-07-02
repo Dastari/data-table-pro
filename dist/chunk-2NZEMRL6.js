@@ -4148,14 +4148,14 @@ function createDataTableCardView(ui, DataTableRowActions) {
     loadingRowCount = 5,
     labels
   }) {
-    const resolvedCardGridClassName = cardGridClassName ?? "grid-cols-[repeat(auto-fit,minmax(min(18rem,100%),1fr))]";
+    const resolvedCardGridClassName = cardGridClassName ?? "grid-cols-[repeat(auto-fill,minmax(min(18rem,100%),18rem))] justify-start";
     const cardGridClasses = cn(
       "grid min-h-0 w-full gap-4 p-1",
       uiClassNames.cardGrid,
       resolvedCardGridClassName
     );
     const cardItemClasses = (stateClassName) => cn(
-      "relative w-full min-w-0 gap-0 overflow-hidden bg-transparent p-0",
+      "relative min-w-0 max-w-full gap-0 overflow-hidden bg-transparent p-0",
       uiClassNames.cardItem,
       cardClassName,
       stateClassName
@@ -4257,7 +4257,7 @@ function createDataTableCardView(ui, DataTableRowActions) {
                     role: onRowClick ? "button" : void 0,
                     tabIndex: onRowClick ? 0 : void 0,
                     className: cn(
-                      "flex min-h-0 w-full min-w-0 flex-1 overflow-hidden rounded-[inherit] [&>*]:w-full [&>*]:min-w-0",
+                      "flex min-h-0 max-w-full min-w-0 flex-1 overflow-hidden rounded-[inherit] [&>*]:min-w-0",
                       onRowClick && "cursor-pointer focus-visible:outline-none"
                     ),
                     onClick: (event) => {
@@ -6107,5 +6107,5 @@ function createDataTable(ui) {
 }
 
 export { Button, Card, CardContent, CardDescription, CardFooter, CardHeader, Checkbox, DataTableBodyRow, DataTableCardPanel, DataTableFooterSection, DataTableHeaderCell, DataTableTablePanel, DataTableToolbarSection, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuSubContent, DropdownMenuSubTrigger, Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle, Input, InputGroup, InputGroupAddon, InputGroupInput, Pagination, PaginationFirst, PaginationLast, PaginationLink, PaginationNext, PaginationPrevious, ScrollArea, ScrollBar, SelectContent, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, Separator, Skeleton, Table, TableBody, TableCaption, TableCell, TableFooter, TableHead, TableHeader, TableRow, TooltipContent, cn, createDataTable, primitiveUiKit, useColumnLayout, useControllableState, useDataTableColumns, useDataTableInstance, useDataTableState, useRowEditing };
-//# sourceMappingURL=chunk-BHULJHU7.js.map
-//# sourceMappingURL=chunk-BHULJHU7.js.map
+//# sourceMappingURL=chunk-2NZEMRL6.js.map
+//# sourceMappingURL=chunk-2NZEMRL6.js.map

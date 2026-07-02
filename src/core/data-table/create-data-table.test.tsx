@@ -302,7 +302,7 @@ describe("DataTable adapter providers", () => {
     expect(item?.className).not.toContain("bg-surface");
     expect(renderer?.className).toContain("overflow-hidden");
     expect(renderer?.className).toContain("rounded-[inherit]");
-    expect(renderer?.className).toContain("[&>*]:w-full");
+    expect(renderer?.className).not.toContain("[&>*]:w-full");
     expect(renderer?.className).toContain("[&>*]:min-w-0");
     expect(screen.getByTestId("poster-card").className).toContain(
       "aspect-[2/3]",
@@ -1182,9 +1182,42 @@ for (const suite of suites) {
       expect(grid?.className).toContain("lg:grid-cols-5");
       expect(grid?.className).toContain("xl:grid-cols-6");
       expect(card?.className).toContain("min-w-0");
-      expect(card?.className).toContain("w-full");
       expect(card?.className).not.toContain("min-w-72");
       expect(card?.className).not.toContain("basis-72");
+    });
+
+    it("uses start-aligned fixed-width card tracks by default", () => {
+      const { container } = renderTable({
+        viewMode: "card",
+        cardRenderer: ({ row }) => (
+          <div data-testid="narrow-card" className="w-48">
+            {row.name}
+          </div>
+        ),
+      });
+
+      const grid = container.querySelector(
+        '[data-dtp-slot="data-table-card-grid"]',
+      );
+      const card = container.querySelector(
+        '[data-dtp-slot="data-table-card-item"]',
+      );
+      const renderer = container.querySelector(
+        '[data-dtp-slot="data-table-card-renderer"]',
+      );
+      const customCard = screen.getByTestId("narrow-card");
+
+      expect(grid?.className).toContain(
+        "grid-cols-[repeat(auto-fill,minmax(min(18rem,100%),18rem))]",
+      );
+      expect(grid?.className).toContain("justify-start");
+      expect(grid?.className).not.toContain("auto-fit");
+      expect(grid?.className).not.toContain("1fr");
+      expect(card?.className).toContain("max-w-full");
+      expect(card?.className.split(/\s+/)).not.toContain("w-full");
+      expect(renderer?.className).toContain("max-w-full");
+      expect(renderer?.className).not.toContain("[&>*]:w-full");
+      expect(customCard.className).toContain("w-48");
     });
 
     it("applies supported card grid classes for wide card layouts", () => {
@@ -1203,7 +1236,7 @@ for (const suite of suites) {
       expect(grid?.className).toContain("xl:grid-cols-3");
     });
 
-    it("gives aspect-ratio custom card renderers the grid cell width", () => {
+    it("allows explicit card classes to opt into stretched card layouts", () => {
       const { container } = render(
         <div className="flex h-96 min-h-0 flex-col">
           <TooltipProvider>
@@ -1214,8 +1247,9 @@ for (const suite of suites) {
               flexGrow
               viewMode="card"
               cardGridClassName="grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"
+              cardClassName="w-full"
               cardRenderer={({ row }) => (
-                <div data-testid="aspect-card" className="aspect-2/3">
+                <div data-testid="aspect-card" className="aspect-2/3 w-full">
                   {row.name}
                 </div>
               )}
@@ -1236,13 +1270,14 @@ for (const suite of suites) {
       expect(item?.className).toContain("min-w-0");
       expect(item?.className).toContain("overflow-hidden");
       expect(item?.className).toContain("p-0");
-      expect(renderer?.className).toContain("w-full");
+      expect(renderer?.className).toContain("max-w-full");
       expect(renderer?.className).toContain("min-w-0");
       expect(renderer?.className).toContain("flex-1");
       expect(renderer?.className).toContain("overflow-hidden");
       expect(renderer?.className).toContain("rounded-[inherit]");
-      expect(renderer?.className).toContain("[&>*]:w-full");
+      expect(renderer?.className).not.toContain("[&>*]:w-full");
       expect(customCard.className).toContain("aspect-2/3");
+      expect(customCard.className).toContain("w-full");
     });
 
     it("adds an accessible name to card selection controls and cleans false selections", () => {

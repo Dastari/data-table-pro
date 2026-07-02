@@ -300,6 +300,7 @@ export function DemoApp() {
   }, []);
 
   const tableRows = useInfiniteScroll ? rows.slice(0, visibleCount) : rows;
+  const sparseCardRows = rows.slice(0, 3);
   const selectedRows = rows.filter((row) => rowSelection[row.id]);
   const hiddenRowsConfig = React.useMemo(
     () => ({
@@ -649,6 +650,29 @@ export function DemoApp() {
             />
           </TooltipProvider>
         </div>
+
+        <section className="demo-panel shrink-0 rounded-xl border border-border bg-card p-4 shadow-sm">
+          <div className="mb-3 flex flex-col gap-1">
+            <h2 className="text-sm font-semibold tracking-tight">
+              Sparse card layout
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Default card tracks stay compact with one to three rows.
+            </p>
+          </div>
+          <TooltipProvider>
+            <DataTable
+              columns={columns}
+              data={sparseCardRows}
+              getRowId={(row) => row.id}
+              viewMode="card"
+              cardRenderer={({ row }) => <SparseEmployeeCard row={row} />}
+              showToolbar={false}
+              showFooter={false}
+              tableContainerClassName="border-0"
+            />
+          </TooltipProvider>
+        </section>
       </div>
     </main>
   );
@@ -717,6 +741,23 @@ function EmployeeCard({
           <IconEdit className="size-4" />
           Edit
         </button>
+      </div>
+    </div>
+  );
+}
+
+function SparseEmployeeCard({ row }: { row: Employee }) {
+  return (
+    <div className="flex w-48 flex-col gap-3 rounded-lg border border-border bg-background p-3 shadow-sm">
+      <div>
+        <div className="truncate text-sm font-semibold">{row.name}</div>
+        <div className="truncate text-xs text-muted-foreground">
+          {row.role}
+        </div>
+      </div>
+      <div className="flex items-center justify-between gap-2">
+        <StatusBadge status={row.status} />
+        <span className="text-xs font-medium">{row.score}</span>
       </div>
     </div>
   );

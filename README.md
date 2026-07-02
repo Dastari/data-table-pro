@@ -31,10 +31,10 @@ Dedicated subpath exports are also available:
 ## Installation
 
 ```bash
-pnpm add github:Dastari/data-table-pro#v3.0.2
+pnpm add github:Dastari/data-table-pro#v3.0.4
 ```
 
-This package is installed from GitHub refs. It is not published to npm. Release tags such as `v3.0.2` include committed `dist/` output, so consumers do not need to allow package build scripts during install.
+This package is installed from GitHub refs. It is not published to npm. Release tags such as `v3.0.4` include committed `dist/` output, so consumers do not need to allow package build scripts during install.
 
 Peer dependencies:
 
@@ -149,6 +149,8 @@ For card mode, use `cardGridClassName` instead of targeting internal DOM:
   cardGridClassName="grid-cols-1 sm:grid-cols-2 xl:grid-cols-3"
 />
 ```
+
+By default, card mode uses start-aligned tracks capped at `18rem`, so one to three narrow rendered cards do not stretch across a wide container. Use `cardGridClassName` and `cardClassName` when you intentionally want full-width card tracks or stretched card items.
 
 Card mode can virtualize large card sets:
 

@@ -86,7 +86,7 @@ export function createDataTableCardView(
   }: DataTableCardViewProps<TData>) {
     const resolvedCardGridClassName =
       cardGridClassName ??
-      "grid-cols-[repeat(auto-fit,minmax(min(18rem,100%),1fr))]";
+      "grid-cols-[repeat(auto-fill,minmax(min(18rem,100%),18rem))] justify-start";
     const cardGridClasses = cn(
       "grid min-h-0 w-full gap-4 p-1",
       uiClassNames.cardGrid,
@@ -94,7 +94,7 @@ export function createDataTableCardView(
     );
     const cardItemClasses = (stateClassName?: string) =>
       cn(
-        "relative w-full min-w-0 gap-0 overflow-hidden bg-transparent p-0",
+        "relative min-w-0 max-w-full gap-0 overflow-hidden bg-transparent p-0",
         uiClassNames.cardItem,
         cardClassName,
         stateClassName,
@@ -197,7 +197,7 @@ export function createDataTableCardView(
                 role={onRowClick ? "button" : undefined}
                 tabIndex={onRowClick ? 0 : undefined}
                 className={cn(
-                  "flex min-h-0 w-full min-w-0 flex-1 overflow-hidden rounded-[inherit] [&>*]:w-full [&>*]:min-w-0",
+                  "flex min-h-0 max-w-full min-w-0 flex-1 overflow-hidden rounded-[inherit] [&>*]:min-w-0",
                   onRowClick && "cursor-pointer focus-visible:outline-none",
                 )}
                 onClick={(event: React.MouseEvent<HTMLDivElement>) => {
