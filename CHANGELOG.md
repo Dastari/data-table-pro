@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### Documentation
+
+- Added a phased modernization roadmap covering audit fixes, performance and
+  code splitting, TanStack feature parity, modern-grid quality-of-life work,
+  delivery gates, and deferred optional capabilities.
+- Added the planned 4.0 breaking-change register and migration guarantees.
+
 ## 3.0.8
 
 ### Fixes

@@ -1,5 +1,32 @@
 # Migration Guide
 
+## Planned 4.0 migration
+
+No 4.0 breaking change is active in 3.0.8. The modernization roadmap defines
+the following planned changes so consumers can adopt their 3.x replacements
+before anything is removed:
+
+| Current 3.x API | Planned 4.0 API | Compatibility path |
+| --- | --- | --- |
+| `toolbarQueryValue`, `onToolbarQueryValueChange`, `toolbarQueryDebounceMs` | `globalFilter`, `onGlobalFilterChange`, `globalFilterDebounceMs` | Both names will work during the 3.x deprecation window. |
+| Split `pageIndex`/`pageSize` props and callbacks | Unified pagination state and `onPaginationChange` | Unified state will be additive in 3.x. |
+| `renderExpandedRow` and `getRowCanExpand` for detail content | `detailPanel={{ render, getCanExpand }}` | The explicit detail-panel API will ship before tree expansion takes ownership of expanded-row semantics. |
+| `columnPrefsKey` | Versioned `persistence` configuration | `columnPrefsKey` will remain a 3.x shorthand. |
+| `virtualization` on the base component | Dedicated virtual adapter entrypoints | Both entry styles will coexist in 3.x. |
+| Broad `data-table-pro/advanced` imports | Stable `data-table-pro/adapter` contracts | An export mapping and codemod will be published before removal. |
+
+The 4.0 release is gated on:
+
+- at least one stable 3.x release containing every replacement
+- development warnings for conflicting old/new props
+- a codemod for renamed props and entrypoints
+- migration fixtures for every adapter, server pagination, URL state,
+  virtualization, detail panels, and persisted state
+- safe migration or invalidation of versioned persisted/URL payloads
+
+See [the modernization roadmap](./Roadmap.md) for sequencing, acceptance
+criteria, and the complete breaking-change register.
+
 ## Overview
 
 `data-table-pro` now supports multiple UI adapter entrypoints without changing the table API.

@@ -355,4 +355,5 @@ See:
 - [`docs/API.md`](./docs/API.md)
 - [`docs/Migration.md`](./docs/Migration.md)
 - [`docs/Adapters.md`](./docs/Adapters.md)
+- [`docs/Roadmap.md`](./docs/Roadmap.md)
 - [`CHANGELOG.md`](./CHANGELOG.md)
