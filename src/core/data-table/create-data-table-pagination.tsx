@@ -85,7 +85,7 @@ export function createDataTablePagination(ui: DataTableUiKit) {
 
         <div className="flex shrink-0 items-center justify-center">
           <div
-            className={`inline-flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm ${uiClassNames.paginationTotal ?? ""}`}
+            className={`inline-flex items-center gap-2 px-2.5 py-1.5 text-sm ${uiClassNames.paginationTotal ?? ""}`}
             aria-label={labels.totalRecords(totalRowCount ?? 0)}
           >
             <IconDatabase className="size-4" />

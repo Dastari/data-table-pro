@@ -162,7 +162,7 @@ export function useDataTableColumns<TData>({
         minSize: UTILITY_COLUMN_SIZE,
         maxSize: UTILITY_COLUMN_SIZE,
         header: ({ table }) => (
-          <div className="flex items-center justify-center">
+          <div className="flex items-center justify-center py-0.5">
             <Checkbox
               checked={table.getIsAllPageRowsSelected()}
               onCheckedChange={(checked: boolean | "indeterminate") => {
@@ -173,7 +173,7 @@ export function useDataTableColumns<TData>({
           </div>
         ),
         cell: ({ row }) => (
-          <div className="flex items-center justify-center">
+          <div className="flex items-center justify-center py-0.5">
             <Checkbox
               checked={row.getIsSelected()}
               onClick={(event: React.MouseEvent<HTMLButtonElement>) => {

@@ -207,8 +207,7 @@ export const theGridcnUiKit: DataTableUiKit = {
     headerSortIcon: "text-cyan-100/65",
     mutedText: "text-cyan-100/70",
     paginationSelectTrigger: "border-cyan-400/45 bg-black/70 text-cyan-50",
-    paginationTotal:
-      "border border-cyan-400/25 bg-black/70 text-cyan-100/70",
+    paginationTotal: "text-cyan-100/70",
     pinnedColumn: "border-cyan-400/25",
     pinnedUtilityColumn: "bg-black/80",
     resizeHandle: "after:bg-cyan-400/20 hover:after:bg-cyan-300",

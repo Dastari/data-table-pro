@@ -31,10 +31,10 @@ Dedicated subpath exports are also available:
 ## Installation
 
 ```bash
-pnpm add github:Dastari/data-table-pro#v3.0.6
+pnpm add github:Dastari/data-table-pro#v3.0.7
 ```
 
-This package is installed from GitHub refs. It is not published to npm. Release tags such as `v3.0.6` include committed `dist/` output, so consumers do not need to allow package build scripts during install.
+This package is installed from GitHub refs. It is not published to npm. Release tags such as `v3.0.7` include committed `dist/` output, so consumers do not need to allow package build scripts during install.
 
 Peer dependencies:
 

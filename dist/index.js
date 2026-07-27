@@ -1,4 +1,4 @@
-import { primitiveUiKit, createDataTable, cn, Button, Card, CardDescription, CardFooter, Checkbox, DropdownMenuContent, DropdownMenuItem, DropdownMenuCheckboxItem, DropdownMenuRadioItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuSubContent, DropdownMenuSubTrigger, Empty, EmptyDescription, EmptyMedia, Input, InputGroup, InputGroupAddon, InputGroupInput, ScrollBar, SelectTrigger, SelectContent, SelectItem, SelectLabel, SelectSeparator, Separator, Skeleton, TableFooter, TableHead, TooltipContent } from './chunk-BWUSOBIM.js';
+import { primitiveUiKit, createDataTable, cn, Button, Card, CardDescription, CardFooter, Checkbox, DropdownMenuContent, DropdownMenuItem, DropdownMenuCheckboxItem, DropdownMenuRadioItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuSubContent, DropdownMenuSubTrigger, Empty, EmptyDescription, EmptyMedia, Input, InputGroup, InputGroupAddon, InputGroupInput, ScrollBar, SelectTrigger, SelectContent, SelectItem, SelectLabel, SelectSeparator, Separator, Skeleton, TableFooter, TableHead, TooltipContent } from './chunk-SIYUCOPU.js';
 import 'react';
 import { jsx } from 'react/jsx-runtime';
 
@@ -15,7 +15,7 @@ function withClassName(Component, defaultClassName) {
 }
 var ShadcnButton = withClassName(
   Button,
-  "rounded-md border-border bg-input text-foreground data-[variant=default]:border-primary data-[variant=default]:bg-primary data-[variant=default]:text-primary-foreground data-[variant=outline]:hover:bg-accent data-[variant=outline]:hover:text-accent-foreground data-[variant=secondary]:border-secondary data-[variant=secondary]:bg-secondary data-[variant=secondary]:text-secondary-foreground data-[variant=ghost]:border-transparent data-[variant=ghost]:bg-transparent data-[variant=ghost]:hover:bg-accent data-[variant=ghost]:hover:text-accent-foreground data-[variant=destructive]:border-destructive data-[variant=destructive]:bg-destructive data-[variant=destructive]:text-destructive-foreground data-[variant=link]:border-transparent data-[variant=link]:bg-transparent"
+  "rounded-md text-foreground data-[variant=default]:border-primary data-[variant=default]:bg-primary data-[variant=default]:text-primary-foreground data-[variant=outline]:border-input data-[variant=outline]:bg-background data-[variant=outline]:hover:bg-accent data-[variant=outline]:hover:text-accent-foreground data-[variant=secondary]:border-secondary data-[variant=secondary]:bg-secondary data-[variant=secondary]:text-secondary-foreground data-[variant=ghost]:border-transparent data-[variant=ghost]:bg-transparent data-[variant=ghost]:hover:bg-accent data-[variant=ghost]:hover:text-accent-foreground data-[variant=destructive]:border-destructive data-[variant=destructive]:bg-destructive data-[variant=destructive]:text-destructive-foreground data-[variant=link]:border-transparent data-[variant=link]:bg-transparent"
 );
 var ShadcnCard = withClassName(
   Card,
@@ -31,7 +31,7 @@ var ShadcnCardFooter = withClassName(
 );
 var ShadcnCheckbox = withClassName(
   Checkbox,
-  "border-border bg-input ring-ring/40 data-checked:border-primary data-checked:bg-primary data-checked:text-primary-foreground data-checked:ring-primary"
+  "border-input bg-background ring-ring/40 data-checked:border-primary data-checked:bg-primary data-checked:text-primary-foreground data-checked:ring-primary"
 );
 var ShadcnDropdownMenuContent = withClassName(
   DropdownMenuContent,
@@ -79,11 +79,11 @@ var ShadcnEmptyMedia = withClassName(
 );
 var ShadcnInput = withClassName(
   Input,
-  "rounded-md border-border bg-input text-foreground placeholder:text-muted-foreground"
+  "rounded-md border-input bg-background text-foreground placeholder:text-muted-foreground"
 );
 var ShadcnInputGroup = withClassName(
   InputGroup,
-  "rounded-md border-border bg-input text-foreground"
+  "rounded-md border-input bg-background text-foreground"
 );
 var ShadcnInputGroupAddon = withClassName(
   InputGroupAddon,
@@ -99,7 +99,7 @@ var ShadcnScrollBar = withClassName(
 );
 var ShadcnSelectTrigger = withClassName(
   SelectTrigger,
-  "rounded-md border-border bg-input text-foreground"
+  "rounded-md border-input bg-background text-foreground"
 );
 var ShadcnSelectContent = withClassName(
   SelectContent,
@@ -149,8 +149,8 @@ var shadcnUiKit = {
     footer: "border-border bg-card",
     headerSortIcon: "text-muted-foreground",
     mutedText: "text-muted-foreground",
-    paginationSelectTrigger: "border-border bg-input",
-    paginationTotal: "bg-input text-muted-foreground",
+    paginationSelectTrigger: "border-input bg-background",
+    paginationTotal: "text-muted-foreground",
     pinnedColumn: "border-border",
     pinnedUtilityColumn: "bg-card",
     resizeHandle: "after:bg-border hover:after:bg-primary",
@@ -161,7 +161,7 @@ var shadcnUiKit = {
     tableStickyHeader: "sticky top-0 z-30 bg-card/95 backdrop-blur [&_th]:border-border [&_th]:bg-card/95",
     toolbarCompactIconButton: "size-7",
     toolbarIconButton: "text-muted-foreground hover:text-foreground",
-    toolbarInputButton: "border-border bg-input"
+    toolbarInputButton: "border-input bg-background"
   },
   Button: ShadcnButton,
   Card: ShadcnCard,

@@ -1,5 +1,23 @@
 # Changelog
 
+## 3.0.7
+
+### Fixes
+
+- Restored host shadcn theme tokens for inputs, selects, checkboxes, and non-primary buttons instead of forcing `bg-input` and `border-border`.
+- Removed the background, border, and rounded container treatment from the footer's total-records label across all adapters.
+- Added vertical breathing room around table selection checkboxes so their rings are not clipped by row boundaries.
+- Added regression coverage for host-themed shadcn controls, the unboxed total-records label, and checkbox spacing.
+
+### Validation
+
+- `pnpm lint`
+- `pnpm typecheck`
+- `pnpm demo:typecheck`
+- `pnpm test`
+- `pnpm build`
+- `pnpm demo:build`
+
 ## 3.0.6
 
 ### Features

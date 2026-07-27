@@ -1,4 +1,4 @@
-import { primitiveUiKit, createDataTable, cn, Button, Card, CardHeader, CardContent, Checkbox, DropdownMenuContent, DropdownMenuItem, DropdownMenuCheckboxItem, DropdownMenuRadioItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuSubContent, DropdownMenuSubTrigger, Input, InputGroup, InputGroupAddon, InputGroupInput, Pagination, PaginationLink, PaginationFirst, PaginationPrevious, PaginationNext, PaginationLast, ScrollArea, ScrollBar, SelectTrigger, SelectContent, SelectItem, Separator, Skeleton, Table, TableHeader, TableBody, TableFooter, TableHead, TableRow, TableCell, TooltipContent, Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription, EmptyContent } from './chunk-BWUSOBIM.js';
+import { primitiveUiKit, createDataTable, cn, Button, Card, CardHeader, CardContent, Checkbox, DropdownMenuContent, DropdownMenuItem, DropdownMenuCheckboxItem, DropdownMenuRadioItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuSubContent, DropdownMenuSubTrigger, Input, InputGroup, InputGroupAddon, InputGroupInput, Pagination, PaginationLink, PaginationFirst, PaginationPrevious, PaginationNext, PaginationLast, ScrollArea, ScrollBar, SelectTrigger, SelectContent, SelectItem, Separator, Skeleton, Table, TableHeader, TableBody, TableFooter, TableHead, TableRow, TableCell, TooltipContent, Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription, EmptyContent } from './chunk-SIYUCOPU.js';
 import 'react';
 import { jsx } from 'react/jsx-runtime';
 
@@ -172,7 +172,7 @@ var heroUiKit = {
     headerSortIcon: "text-muted",
     mutedText: "text-muted",
     paginationSelectTrigger: "border-field-border bg-field",
-    paginationTotal: "bg-field text-muted",
+    paginationTotal: "text-muted",
     pinnedColumn: "border-separator",
     pinnedUtilityColumn: "bg-surface",
     resizeHandle: "after:bg-separator hover:after:bg-accent",

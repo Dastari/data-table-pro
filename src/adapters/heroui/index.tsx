@@ -223,7 +223,7 @@ export const heroUiKit: DataTableUiKit = {
     headerSortIcon: "text-muted",
     mutedText: "text-muted",
     paginationSelectTrigger: "border-field-border bg-field",
-    paginationTotal: "bg-field text-muted",
+    paginationTotal: "text-muted",
     pinnedColumn: "border-separator",
     pinnedUtilityColumn: "bg-surface",
     resizeHandle: "after:bg-separator hover:after:bg-accent",

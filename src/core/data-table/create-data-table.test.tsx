@@ -265,6 +265,47 @@ describe("DataTable adapter providers", () => {
     ).toContain("toolbar-compact-size-8");
   });
 
+  it("uses host shadcn input and outline-control theme tokens", () => {
+    render(
+      <ShadcnDataTable
+        columns={columns}
+        data={rows}
+        getRowId={(row) => row.id}
+      />,
+    );
+
+    const searchInput = screen.getByPlaceholderText("Search rows...");
+    const searchGroup = searchInput.closest('[data-slot="input-group"]');
+    const optionsButton = screen.getByRole("button", {
+      name: "Show table options",
+    });
+
+    expect(searchGroup?.className).toContain("border-input");
+    expect(searchGroup?.className).toContain("bg-background");
+    expect(searchGroup?.className).not.toContain("border-border");
+    expect(searchGroup?.className).not.toContain("bg-input");
+    expect(optionsButton.className).toContain("border-input");
+    expect(optionsButton.className).toContain("bg-background");
+    expect(optionsButton.className).not.toContain("border-border");
+    expect(optionsButton.className).not.toContain("bg-input");
+  });
+
+  it.each([
+    ["shadcn", ShadcnDataTable],
+    ["HeroUI", HeroDataTable],
+    ["The Gridcn", GridDataTable],
+  ])("renders an unboxed total-records label for %s", (_name, DataTable) => {
+    render(
+      <DataTable columns={columns} data={rows} getRowId={(row) => row.id} />,
+    );
+
+    const totalRecords = screen.getByLabelText("Total records: 1");
+
+    expect(totalRecords.className).not.toMatch(/\bborder(?:-\S+)?\b/);
+    expect(totalRecords.className).not.toMatch(/\bbg-\S+/);
+    expect(totalRecords.className).not.toContain("rounded");
+  });
+
   it("clips complete HeroUI card renderers with absolute overlays", () => {
     const { container } = render(
       <HeroDataTable
@@ -767,6 +808,18 @@ for (const suite of suites) {
       expect(lastHeader?.style.width).toBe("50px");
       expect(lastHeader?.style.minWidth).toBe("50px");
       expect(lastHeader?.style.maxWidth).toBe("50px");
+    });
+
+    it("adds vertical breathing room around table selection checkboxes", () => {
+      renderTable({ enableRowSelection: true });
+
+      const selectAll = screen.getByRole("checkbox", {
+        name: "Select all visible rows",
+      });
+      const selectRow = screen.getByRole("checkbox", { name: "Select row" });
+
+      expect(selectAll.parentElement?.className).toContain("py-0.5");
+      expect(selectRow.parentElement?.className).toContain("py-0.5");
     });
 
     it("renders utility columns outside fixed data columns", () => {
@@ -1676,7 +1729,7 @@ for (const suite of suites) {
     });
 
     if (suite.name === "shadcn") {
-      it("uses border-border and bg-input defaults for shadcn controls", () => {
+      it("uses host shadcn input tokens for non-primary controls", () => {
         const { container } = renderTable({
           toolbarActions: [
             {
@@ -1693,21 +1746,21 @@ for (const suite of suites) {
           '[data-slot="select-trigger"]',
         );
 
-        expect(searchGroup?.className).toContain("border-border");
-        expect(searchGroup?.className).toContain("bg-input");
-        expect(pageSizeTrigger?.className).toContain("border-border");
-        expect(pageSizeTrigger?.className).toContain("bg-input");
+        expect(searchGroup?.className).toContain("border-input");
+        expect(searchGroup?.className).toContain("bg-background");
+        expect(pageSizeTrigger?.className).toContain("border-input");
+        expect(pageSizeTrigger?.className).toContain("bg-background");
         expect(
           screen.getByRole("button", { name: "Search table" }).className,
-        ).toContain("border-border");
+        ).toContain("border-input");
         expect(
           screen.getByRole("button", { name: "Search table" }).className,
-        ).toContain("bg-input");
+        ).toContain("bg-background");
         expect(screen.getByRole("button", { name: "Export" }).className).toContain(
-          "border-border",
+          "border-input",
         );
         expect(screen.getByRole("button", { name: "Export" }).className).toContain(
-          "bg-input",
+          "bg-background",
         );
       });
     }
