@@ -3091,7 +3091,7 @@ function useDataTableColumns({
         size: UTILITY_COLUMN_SIZE,
         minSize: UTILITY_COLUMN_SIZE,
         maxSize: UTILITY_COLUMN_SIZE,
-        header: ({ table }) => /* @__PURE__ */ jsx("div", { className: "flex items-center justify-center py-0.5", children: /* @__PURE__ */ jsx(
+        header: ({ table }) => /* @__PURE__ */ jsx("div", { className: "flex items-center justify-center py-1", children: /* @__PURE__ */ jsx(
           Checkbox2,
           {
             checked: table.getIsAllPageRowsSelected(),
@@ -3101,7 +3101,7 @@ function useDataTableColumns({
             "aria-label": "Select all visible rows"
           }
         ) }),
-        cell: ({ row }) => /* @__PURE__ */ jsx("div", { className: "flex items-center justify-center py-0.5", children: /* @__PURE__ */ jsx(
+        cell: ({ row }) => /* @__PURE__ */ jsx("div", { className: "flex items-center justify-center py-1", children: /* @__PURE__ */ jsx(
           Checkbox2,
           {
             checked: row.getIsSelected(),
@@ -6148,5 +6148,5 @@ function createDataTable(ui) {
 }
 
 export { Button, Card, CardContent, CardDescription, CardFooter, CardHeader, Checkbox, DataTableBodyRow, DataTableCardPanel, DataTableFooterSection, DataTableHeaderCell, DataTableTablePanel, DataTableToolbarSection, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuSubContent, DropdownMenuSubTrigger, Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle, Input, InputGroup, InputGroupAddon, InputGroupInput, Pagination, PaginationFirst, PaginationLast, PaginationLink, PaginationNext, PaginationPrevious, ScrollArea, ScrollBar, SelectContent, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, Separator, Skeleton, Table, TableBody, TableCaption, TableCell, TableFooter, TableHead, TableHeader, TableRow, TooltipContent, cn, createDataTable, primitiveUiKit, useColumnLayout, useControllableState, useDataTableColumns, useDataTableInstance, useDataTableState, useRowEditing };
-//# sourceMappingURL=chunk-SIYUCOPU.js.map
-//# sourceMappingURL=chunk-SIYUCOPU.js.map
+//# sourceMappingURL=chunk-5ICRPULK.js.map
+//# sourceMappingURL=chunk-5ICRPULK.js.map

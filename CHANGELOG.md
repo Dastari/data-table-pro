@@ -1,5 +1,22 @@
 # Changelog
 
+## 3.0.8
+
+### Fixes
+
+- Changed shadcn inputs, selects, checkboxes, and outline controls to use the table container's `bg-card` background while retaining host theme tokens and variant-specific button colors.
+- Increased vertical clearance around table selection checkboxes so their two-pixel ring is not clipped by header or body cell content.
+- Updated styling regression coverage for the shared card-background contract.
+
+### Validation
+
+- `pnpm lint`
+- `pnpm typecheck`
+- `pnpm demo:typecheck`
+- `pnpm test`
+- `pnpm build`
+- `pnpm demo:build`
+
 ## 3.0.7
 
 ### Fixes

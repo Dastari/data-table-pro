@@ -265,12 +265,13 @@ describe("DataTable adapter providers", () => {
     ).toContain("toolbar-compact-size-8");
   });
 
-  it("uses host shadcn input and outline-control theme tokens", () => {
+  it("uses the shadcn table background for controls", () => {
     render(
       <ShadcnDataTable
         columns={columns}
         data={rows}
         getRowId={(row) => row.id}
+        enableRowSelection
       />,
     );
 
@@ -279,15 +280,19 @@ describe("DataTable adapter providers", () => {
     const optionsButton = screen.getByRole("button", {
       name: "Show table options",
     });
+    const rowCheckbox = screen.getByRole("checkbox", { name: "Select row" });
 
     expect(searchGroup?.className).toContain("border-input");
-    expect(searchGroup?.className).toContain("bg-background");
+    expect(searchGroup?.className).toContain("bg-card");
     expect(searchGroup?.className).not.toContain("border-border");
     expect(searchGroup?.className).not.toContain("bg-input");
+    expect(searchGroup?.className).not.toContain("bg-background");
     expect(optionsButton.className).toContain("border-input");
-    expect(optionsButton.className).toContain("bg-background");
+    expect(optionsButton.className).toContain("bg-card");
     expect(optionsButton.className).not.toContain("border-border");
     expect(optionsButton.className).not.toContain("bg-input");
+    expect(optionsButton.className).not.toContain("bg-background");
+    expect(rowCheckbox.className).toContain("bg-card");
   });
 
   it.each([
@@ -818,8 +823,8 @@ for (const suite of suites) {
       });
       const selectRow = screen.getByRole("checkbox", { name: "Select row" });
 
-      expect(selectAll.parentElement?.className).toContain("py-0.5");
-      expect(selectRow.parentElement?.className).toContain("py-0.5");
+      expect(selectAll.parentElement?.className).toContain("py-1");
+      expect(selectRow.parentElement?.className).toContain("py-1");
     });
 
     it("renders utility columns outside fixed data columns", () => {
@@ -1729,7 +1734,7 @@ for (const suite of suites) {
     });
 
     if (suite.name === "shadcn") {
-      it("uses host shadcn input tokens for non-primary controls", () => {
+      it("uses the table card background for non-primary controls", () => {
         const { container } = renderTable({
           toolbarActions: [
             {
@@ -1747,20 +1752,20 @@ for (const suite of suites) {
         );
 
         expect(searchGroup?.className).toContain("border-input");
-        expect(searchGroup?.className).toContain("bg-background");
+        expect(searchGroup?.className).toContain("bg-card");
         expect(pageSizeTrigger?.className).toContain("border-input");
-        expect(pageSizeTrigger?.className).toContain("bg-background");
+        expect(pageSizeTrigger?.className).toContain("bg-card");
         expect(
           screen.getByRole("button", { name: "Search table" }).className,
         ).toContain("border-input");
         expect(
           screen.getByRole("button", { name: "Search table" }).className,
-        ).toContain("bg-background");
+        ).toContain("bg-card");
         expect(screen.getByRole("button", { name: "Export" }).className).toContain(
           "border-input",
         );
         expect(screen.getByRole("button", { name: "Export" }).className).toContain(
-          "bg-background",
+          "bg-card",
         );
       });
     }

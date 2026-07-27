@@ -52,7 +52,7 @@ function withClassName<TProps extends { className?: string }>(
 
 const ShadcnButton = withClassName(
   PrimitiveButton,
-  "rounded-md text-foreground data-[variant=default]:border-primary data-[variant=default]:bg-primary data-[variant=default]:text-primary-foreground data-[variant=outline]:border-input data-[variant=outline]:bg-background data-[variant=outline]:hover:bg-accent data-[variant=outline]:hover:text-accent-foreground data-[variant=secondary]:border-secondary data-[variant=secondary]:bg-secondary data-[variant=secondary]:text-secondary-foreground data-[variant=ghost]:border-transparent data-[variant=ghost]:bg-transparent data-[variant=ghost]:hover:bg-accent data-[variant=ghost]:hover:text-accent-foreground data-[variant=destructive]:border-destructive data-[variant=destructive]:bg-destructive data-[variant=destructive]:text-destructive-foreground data-[variant=link]:border-transparent data-[variant=link]:bg-transparent",
+  "rounded-md text-foreground data-[variant=default]:border-primary data-[variant=default]:bg-primary data-[variant=default]:text-primary-foreground data-[variant=outline]:border-input data-[variant=outline]:bg-card data-[variant=outline]:hover:bg-accent data-[variant=outline]:hover:text-accent-foreground data-[variant=secondary]:border-secondary data-[variant=secondary]:bg-secondary data-[variant=secondary]:text-secondary-foreground data-[variant=ghost]:border-transparent data-[variant=ghost]:bg-transparent data-[variant=ghost]:hover:bg-accent data-[variant=ghost]:hover:text-accent-foreground data-[variant=destructive]:border-destructive data-[variant=destructive]:bg-destructive data-[variant=destructive]:text-destructive-foreground data-[variant=link]:border-transparent data-[variant=link]:bg-transparent",
 );
 const ShadcnCard = withClassName(
   PrimitiveCard,
@@ -68,7 +68,7 @@ const ShadcnCardFooter = withClassName(
 );
 const ShadcnCheckbox = withClassName(
   PrimitiveCheckbox,
-  "border-input bg-background ring-ring/40 data-checked:border-primary data-checked:bg-primary data-checked:text-primary-foreground data-checked:ring-primary",
+  "border-input bg-card ring-ring/40 data-checked:border-primary data-checked:bg-primary data-checked:text-primary-foreground data-checked:ring-primary",
 );
 const ShadcnDropdownMenuContent = withClassName(
   PrimitiveDropdownMenuContent,
@@ -116,11 +116,11 @@ const ShadcnEmptyMedia = withClassName(
 );
 const ShadcnInput = withClassName(
   PrimitiveInput,
-  "rounded-md border-input bg-background text-foreground placeholder:text-muted-foreground",
+  "rounded-md border-input bg-card text-foreground placeholder:text-muted-foreground",
 );
 const ShadcnInputGroup = withClassName(
   PrimitiveInputGroup,
-  "rounded-md border-input bg-background text-foreground",
+  "rounded-md border-input bg-card text-foreground",
 );
 const ShadcnInputGroupAddon = withClassName(
   PrimitiveInputGroupAddon,
@@ -136,7 +136,7 @@ const ShadcnScrollBar = withClassName(
 );
 const ShadcnSelectTrigger = withClassName(
   PrimitiveSelectTrigger,
-  "rounded-md border-input bg-background text-foreground",
+  "rounded-md border-input bg-card text-foreground",
 );
 const ShadcnSelectContent = withClassName(
   PrimitiveSelectContent,
@@ -187,7 +187,7 @@ export const shadcnUiKit: DataTableUiKit = {
     footer: "border-border bg-card",
     headerSortIcon: "text-muted-foreground",
     mutedText: "text-muted-foreground",
-    paginationSelectTrigger: "border-input bg-background",
+    paginationSelectTrigger: "border-input bg-card",
     paginationTotal: "text-muted-foreground",
     pinnedColumn: "border-border",
     pinnedUtilityColumn: "bg-card",
@@ -200,7 +200,7 @@ export const shadcnUiKit: DataTableUiKit = {
       "sticky top-0 z-30 bg-card/95 backdrop-blur [&_th]:border-border [&_th]:bg-card/95",
     toolbarCompactIconButton: "size-7",
     toolbarIconButton: "text-muted-foreground hover:text-foreground",
-    toolbarInputButton: "border-input bg-background",
+    toolbarInputButton: "border-input bg-card",
   },
   Button: ShadcnButton,
   Card: ShadcnCard,
