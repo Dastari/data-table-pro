@@ -4,6 +4,14 @@
 
 ### Features
 
+- Added eager virtual adapter entrypoints at `data-table-pro/virtual`,
+  `data-table-pro/heroui/virtual`, and
+  `data-table-pro/thegridcn/virtual`.
+- Added stable adapter-authoring entrypoints at `data-table-pro/adapter` and
+  `data-table-pro/adapter/virtual`.
+- Kept the base-entry `virtualization` prop source-compatible while moving its
+  virtual row/card panels behind on-demand chunks.
+
 - Added the additive `persistence` configuration with versioned payloads,
   selected state slices, custom storage, serialization/deserialization,
   migration, debounce, and error hooks.
@@ -71,10 +79,24 @@
 - Added demo typechecking, generated-`dist` drift detection, and package-content
   verification to CI. CI now runs the coverage, API, packed-consumer, and
   browser quality gates as well.
+- Reconciled the README, API reference, adapter guide, migration guide,
+  roadmap, and generated declaration-reference workflow with all features
+  delivered after 3.0.9. The API inventory now includes card sizing, custom
+  edit-render props, and the complete virtualization configuration.
+- Corrected stale roadmap baselines and the migration-guide structure.
+- Minified package JavaScript with source maps, lazy-loaded demo adapters, and
+  added numeric CI bundle budgets plus static import-boundary checks.
+- Reduced demo initial JavaScript from the 157.1 KiB gzip audit baseline to
+  64.9 KiB gzip. The measured base static graph is 33.7 KiB gzip with no
+  TanStack Virtual import; the CI budget is 35 KiB rather than the roadmap's
+  provisional 30 KiB to leave a small source-attributed regression margin.
 
 ### Compatibility
 
 - No public prop, type, or package entrypoint was removed.
+- Existing base adapter imports and `virtualization` props remain supported.
+  Consumers that always virtualize can switch to a matching `/virtual` import
+  to load that code eagerly; otherwise it is downloaded only on first use.
 - Peer minimums are now React/React DOM 19.2.8, optional `nuqs` 2.9.2, and
   optional `@heroui/styles` 3.2.2.
 - Repository development now requires a jsdom 30-supported Node.js release

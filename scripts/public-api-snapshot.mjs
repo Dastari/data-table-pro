@@ -13,10 +13,15 @@ const snapshotPath = path.join(
 );
 const declarationFiles = [
   "index.d.ts",
+  "virtual.d.ts",
   "heroui.d.ts",
+  "heroui-virtual.d.ts",
   "thegridcn.d.ts",
+  "thegridcn-virtual.d.ts",
   "url-state.d.ts",
   "advanced.d.ts",
+  "adapter.d.ts",
+  "adapter-virtual.d.ts",
   "types.d.ts",
 ];
 const packageJson = JSON.parse(

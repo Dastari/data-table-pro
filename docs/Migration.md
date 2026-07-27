@@ -1,5 +1,42 @@
 # Migration Guide
 
+## Unreleased code-splitting entrypoints
+
+No existing import or prop needs to change. The base adapter entrypoints still
+accept `virtualization`, but TanStack Virtual is now loaded in an on-demand
+chunk only when table or card virtualization is enabled:
+
+```tsx
+// Still supported; virtual code loads on first use.
+import { DataTable } from "data-table-pro";
+
+<DataTable virtualization columns={columns} data={rows} getRowId={getRowId} />;
+```
+
+Applications that always virtualize can remove that first-use async boundary
+by changing only the import:
+
+```tsx
+import { DataTable } from "data-table-pro/virtual";
+```
+
+Equivalent eager entrypoints are `data-table-pro/heroui/virtual` and
+`data-table-pro/thegridcn/virtual`. Props, types, styling, state, and adapter
+behavior are unchanged. During on-demand loading, the base entry renders the
+complete non-virtual rows/cards as its Suspense fallback, so table state stays
+in the parent component.
+
+Adapter authors can move from the broad compatibility surface to:
+
+```ts
+import { createDataTable } from "data-table-pro/adapter";
+import { createVirtualDataTable } from "data-table-pro/adapter/virtual";
+```
+
+`data-table-pro/advanced` remains available throughout 3.x. Package JavaScript
+is now minified with source maps; generated chunk filenames remain private and
+must not be imported directly.
+
 ## Unreleased dependency and toolchain baseline
 
 The package peer minimums have moved to:
@@ -185,8 +222,8 @@ before anything is removed:
 | Split `pageIndex`/`pageSize` props and callbacks | Unified pagination state and `onPaginationChange` | Unified state will be additive in 3.x. |
 | `renderExpandedRow` and `getRowCanExpand` for detail content | `detailPanel={{ render, getCanExpand }}` | The explicit detail-panel API will ship before tree expansion takes ownership of expanded-row semantics. |
 | `columnPrefsKey` | Versioned `persistence` configuration | `columnPrefsKey` will remain a 3.x shorthand. |
-| `virtualization` on the base component | Dedicated virtual adapter entrypoints | Both entry styles will coexist in 3.x. |
-| Broad `data-table-pro/advanced` imports | Stable `data-table-pro/adapter` contracts | An export mapping and codemod will be published before removal. |
+| `virtualization` on the base component | Dedicated virtual adapter entrypoints | Both entry styles now coexist in 3.x; base imports load virtual panels on demand. |
+| Broad `data-table-pro/advanced` imports | Stable `data-table-pro/adapter` contracts | The stable factory entrypoint is available; advanced remains supported through 3.x. |
 
 The 4.0 release is gated on:
 

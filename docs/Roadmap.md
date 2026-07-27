@@ -1,9 +1,10 @@
 # Modernization Roadmap
 
-This is the implementation plan that follows the 3.0.8 project audit. It is a
-living plan, not a statement that unreleased APIs are already available.
+This living implementation plan started with the 3.0.8 project audit. Audit
+findings and comparison columns retain that historical baseline; the phase
+status and delivered lists record what is available on `main`.
 
-Baseline:
+Audit baseline:
 
 - package version: 3.0.8
 - React: 19.2
@@ -12,6 +13,18 @@ Baseline:
 - adapters: shadcn, HeroUI, and The Gridcn
 - validation: 164 tests plus lint, package/demo typechecks, and package/demo
   builds
+
+Current implementation baseline:
+
+- package version: 3.0.9 plus unreleased 3.1 work
+- React/React DOM peers: 19.2.8
+- TanStack Table: 8.21.3
+- TanStack Virtual: 3.14.8
+- validation: 211 unit/integration tests, enforced coverage and declaration
+  snapshots, SSR/hydration tests, a packed-consumer build, and six
+  adapter/theme Playwright screenshot and axe cases
+- toolchain: TypeScript 7 CLI with the official TypeScript 6 compiler-API
+  compatibility package, ESLint 10, Vite 8, Vitest 4, and pnpm 11
 
 ## Goals
 
@@ -62,7 +75,7 @@ The table already has a strong application-table baseline. The following
 matrix separates complete support from features that are only partially
 exposed by the wrapper.
 
-| Capability | 3.0.8 | Target |
+| Capability | Audit baseline (3.0.8) | Target |
 | --- | --- | --- |
 | Sorting and multi-sort | Supported | Keep; add complete controlled/initial-state and server request contracts. |
 | Client/manual pagination | Supported | Add unified state, cursor/unknown-total server mode, and automatic page-size option. |
@@ -135,7 +148,8 @@ Acceptance gates:
 
 ### Phase 1: state, persistence, and quality foundation (3.1)
 
-Status: in progress.
+Status: implementation complete except for reorganizing the remaining
+monolithic interaction tests. Numeric bundle budgets are part of Phase 3.
 
 Delivered on `main` after 3.0.9:
 
@@ -165,6 +179,10 @@ Delivered on `main` after 3.0.9:
   snapshot in CI.
 - Native row semantics for clickable table rows while retaining focus and
   Enter/Space activation.
+- Complete public documentation for unified state, persistence, saved views,
+  expanded URL state, API-ref commands, unknown-total pagination, safe CSV
+  export, async action errors, adapter quality gates, and the updated
+  dependency/toolchain baseline.
 
 State/API:
 
@@ -242,6 +260,26 @@ considered shipped.
 
 ### Phase 3: performance and package architecture (3.3)
 
+Status: first code-splitting slice delivered on `main`; runtime benchmarks,
+search indexing, measured variable-height virtualization, and two-axis
+virtualization remain.
+
+Delivered in the first slice:
+
+- Base shadcn, HeroUI, The Gridcn, and stable adapter-authoring entrypoints no
+  longer statically import TanStack Virtual.
+- Added eager `virtual`, `heroui/virtual`, `thegridcn/virtual`, and
+  `adapter/virtual` entrypoints while preserving the 3.x base
+  `virtualization` prop through on-demand panels.
+- Added the narrow stable `data-table-pro/adapter` factory entrypoint without
+  removing `data-table-pro/advanced`.
+- Minified package output with source maps and added a packed-consumer check
+  for every new public subpath.
+- Lazy-loaded demo adapters and virtual panels. Initial demo JavaScript is
+  64.9 KiB gzip, down from the audit baseline of 157.1 KiB gzip.
+- Added CI budgets for static package graphs, adapter deltas, URL state, demo
+  initial JavaScript, and explicit TanStack Virtual import boundaries.
+
 Measure first:
 
 - Add reproducible React Profiler and browser benchmarks for 1k, 10k, 50k,
@@ -282,7 +320,7 @@ Initial budgets:
 
 | Artifact | Budget |
 | --- | --- |
-| Base shadcn package-owned runtime | <= 30 KiB gzip |
+| Base shadcn package-owned runtime | <= 35 KiB gzip |
 | HeroUI/The Gridcn adapter delta | <= 6 KiB gzip each |
 | URL-state entry | <= 5 KiB gzip, excluding peer dependency |
 | Base entry imports TanStack Virtual | No |
@@ -290,6 +328,12 @@ Initial budgets:
 
 Budgets may be adjusted once source-map-based attribution is in CI, but any
 increase must be explained in the changelog.
+
+The first measured minified base graph is 33.7 KiB gzip. The provisional
+30 KiB target was adjusted to 35 KiB after source attribution so CI has a
+realistic but narrow regression margin; optional virtualization is excluded
+from this graph. The adapter deltas are 0.2 KiB (HeroUI) and 0.5 KiB (The
+Gridcn), URL state is 2.2 KiB, and demo initial JavaScript is 64.9 KiB gzip.
 
 ### Phase 4: modern-grid quality of life (3.4)
 

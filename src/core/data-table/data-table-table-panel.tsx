@@ -17,7 +17,7 @@ import type { DataTableColumnLayout } from "./use-column-layout";
 import { isDataTableLoadingRow } from "./data-table-utils";
 import type { DataTableLabels } from "../types";
 
-type DataTableTablePanelProps<TData> = {
+export type DataTableTablePanelProps<TData> = {
   bodyRowComponents: Pick<
     DataTableUiKit,
     "Checkbox" | "Input" | "Skeleton" | "TableCell" | "TableRow"
@@ -68,7 +68,10 @@ type DataTableTablePanelProps<TData> = {
   TableHeader: DataTableUiKit["TableHeader"];
   TableRow: DataTableUiKit["TableRow"];
   tableScrollContainerRef: React.RefObject<HTMLDivElement | null>;
+  tableScrollElement?: HTMLElement | null;
   uiClassNames: DataTableUiClassNames;
+  viewportHeight?: number;
+  virtualization?: DataTableProps<TData>["virtualization"];
   virtualPaddingBottom: number;
   virtualPaddingTop: number;
   visibleLeafColumnCount: number;

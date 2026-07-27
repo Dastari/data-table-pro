@@ -12,6 +12,9 @@ const rootDir = path.resolve(
 export default defineConfig({
   root: path.join(rootDir, "demo"),
   plugins: [react(), tailwindcss()],
+  build: {
+    manifest: true,
+  },
   resolve: {
     alias: {
       "data-table-pro/heroui": path.join(rootDir, "src/entries/heroui.ts"),

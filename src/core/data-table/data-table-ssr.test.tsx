@@ -5,7 +5,10 @@ import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { DataTable as ShadcnDataTable } from "../../index";
 import { DataTable as HeroDataTable } from "../../entries/heroui";
+import { DataTable as VirtualHeroDataTable } from "../../entries/heroui-virtual";
 import { DataTable as GridDataTable } from "../../entries/thegridcn";
+import { DataTable as VirtualGridDataTable } from "../../entries/thegridcn-virtual";
+import { DataTable as VirtualShadcnDataTable } from "../../entries/virtual";
 import type { DataTableColumnDef } from "../types";
 
 type TestRow = {
@@ -28,8 +31,11 @@ afterEach(() => {
 
 describe.each([
   ["shadcn", ShadcnDataTable],
+  ["virtual shadcn", VirtualShadcnDataTable],
   ["HeroUI", HeroDataTable],
+  ["virtual HeroUI", VirtualHeroDataTable],
   ["The Gridcn", GridDataTable],
+  ["virtual The Gridcn", VirtualGridDataTable],
 ])("DataTable SSR (%s)", (_adapter, DataTable) => {
   it("renders table content without browser effects", () => {
     const html = renderToString(
@@ -37,6 +43,7 @@ describe.each([
         columns={columns}
         data={rows}
         getRowId={(row) => row.id}
+        virtualization={_adapter.startsWith("virtual")}
       />,
     );
 
@@ -50,6 +57,7 @@ describe.each([
         columns={columns}
         data={rows}
         getRowId={(row) => row.id}
+        virtualization={_adapter.startsWith("virtual")}
       />
     );
     const container = document.createElement("div");

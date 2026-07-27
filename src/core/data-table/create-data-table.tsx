@@ -16,9 +16,9 @@ import { createDataTableEmptyState } from "./create-data-table-empty-state";
 import { createDataTablePagination } from "./create-data-table-pagination";
 import { createDataTableRowActions } from "./create-data-table-row-actions";
 import { createDataTableToolbar } from "./create-data-table-toolbar";
-import { DataTableCardPanel } from "./data-table-card-panel";
+import { DataTableCardPanel as DefaultDataTableCardPanel } from "./data-table-card-panel";
 import { DataTableFooterSection } from "./data-table-footer-section";
-import { DataTableTablePanel } from "./data-table-table-panel";
+import { DataTableTablePanelRouter as DefaultDataTableTablePanel } from "./data-table-table-panel-router";
 import { DataTableToolbarSection } from "./data-table-toolbar-section";
 import {
   clearDataTableSavedViews,
@@ -42,7 +42,23 @@ import { useDataTableToolbarFeatures } from "./use-data-table-toolbar-features";
 import { useColumnLayout } from "./use-column-layout";
 import { useRowEditing } from "./use-row-editing";
 
+type CreateDataTableOptions = {
+  CardPanel?: typeof DefaultDataTableCardPanel;
+  TablePanel?: typeof DefaultDataTableTablePanel;
+};
+
 export function createDataTable(ui: DataTableUiKit) {
+  return createDataTableWithPanels(ui);
+}
+
+export function createDataTableWithPanels(
+  ui: DataTableUiKit,
+  options: CreateDataTableOptions = {},
+) {
+  const DataTableCardPanel =
+    options.CardPanel ?? DefaultDataTableCardPanel;
+  const DataTableTablePanel =
+    options.TablePanel ?? DefaultDataTableTablePanel;
   const uiClassNames = ui.classNames ?? {};
   const {
     rootClassName,
@@ -1130,7 +1146,10 @@ export function createDataTable(ui: DataTableUiKit) {
                   TableHeader={TableHeader}
                   TableRow={TableRow}
                   tableScrollContainerRef={tableScrollContainerRef}
+                  tableScrollElement={tableScrollElement}
                   uiClassNames={uiClassNames}
+                  viewportHeight={viewportHeight}
+                  virtualization={virtualization}
                   virtualPaddingBottom={virtualPaddingBottom}
                   virtualPaddingTop={virtualPaddingTop}
                   visibleLeafColumnCount={visibleLeafColumnCount}

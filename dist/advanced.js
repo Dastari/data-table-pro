@@ -1,16 +1,2 @@
-export { DataTableBodyRow, DataTableCardPanel, DataTableFooterSection, DataTableHeaderCell, DataTableTablePanel, DataTableToolbarSection, createDataTable, primitiveUiKit, useColumnLayout, useControllableState, useDataTableColumns, useDataTableInstance, useDataTableState, useRowEditing } from './chunk-XSIQ7POC.js';
-import * as React from 'react';
-
-function useStableCallback(callback) {
-  const callbackRef = React.useRef(callback);
-  React.useLayoutEffect(() => {
-    callbackRef.current = callback;
-  });
-  return React.useCallback((...args) => {
-    return callbackRef.current?.(...args);
-  }, []);
-}
-
-export { useStableCallback };
-//# sourceMappingURL=advanced.js.map
+export{X as primitiveUiKit}from'./chunk-2V6RVOWX.js';export{a as DataTableCardPanel,b as DataTableFooterSection,c as DataTableToolbarSection,i as createDataTable,h as useColumnLayout,f as useControllableState,d as useDataTableColumns,e as useDataTableInstance,g as useDataTableState}from'./chunk-VMTF6NFY.js';import'./chunk-ACKI7LST.js';export{N as DataTableBodyRow,O as DataTableHeaderCell,P as DataTableTablePanel,M as useRowEditing}from'./chunk-HOUWU4KF.js';import'./chunk-ZF4EP4WP.js';import*as e from'react';function R(a){let t=e.useRef(a);return e.useLayoutEffect(()=>{t.current=a;}),e.useCallback((...o)=>t.current?.(...o),[])}export{R as useStableCallback};//# sourceMappingURL=advanced.js.map
 //# sourceMappingURL=advanced.js.map

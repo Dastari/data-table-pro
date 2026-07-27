@@ -1,0 +1,38 @@
+import type * as React from "react";
+import type { Row } from "@tanstack/react-table";
+import type { DataTableLabels, DataTableProps } from "../types";
+import type { DataTableUiClassNames, DataTableUiKit } from "../ui-kit";
+
+export type DataTableCardPanelProps<TData> = {
+  cardClassName: string | undefined;
+  cardGridClassName: string | undefined;
+  cardSizing: DataTableProps<TData>["cardSizing"];
+  cardRenderer: NonNullable<DataTableProps<TData>["cardRenderer"]>;
+  currentRowSelection: Record<string, boolean>;
+  DataTableCardView: React.ElementType;
+  DataTableEmptyState: React.ElementType;
+  dragAndDrop: DataTableProps<TData>["dragAndDrop"];
+  editableRows: DataTableProps<TData>["editableRows"];
+  editingRowId: string | null;
+  emptyNode: React.ReactNode;
+  enableRowSelection: boolean;
+  flexGrow: boolean;
+  getRowClassName: DataTableProps<TData>["getRowClassName"];
+  hasCardTitle: boolean;
+  infiniteScroll: DataTableProps<TData>["infiniteScroll"];
+  localSearchValue: string;
+  onRowClick: DataTableProps<TData>["onRowClick"];
+  renderedRows: Array<Row<TData>>;
+  renderExpandedRow: DataTableProps<TData>["renderExpandedRow"];
+  resolvedLabels: DataTableLabels;
+  resolvedLoadingRowCount: number;
+  rowActions: DataTableProps<TData>["rowActions"];
+  ScrollArea: DataTableUiKit["ScrollArea"];
+  sentinelRef: React.RefObject<HTMLDivElement | null>;
+  setCurrentRowSelection: (rowSelection: Record<string, boolean>) => void;
+  setEditingRowId: React.Dispatch<React.SetStateAction<string | null>>;
+  shouldRenderInitialLoading: boolean;
+  tableContainerClassName: string | undefined;
+  uiClassNames: DataTableUiClassNames;
+  virtualization: DataTableProps<TData>["virtualization"];
+};

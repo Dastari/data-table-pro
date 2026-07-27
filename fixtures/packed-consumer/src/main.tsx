@@ -5,12 +5,20 @@ import {
   type DataTableApi,
   type DataTableColumnDef,
 } from "data-table-pro";
+import { DataTable as VirtualShadcnDataTable } from "data-table-pro/virtual";
 import { DataTable as HeroDataTable } from "data-table-pro/heroui";
+import { DataTable as VirtualHeroDataTable } from "data-table-pro/heroui/virtual";
 import { DataTable as GridDataTable } from "data-table-pro/thegridcn";
+import { DataTable as VirtualGridDataTable } from "data-table-pro/thegridcn/virtual";
 import {
   primitiveUiKit,
   type DataTableUiKit,
 } from "data-table-pro/advanced";
+import {
+  createDataTable,
+  type DataTableUiKit as StableDataTableUiKit,
+} from "data-table-pro/adapter";
+import { createVirtualDataTable } from "data-table-pro/adapter/virtual";
 import {
   useDataTableUrlState,
   type UseDataTableUrlStateOptions,
@@ -35,6 +43,9 @@ const initialState: Partial<DataTableState> = {
   density: "compact",
 };
 const advancedUiKit: DataTableUiKit = primitiveUiKit;
+const stableUiKit: StableDataTableUiKit = advancedUiKit;
+const CustomDataTable = createDataTable(stableUiKit);
+const CustomVirtualDataTable = createVirtualDataTable(stableUiKit);
 const urlOptions: UseDataTableUrlStateOptions = {
   keyPrefix: "people-",
   enabled: ["columnVisibility"],
@@ -71,6 +82,35 @@ function App() {
         columns={columns}
         data={rows}
         getRowId={(row) => row.id}
+      />
+      <VirtualShadcnDataTable
+        columns={columns}
+        data={rows}
+        getRowId={(row) => row.id}
+        virtualization
+      />
+      <VirtualHeroDataTable
+        columns={columns}
+        data={rows}
+        getRowId={(row) => row.id}
+        virtualization
+      />
+      <VirtualGridDataTable
+        columns={columns}
+        data={rows}
+        getRowId={(row) => row.id}
+        virtualization
+      />
+      <CustomDataTable
+        columns={columns}
+        data={rows}
+        getRowId={(row) => row.id}
+      />
+      <CustomVirtualDataTable
+        columns={columns}
+        data={rows}
+        getRowId={(row) => row.id}
+        virtualization
       />
     </main>
   );

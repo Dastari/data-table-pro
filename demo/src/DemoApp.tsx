@@ -11,12 +11,6 @@ import {
   IconStar,
   IconUserCheck,
 } from "../../src/core/icons";
-import { DataTable as ShadcnDataTable } from "data-table-pro";
-import { DataTable as HeroDataTable } from "data-table-pro/heroui";
-import { DataTable as GridDataTable } from "data-table-pro/thegridcn";
-import { heroUiKit } from "../../src/adapters/heroui";
-import { shadcnUiKit } from "../../src/adapters/shadcn";
-import { theGridcnUiKit } from "../../src/adapters/thegridcn";
 import type {
   DataTableCardRendererProps,
   DataTableColumnDef,
@@ -30,7 +24,6 @@ type ThemeKey = "light" | "dark";
 type DemoDataTable = <TData>(
   props: DataTableProps<TData>,
 ) => React.ReactElement;
-type DemoTooltipProvider = React.ComponentType<{ children?: React.ReactNode }>;
 
 type Employee = {
   id: string;
@@ -52,23 +45,25 @@ const adapters: Record<
   {
     label: string;
     DataTable: DemoDataTable;
-    TooltipProvider: DemoTooltipProvider;
   }
 > = {
   shadcn: {
     label: "shadcn",
-    DataTable: ShadcnDataTable,
-    TooltipProvider: resolveTooltipProvider(shadcnUiKit.TooltipProvider),
+    DataTable: React.lazy(
+      () => import("./demo-adapters/shadcn"),
+    ) as DemoDataTable,
   },
   heroui: {
     label: "HeroUI",
-    DataTable: HeroDataTable,
-    TooltipProvider: resolveTooltipProvider(heroUiKit.TooltipProvider),
+    DataTable: React.lazy(
+      () => import("./demo-adapters/heroui"),
+    ) as DemoDataTable,
   },
   thegridcn: {
     label: "The Gridcn",
-    DataTable: GridDataTable,
-    TooltipProvider: resolveTooltipProvider(theGridcnUiKit.TooltipProvider),
+    DataTable: React.lazy(
+      () => import("./demo-adapters/thegridcn"),
+    ) as DemoDataTable,
   },
 };
 
@@ -143,7 +138,6 @@ export function DemoApp() {
   const [notice, setNotice] = React.useState("Ready");
 
   const DataTable = adapters[adapter].DataTable;
-  const TooltipProvider = adapters[adapter].TooltipProvider;
 
   React.useEffect(() => {
     const root = document.documentElement;
@@ -386,7 +380,7 @@ export function DemoApp() {
         </header>
 
         <div className="flex min-h-0 grow flex-col">
-          <TooltipProvider>
+          <React.Suspense fallback={<DemoTableFallback />}>
             <DataTable
               columns={columns}
               data={tableRows}
@@ -672,7 +666,7 @@ export function DemoApp() {
                 </div>
               }
             />
-          </TooltipProvider>
+          </React.Suspense>
         </div>
 
         <section className="demo-panel shrink-0 rounded-xl border border-border bg-card p-4 shadow-sm">
@@ -684,7 +678,7 @@ export function DemoApp() {
               Narrow media cards and wider collection cards keep their own width.
             </p>
           </div>
-          <TooltipProvider>
+          <React.Suspense fallback={<DemoTableFallback compact />}>
             <DataTable
               columns={columns}
               data={sparseCardRows}
@@ -696,7 +690,7 @@ export function DemoApp() {
               showFooter={false}
               tableContainerClassName="border-0"
             />
-          </TooltipProvider>
+          </React.Suspense>
         </section>
       </div>
     </main>
@@ -876,10 +870,15 @@ function demoShellClass(adapter: AdapterKey, theme: ThemeKey) {
     .join(" ");
 }
 
-function resolveTooltipProvider(
-  Provider: React.ElementType | undefined,
-): DemoTooltipProvider {
-  return (Provider ?? React.Fragment) as DemoTooltipProvider;
+function DemoTableFallback({ compact = false }: { compact?: boolean }) {
+  return (
+    <div
+      aria-label="Loading data table"
+      className={`demo-panel animate-pulse rounded-xl border border-border bg-card ${
+        compact ? "h-48" : "min-h-96 flex-1"
+      }`}
+    />
+  );
 }
 
 function generateEmployees(count: number): Array<Employee> {

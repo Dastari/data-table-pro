@@ -4,7 +4,9 @@ This document describes the public API exported by `data-table-pro`.
 
 ## Package Entry Points
 
-Adapter entrypoints export the table component and public types. Dedicated subpaths expose the URL-state hook and types directly.
+Adapter entrypoints export the table component and public types. Dedicated
+subpaths expose URL state, advanced composition, and types without relying on
+generated chunk names or source-directory deep imports.
 
 ### Shadcn default
 
@@ -38,6 +40,34 @@ import {
   type DataTableColumnDef,
 } from "data-table-pro/thegridcn";
 ```
+
+### Virtualization-first adapters
+
+```ts
+import { DataTable as ShadcnVirtualDataTable } from "data-table-pro/virtual";
+import { DataTable as HeroVirtualDataTable } from "data-table-pro/heroui/virtual";
+import { DataTable as GridVirtualDataTable } from "data-table-pro/thegridcn/virtual";
+```
+
+These entrypoints export the same `DataTableProps` and public types as their
+base adapters, but TanStack Virtual is in their static module graph. Base
+adapter entrypoints preserve the 3.x `virtualization` prop by loading the
+virtual panels on demand.
+
+### Adapter authoring
+
+```ts
+import {
+  createDataTable,
+  primitiveUiKit,
+  type DataTableUiKit,
+} from "data-table-pro/adapter";
+import { createVirtualDataTable } from "data-table-pro/adapter/virtual";
+```
+
+`data-table-pro/adapter` is the narrow stable entrypoint. The virtual factory
+is separate so a non-virtual custom adapter does not statically load TanStack
+Virtual.
 
 ## Host Stylesheet Requirements
 
@@ -116,8 +146,23 @@ The Gridcn consumers must also import a host-managed The Gridcn theme or token s
 
 ## Runtime Exports
 
-- `DataTable`
+- `data-table-pro`, `data-table-pro/heroui`, and
+  `data-table-pro/thegridcn` export `DataTable`
+- `data-table-pro/virtual`, `data-table-pro/heroui/virtual`, and
+  `data-table-pro/thegridcn/virtual` export the eager-virtual `DataTable`
 - `data-table-pro/url-state` exports `useDataTableUrlState`
+- `data-table-pro/adapter` exports `createDataTable` and `primitiveUiKit`
+- `data-table-pro/adapter/virtual` exports `createVirtualDataTable`
+- `data-table-pro/advanced` exports `createDataTable`, `primitiveUiKit`,
+  `DataTableBodyRow`, `DataTableCardPanel`, `DataTableFooterSection`,
+  `DataTableHeaderCell`, `DataTableTablePanel`, `DataTableToolbarSection`,
+  `useColumnLayout`, `useControllableState`, `useDataTableColumns`,
+  `useDataTableInstance`, `useDataTableState`, `useRowEditing`, and
+  `useStableCallback`
+
+`data-table-pro/advanced` is the supported 3.x compatibility path for advanced
+composition. Its broad implementation-level surface is scheduled to gain a
+narrower stable adapter-authoring replacement before any 4.0 removal.
 
 The URL-state subpath also exports the
 `UseDataTableUrlStateOptions`, `DataTableUrlStateSlice`,
@@ -129,8 +174,10 @@ These are exported from the adapter entrypoints and from `data-table-pro/types`.
 
 - `DataTableAlign`
 - `DataTableApi`
+- `DataTableCardSizing`
 - `DataTableCardVirtualizationConfig`
 - `DataTableCellOverflow`
+- `DataTableCellEditRenderProps`
 - `DataTableCardRendererProps`
 - `DataTableColumnDef`
 - `DataTableColumnFilterConfig`
@@ -176,6 +223,7 @@ These are exported from the adapter entrypoints and from `data-table-pro/types`.
 - `DataTableSummaryRow`
 - `DataTableToolbarAction`
 - `DataTableToolbarVisibility`
+- `DataTableVirtualizationConfig`
 - `DataTableViewMode`
 
 ## `DataTable`
@@ -311,6 +359,9 @@ is scheduled for Phase 2.
 | `tableContainerClassName` | `string` | `undefined` | Applied to the scroll container in table or card mode. |
 | `cardGridClassName` | `string` | responsive auto-fit grid | Applied to the card grid wrapper in card mode. Use this for explicit card density such as `grid-cols-1 sm:grid-cols-2 xl:grid-cols-3`. |
 | `cardClassName` | `string` | `undefined` | Applied to each card item wrapper in card mode. |
+| `flexGrow` | `boolean` | `true` | Fills the remaining height of a constrained flex parent. |
+| `showToolbar` | `boolean` | `true` | Controls the package toolbar region. |
+| `showFooter` | `boolean` | `true` | Controls the pagination/record-count footer when infinite loading is not active. |
 
 ### Layout requirements
 
@@ -465,6 +516,7 @@ interaction semantics.
 | `onViewModeChange` | `(viewMode: DataTableViewMode) => void` | `undefined` | View-mode change callback. |
 | `enableViewToggle` | `boolean` | `false` | Shows the toolbar view switcher when `cardRenderer` is present. |
 | `cardRenderer` | `(props: DataTableCardRendererProps<TData>) => React.ReactNode` | `undefined` | Required for card mode rendering. |
+| `cardSizing` | `"fixed" \| "content" \| "fluid"` | `"fixed"` | Selects capped fixed tracks, renderer-sized wrapping items, or responsive stretched tracks. |
 | `cardGridClassName` | `string` | responsive auto-fit grid | Supported grid slot for card mode. Prefer this over app CSS selectors against internal scroll/card wrappers. |
 | `cardClassName` | `string` | `undefined` | Supported item slot for card mode card wrappers. |
 | `expanded` | `ExpandedState` | internal state | Controlled expanded row state. |
@@ -499,9 +551,36 @@ interaction semantics.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `virtualization` | `boolean \| DataTableVirtualizationConfig` | `undefined` | Enables opt-in row virtualization in table mode and optional card virtualization via `virtualization.card`. Use `estimateRowHeight`, `estimateCardHeight`, `overscan`, and `lanes` to tune the virtual windows. |
+| `virtualization` | `boolean \| DataTableVirtualizationConfig` | `false` | Enables table-row virtualization. Object form configures row estimates/overscan and independently enables card virtualization. |
 
-Virtualization is intentionally disabled until the table scroll viewport has a measurable height, so collapsed or server-like test environments still render rows instead of a blank virtual window.
+```ts
+type DataTableVirtualizationConfig = {
+  enabled?: boolean;
+  estimateRowHeight?: number;
+  overscan?: number;
+  card?: {
+    enabled?: boolean;
+    estimateCardHeight?: number;
+    overscan?: number;
+    lanes?: number | "auto";
+  };
+};
+```
+
+`virtualization={true}` enables table-row virtualization with a 48px estimate
+and overscan of 8. Card virtualization is opt-in through
+`virtualization.card.enabled`; its defaults are a 280px estimate, overscan of
+4, and automatic lanes. Until a measurable viewport exists, the complete row
+or card set is rendered so SSR and first paint do not produce an empty table.
+
+Import behavior:
+
+- a base adapter dynamically loads the virtual panels only after
+  virtualization is enabled; its fallback is the complete non-virtual view
+- a `/virtual` adapter includes TanStack Virtual in its static graph and avoids
+  the first-use async boundary
+- switching between the fallback and loaded panel does not remount the parent
+  table state
 
 ### Inline editing props
 
@@ -509,7 +588,12 @@ Virtualization is intentionally disabled until the table scroll viewport has a m
 | --- | --- | --- | --- |
 | `editableRows` | `DataTableEditableRowsConfig<TData>` | `undefined` | Enables row edit mode, built-in draft state, and save handling. |
 
-Column meta can customize editing with `renderEditCell`, `parseEditValue`, and `formatEditValue`. Numeric columns use number inputs, date columns use datetime inputs, and boolean drafts use checkboxes by default.
+Column meta can customize editing with `renderEditCell`, `parseEditValue`, and
+`formatEditValue`. A custom editor receives
+`DataTableCellEditRenderProps<TData, TValue>` with the TanStack cell, original
+row, current value, draft value, and `setDraftValue`. Numeric columns use
+number inputs, date columns use datetime inputs, and boolean drafts use
+checkboxes by default.
 
 ### Column visibility, sizing, ordering, pinning, and preferences props
 

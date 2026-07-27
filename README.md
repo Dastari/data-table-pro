@@ -4,21 +4,35 @@ Reusable React data table components built on TanStack Table with multiple UI ad
 
 ## Adapters
 
-`data-table-pro` now ships one shared table implementation with three adapter entrypoints:
+`data-table-pro` ships one shared table implementation with base and
+virtualization-first adapter entrypoints:
 
 - `data-table-pro`: shadcn-compatible default
 - `data-table-pro/heroui`: HeroUI-flavored adapter
 - `data-table-pro/thegridcn`: The Gridcn-flavored adapter
+- `data-table-pro/virtual`: shadcn with eager TanStack Virtual support
+- `data-table-pro/heroui/virtual`: HeroUI with eager TanStack Virtual support
+- `data-table-pro/thegridcn/virtual`: The Gridcn with eager TanStack Virtual support
 
-All three adapter entrypoints export the same table runtime API:
+All adapter entrypoints export the same table runtime API:
 
 - `DataTable`
 
 Dedicated subpath exports are also available:
 
 - `data-table-pro/url-state`: `useDataTableUrlState`
+- `data-table-pro/adapter`: stable non-virtual adapter-authoring factory
+- `data-table-pro/adapter/virtual`: virtual adapter-authoring factory
 - `data-table-pro/advanced`: advanced composition hooks, panels, and adapter helpers
 - `data-table-pro/types`: public TypeScript types
+
+The current 3.x feature set includes client/manual filtering, sorting and
+pagination, unknown-total pagination, selection, detail panels, table/card
+views, row/card virtualization, column sizing/order/pinning/visibility,
+versioned persistence, named saved views, versioned URL state, CSV export,
+inline row editing, density controls, loading/empty states, summary rows,
+infinite loading, and host-owned drag/upload integrations. See
+[`docs/API.md`](./docs/API.md) for the complete contract.
 
 ## Breaking Changes In 3.0.0
 
@@ -74,6 +88,32 @@ import { DataTable, type DataTableColumnDef } from "data-table-pro/thegridcn";
 import "data-table-pro/styles.css";
 import "./thegridcn-theme.css";
 ```
+
+### Virtualization-first entrypoints
+
+Use a `/virtual` entrypoint when virtualization is enabled on initial render
+or when the application preloads routes:
+
+```tsx
+import { DataTable } from "data-table-pro/virtual";
+
+<DataTable
+  columns={columns}
+  data={rows}
+  getRowId={(row) => row.id}
+  virtualization
+/>;
+```
+
+The existing base entrypoints remain source-compatible with
+`virtualization`. They load the virtual row/card implementation only when the
+prop enables it and render the complete non-virtual view as the Suspense
+fallback. Applications that never enable virtualization do not statically
+load `@tanstack/react-virtual`.
+
+Custom adapter authors should use `createDataTable` from
+`data-table-pro/adapter`, or `createVirtualDataTable` from
+`data-table-pro/adapter/virtual`.
 
 ### Advanced composition
 
@@ -425,14 +465,21 @@ pnpm build
 pnpm api:check
 pnpm test:consumer
 pnpm demo:build
+pnpm bundle:check
 pnpm test:browser
 ```
 
 `test:browser` covers shadcn, HeroUI, and The Gridcn in light and dark themes
 with layout assertions, axe audits, and screenshot baselines.
 `test:consumer` packs the repository and builds a clean consumer fixture
-against the resulting tarball. When a reviewed public declaration change is
-intentional, regenerate `api-snapshots/public-api.md` with
+against the resulting tarball, including every supported adapter and subpath.
+`bundle:check` enforces the base/adapter/URL-state/demo gzip budgets and fails
+if a base or stable adapter-authoring entrypoint statically reaches TanStack
+Virtual.
+`api-snapshots/public-api.md` is the generated, reviewable declaration
+reference for this TypeScript package; the repository does not contain a Rust
+crate or Rustdoc output. When a reviewed public declaration change is
+intentional, regenerate the snapshot with
 `pnpm api:update`. Install the browser once with
 `pnpm exec playwright install chromium` before running browser tests locally.
 

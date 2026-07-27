@@ -7,6 +7,14 @@
 | Shadcn default | `data-table-pro` | none beyond host shadcn/theme tokens |
 | HeroUI | `data-table-pro/heroui` | `@heroui/styles` |
 | The Gridcn | `data-table-pro/thegridcn` | host The Gridcn theme/token CSS |
+| Shadcn virtual | `data-table-pro/virtual` | none beyond host shadcn/theme tokens |
+| HeroUI virtual | `data-table-pro/heroui/virtual` | `@heroui/styles` |
+| The Gridcn virtual | `data-table-pro/thegridcn/virtual` | host The Gridcn theme/token CSS |
+
+Base entrypoints are recommended when virtualization is disabled or toggled
+occasionally: the virtual implementation is then an on-demand chunk. Use the
+matching `/virtual` path when virtual rows/cards are part of the initial route
+and should load eagerly.
 
 ## Required Imports
 
@@ -71,6 +79,29 @@ classNames: {
 ```
 
 Use that hook when a host design system wants compact toolbar icon buttons to be larger or smaller than the package defaults without targeting toolbar DOM structure directly.
+
+## Custom Adapter Factories
+
+Use the stable adapter-authoring entrypoint instead of broad advanced internals:
+
+```ts
+import {
+  createDataTable,
+  primitiveUiKit,
+  type DataTableUiKit,
+} from "data-table-pro/adapter";
+
+const customUiKit: DataTableUiKit = {
+  ...primitiveUiKit,
+  // Replace primitives and class-name slots owned by the host design system.
+};
+
+export const DataTable = createDataTable(customUiKit);
+```
+
+For an eager-virtual custom adapter, import `createVirtualDataTable` from
+`data-table-pro/adapter/virtual`. Keeping the factories separate prevents
+non-virtual adapters from statically reaching TanStack Virtual.
 
 ## Full-Height Layout
 

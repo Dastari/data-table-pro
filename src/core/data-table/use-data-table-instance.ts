@@ -7,7 +7,6 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { useVirtualizer } from "@tanstack/react-virtual";
 import type {
   ColumnDef,
   ColumnFiltersState,
@@ -44,7 +43,6 @@ export function useDataTableInstance<TData>({
   currentPagination,
   currentRowSelection,
   currentSorting,
-  currentViewMode,
   defaultColumn,
   effectiveColumnVisibility,
   enableColumnResizing,
@@ -78,10 +76,7 @@ export function useDataTableInstance<TData>({
   tableData,
   tableGetRowId,
   tableRef,
-  tableScrollElement,
   totalRowCount,
-  virtualization,
-  viewportHeight,
 }: {
   autoResetPageIndex: boolean;
   columnResizeMode: DataTableProps<TData>["columnResizeMode"];
@@ -330,40 +325,10 @@ export function useDataTableInstance<TData>({
   );
 
   const renderedRows = table.getRowModel().rows;
-  const virtualizationConfig =
-    typeof virtualization === "object" ? virtualization : undefined;
-  const enableVirtualization =
-    currentViewMode === "table" &&
-    !shouldRenderInitialLoading &&
-    (virtualization === true || virtualizationConfig?.enabled === true);
-  const shouldUseVirtualRows =
-    enableVirtualization && Boolean(tableScrollElement) && viewportHeight > 0;
-  const rowVirtualizer = useVirtualizer({
-    count: enableVirtualization ? renderedRows.length : 0,
-    enabled: shouldUseVirtualRows,
-    estimateSize: () => virtualizationConfig?.estimateRowHeight ?? 48,
-    getScrollElement: () => tableScrollElement,
-    overscan: virtualizationConfig?.overscan ?? 8,
-  });
-  const virtualItems = shouldUseVirtualRows
-    ? rowVirtualizer.getVirtualItems()
-    : [];
-  const rowsToRender = shouldUseVirtualRows
-    ? virtualItems.flatMap((virtualItem) => {
-        const row = renderedRows[virtualItem.index];
-        return row ? [{ row, rowIndex: virtualItem.index }] : [];
-      })
-    : renderedRows.map((row, rowIndex) => ({ row, rowIndex }));
-  const virtualPaddingTop = shouldUseVirtualRows
-    ? (virtualItems[0]?.start ?? 0)
-    : 0;
-  const virtualPaddingBottom = shouldUseVirtualRows
-    ? Math.max(
-        0,
-        rowVirtualizer.getTotalSize() -
-          (virtualItems.at(-1)?.end ?? virtualPaddingTop),
-      )
-    : 0;
+  const rowsToRender = renderedRows.map((row, rowIndex) => ({
+    row,
+    rowIndex,
+  }));
 
   const usesManualRows = manualPagination || Boolean(infiniteScroll?.enabled);
   const derivedTotalRowCount = usesManualRows
@@ -482,8 +447,8 @@ export function useDataTableInstance<TData>({
     rowsToRender,
     sentinelRef,
     table,
-    virtualPaddingBottom,
-    virtualPaddingTop,
+    virtualPaddingBottom: 0,
+    virtualPaddingTop: 0,
     visibleLeafColumns,
   };
 }
