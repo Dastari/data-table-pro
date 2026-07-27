@@ -1240,7 +1240,7 @@ function useDataTableStateConflictWarnings(
 
       warnedSlicesRef.current.add(key);
       console.warn(
-        `[data-table-pro] Both state.${key} and its legacy controlled prop were provided. The legacy prop takes precedence during the 3.x migration window.`,
+        `[data-table-pro] Both state.${key} and its legacy controlled prop were provided. The legacy prop takes precedence during the 4.x compatibility window.`,
       );
     }
   }, [legacySlices, state]);

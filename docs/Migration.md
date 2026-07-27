@@ -1,6 +1,6 @@
 # Migration Guide
 
-## Unreleased code-splitting entrypoints
+## 4.0.0 code-splitting entrypoints
 
 No existing import or prop needs to change. The base adapter entrypoints still
 accept `virtualization`, but TanStack Virtual is now loaded in an on-demand
@@ -33,11 +33,11 @@ import { createDataTable } from "data-table-pro/adapter";
 import { createVirtualDataTable } from "data-table-pro/adapter/virtual";
 ```
 
-`data-table-pro/advanced` remains available throughout 3.x. Package JavaScript
+`data-table-pro/advanced` remains available throughout 4.x. Package JavaScript
 is now minified with source maps; generated chunk filenames remain private and
 must not be imported directly.
 
-## Unreleased dependency and toolchain baseline
+## 4.0.0 dependency and toolchain baseline
 
 The package peer minimums have moved to:
 
@@ -65,7 +65,7 @@ support the TypeScript 7 API. pnpm 11 also enforces an explicit dependency
 build policy: esbuild's installer is allowed, while MSW's unused transitive
 postinstall is denied.
 
-## Unreleased clickable-row semantic correction
+## 4.0.0 clickable-row semantic correction
 
 Clickable table rows now preserve their native row semantics instead of
 rendering `role="button"` on a `<tr>` that may contain checkboxes, links, and
@@ -99,7 +99,7 @@ New `onActionError` handling is additive. Built-in async callbacks no longer
 leave rejected promises unhandled; consumers can use the error context to show
 their preferred toast, retry, or inline error state.
 
-## Adopt versioned persistence during 3.x
+## Adopt versioned persistence during 4.x
 
 `columnPrefsKey` remains functional. It now reads legacy raw preference objects
 and upgrades them to a validated, versioned envelope on the next write.
@@ -111,7 +111,7 @@ slices can move additively:
 // Before and still supported
 <DataTable columnPrefsKey="people" />
 
-// Additive 3.x replacement
+// Compatibility replacement
 <DataTable
   persistence={{
     key: "people",
@@ -123,10 +123,10 @@ slices can move additively:
 />
 ```
 
-When both props are supplied, `persistence` takes precedence. No 4.0 removal is
-active yet.
+When both props are supplied, `persistence` takes precedence. No removal is
+planned during 4.x.
 
-## Adopt unified state during 3.x
+## Adopt unified state during 4.x
 
 The split controlled props remain supported. `initialState`, `state`, and
 `onStateChange` can be adopted one slice at a time:
@@ -143,7 +143,7 @@ const [tableState, setTableState] = useState<DataTableState>(initialState);
 />
 ```
 
-During 3.x, a legacy controlled prop takes precedence over its matching unified
+During 4.x, a legacy controlled prop takes precedence over its matching unified
 slice. For example, `pageIndex`/`pageSize` override `state.pagination`, and
 `sorting` overrides `state.sorting`. Development builds warn when both are
 present so migrations can remove conflicts deliberately.
@@ -152,7 +152,7 @@ Column sizing can now be controlled with `columnSizing` and
 `onColumnSizingChange`. `apiRef` provides snapshot/restore and reset commands
 without requiring imports from `data-table-pro/advanced`.
 
-## Adopt expanded URL state during 3.x
+## Adopt expanded URL state during 4.x
 
 Existing query, page, page-size, sort, view, and hidden-row URL behavior is
 unchanged. New slices are opt-in and versioned:
@@ -210,24 +210,24 @@ Use `resetColumnLayout({ clearPersistence: true })` or
 `resetState({ clearPersistence: true })` to discard the old payload and restore
 initial/default values in one command.
 
-## Planned 4.0 migration
+## Planned 5.0 migration
 
-No 4.0 breaking change is active in 3.0.9. The modernization roadmap defines
-the following planned changes so consumers can adopt their 3.x replacements
-before anything is removed:
+Version 4.0.0 intentionally removes no public API. The modernization roadmap
+defines the following possible 5.0 changes so consumers can adopt their 4.x
+replacements before anything is removed:
 
-| Current 3.x API | Planned 4.0 API | Compatibility path |
+| Current 4.x API | Planned 5.0 API | Compatibility path |
 | --- | --- | --- |
-| `toolbarQueryValue`, `onToolbarQueryValueChange`, `toolbarQueryDebounceMs` | `globalFilter`, `onGlobalFilterChange`, `globalFilterDebounceMs` | Both names will work during the 3.x deprecation window. |
-| Split `pageIndex`/`pageSize` props and callbacks | Unified pagination state and `onPaginationChange` | Unified state will be additive in 3.x. |
+| `toolbarQueryValue`, `onToolbarQueryValueChange`, `toolbarQueryDebounceMs` | `globalFilter`, `onGlobalFilterChange`, `globalFilterDebounceMs` | Both names will work during a 4.x deprecation window before any removal. |
+| Split `pageIndex`/`pageSize` props and callbacks | Unified pagination state and `onPaginationChange` | Unified state is additive in 4.x. |
 | `renderExpandedRow` and `getRowCanExpand` for detail content | `detailPanel={{ render, getCanExpand }}` | The explicit detail-panel API will ship before tree expansion takes ownership of expanded-row semantics. |
-| `columnPrefsKey` | Versioned `persistence` configuration | `columnPrefsKey` will remain a 3.x shorthand. |
-| `virtualization` on the base component | Dedicated virtual adapter entrypoints | Both entry styles now coexist in 3.x; base imports load virtual panels on demand. |
-| Broad `data-table-pro/advanced` imports | Stable `data-table-pro/adapter` contracts | The stable factory entrypoint is available; advanced remains supported through 3.x. |
+| `columnPrefsKey` | Versioned `persistence` configuration | `columnPrefsKey` remains a 4.x compatibility shorthand. |
+| `virtualization` on the base component | Dedicated virtual adapter entrypoints | Both entry styles coexist in 4.x; base imports load virtual panels on demand. |
+| Broad `data-table-pro/advanced` imports | Stable `data-table-pro/adapter` contracts | The stable factory entrypoint is available; advanced remains supported through 4.x. |
 
-The 4.0 release is gated on:
+Any 5.0 removal is gated on:
 
-- at least one stable 3.x release containing every replacement
+- at least one stable 4.x release containing every replacement
 - development warnings for conflicting old/new props
 - a codemod for renamed props and entrypoints
 - migration fixtures for every adapter, server pagination, URL state,

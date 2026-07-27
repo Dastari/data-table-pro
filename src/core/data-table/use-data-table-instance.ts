@@ -125,7 +125,7 @@ export function useDataTableInstance<TData>({
   tableScrollElement: HTMLElement | null;
   /**
    * @deprecated Filtering now runs through TanStack Table. Retained so
-   * advanced 3.x hook callers remain source-compatible.
+   * advanced 4.x hook callers remain source-compatible.
    */
   toolbarFilteredData?: Array<TData>;
   totalRowCount: DataTableProps<TData>["totalRowCount"];

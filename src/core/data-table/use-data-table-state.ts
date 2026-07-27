@@ -450,7 +450,7 @@ export function useDataTableState<TData>({
     tableGetRowId,
     /**
      * @deprecated Read the filtered TanStack row model from the table
-     * instance. This alias remains for advanced 3.x callers.
+     * instance. This alias remains for advanced 4.x callers.
      */
     toolbarFilteredData: visibleData,
     visibleData,

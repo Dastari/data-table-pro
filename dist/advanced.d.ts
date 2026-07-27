@@ -317,7 +317,7 @@ declare function useDataTableInstance<TData>({ autoResetPageIndex, columnResizeM
     tableScrollElement: HTMLElement | null;
     /**
      * @deprecated Filtering now runs through TanStack Table. Retained so
-     * advanced 3.x hook callers remain source-compatible.
+     * advanced 4.x hook callers remain source-compatible.
      */
     toolbarFilteredData?: Array<TData>;
     totalRowCount: DataTableProps<TData>["totalRowCount"];
@@ -429,7 +429,7 @@ declare function useDataTableState<TData>({ columnFilters, columnOrder, columnPi
     tableGetRowId: (row: TData, index: number) => string;
     /**
      * @deprecated Read the filtered TanStack row model from the table
-     * instance. This alias remains for advanced 3.x callers.
+     * instance. This alias remains for advanced 4.x callers.
      */
     toolbarFilteredData: TData[];
     visibleData: TData[];

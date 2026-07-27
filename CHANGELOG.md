@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+No changes yet.
+
+## 4.0.0 - 2026-07-27
+
+Version 4.0.0 is a compatibility-first major release. It packages the
+correctness, state, persistence, quality, dependency, and code-splitting work
+delivered after 3.0.9 without removing an existing public prop, type, or
+entrypoint. The previously proposed API-removal milestone is deferred to
+5.0.0 so every replacement can ship and mature first.
+
 ### Features
 
 - Added eager virtual adapter entrypoints at `data-table-pro/virtual`,
@@ -15,7 +25,7 @@
 - Added the additive `persistence` configuration with versioned payloads,
   selected state slices, custom storage, serialization/deserialization,
   migration, debounce, and error hooks.
-- Kept `columnPrefsKey` as a 3.x shorthand and automatically reads its legacy
+- Kept `columnPrefsKey` as a compatibility shorthand and automatically reads its legacy
   unversioned payload before upgrading it on the next write.
 - Added unified `initialState`, partial controlled `state`, and
   TanStack-compatible `onStateChange` APIs with documented legacy-prop
@@ -106,6 +116,19 @@
   used this undocumented DOM selector should target their own row class from
   `getRowClassName` or the table row associated with their rendered content.
 
+### Validation
+
+- `pnpm lint`
+- `pnpm typecheck`
+- `pnpm demo:typecheck`
+- `pnpm test:coverage` (211 tests)
+- deterministic `pnpm build` and committed `dist`
+- `pnpm api:check`
+- `pnpm test:consumer`
+- `pnpm demo:build`
+- `pnpm bundle:check`
+- `pnpm test:browser` across all adapters in light and dark themes
+
 ## 3.0.9
 
 ### Fixes
@@ -138,7 +161,8 @@
 - Added a phased modernization roadmap covering audit fixes, performance and
   code splitting, TanStack feature parity, modern-grid quality-of-life work,
   delivery gates, and deferred optional capabilities.
-- Added the planned 4.0 breaking-change register and migration guarantees.
+- Added the original breaking-change register and migration guarantees; the
+  compatibility-first 4.0 release later retargeted those removals to 5.0.
 - Documented the 3.0.9 behavior corrections, CSV safety controls,
   unknown-total pagination, action errors, and compatibility expectations.
 

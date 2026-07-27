@@ -51,7 +51,7 @@ import { DataTable as GridVirtualDataTable } from "data-table-pro/thegridcn/virt
 
 These entrypoints export the same `DataTableProps` and public types as their
 base adapters, but TanStack Virtual is in their static module graph. Base
-adapter entrypoints preserve the 3.x `virtualization` prop by loading the
+adapter entrypoints preserve the base `virtualization` prop by loading the
 virtual panels on demand.
 
 ### Adapter authoring
@@ -160,9 +160,9 @@ The Gridcn consumers must also import a host-managed The Gridcn theme or token s
   `useDataTableInstance`, `useDataTableState`, `useRowEditing`, and
   `useStableCallback`
 
-`data-table-pro/advanced` is the supported 3.x compatibility path for advanced
-composition. Its broad implementation-level surface is scheduled to gain a
-narrower stable adapter-authoring replacement before any 4.0 removal.
+`data-table-pro/advanced` is the supported compatibility path for advanced
+composition. `data-table-pro/adapter` is the narrower stable adapter-authoring
+replacement; no advanced import is removed in 4.0.
 
 The URL-state subpath also exports the
 `UseDataTableUrlStateOptions`, `DataTableUrlStateSlice`,
@@ -253,7 +253,7 @@ function DataTable<TData>(props: DataTableProps<TData>): React.ReactElement;
 
 Legacy controlled props remain supported. If a legacy prop and its matching
 `state` slice are both supplied, the legacy prop takes precedence during the
-3.x migration window and a development warning is emitted.
+4.x compatibility window and a development warning is emitted.
 
 `DataTableApi<TData>` provides:
 

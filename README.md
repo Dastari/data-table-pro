@@ -26,7 +26,7 @@ Dedicated subpath exports are also available:
 - `data-table-pro/advanced`: advanced composition hooks, panels, and adapter helpers
 - `data-table-pro/types`: public TypeScript types
 
-The current 3.x feature set includes client/manual filtering, sorting and
+The current 4.0 feature set includes client/manual filtering, sorting and
 pagination, unknown-total pagination, selection, detail panels, table/card
 views, row/card virtualization, column sizing/order/pinning/visibility,
 versioned persistence, named saved views, versioned URL state, CSV export,
@@ -42,13 +42,22 @@ infinite loading, and host-owned drag/upload integrations. See
 - toolbar search now filters client-side tables by default; disable with `manualFiltering` or `enableToolbarQueryFiltering={false}`
 - column filters, CSV export, row expansion, density, column pinning/reordering, labels, and column preference persistence were added
 
+## 4.0.0 Compatibility
+
+Version 4.0.0 removes no public prop, type, or package entrypoint. It is a
+compatibility-first major that releases the accumulated state, persistence,
+quality, dependency, accessibility, and package-splitting work after 3.0.9.
+The previously planned API cleanup is deferred to a future 5.0 release.
+
 ## Installation
 
 ```bash
-pnpm add github:Dastari/data-table-pro#v3.0.9
+pnpm add github:Dastari/data-table-pro#v4.0.0
 ```
 
-This package is installed from GitHub refs. It is not published to npm. Release tags such as `v3.0.9` include committed `dist/` output, so consumers do not need to allow package build scripts during install.
+This package is installed from GitHub refs. It is not published to npm.
+Release tags such as `v4.0.0` include committed `dist/` output, so consumers
+do not need to allow package build scripts during install.
 
 Peer dependencies:
 
@@ -367,7 +376,8 @@ const snapshot = apiRef.current?.snapshot();
 ```
 
 Legacy controlled props remain supported and take precedence over the matching
-unified slice during 3.x. A development warning identifies conflicting inputs.
+unified slice during the 4.x compatibility window. A development warning
+identifies conflicting inputs.
 
 Enhanced URL state remains opt-in and isolated from the base bundle:
 
