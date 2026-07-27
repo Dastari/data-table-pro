@@ -32,11 +32,20 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
+      - name: Demo typecheck
+        run: pnpm demo:typecheck
+
       - name: Test
         run: pnpm test
 
       - name: Build
         run: pnpm build
+
+      - name: Verify generated distribution
+        run: git diff --exit-code -- dist
+
+      - name: Verify package contents
+        run: npm pack --dry-run
 
       - name: Demo build
         run: pnpm demo:build

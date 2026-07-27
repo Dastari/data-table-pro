@@ -135,6 +135,21 @@ Acceptance gates:
 
 ### Phase 1: state, persistence, and quality foundation (3.1)
 
+Status: in progress.
+
+Delivered on `main` after 3.0.9:
+
+- Versioned, validated preference persistence with selected slices, custom
+  storage and codecs, migration/error hooks, debounced writes, unchanged-value
+  suppression, and automatic legacy `columnPrefsKey` compatibility.
+- Unified initial/controlled state, TanStack-compatible state updaters,
+  controlled column sizing, migration precedence warnings, and a typed API ref
+  for inspection, state commands, focus, scrolling, and export.
+- Transactional controlled-state updater handling for consecutive same-tick
+  transitions.
+- SSR coverage for all adapters plus CI gates for demo types, stale generated
+  distribution output, and packed-package contents.
+
 State/API:
 
 - Add additive `initialState`, `state`, and `onStateChange` APIs based on

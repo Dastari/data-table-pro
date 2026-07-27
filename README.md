@@ -280,6 +280,55 @@ CSV export supports `"filtered"`, `"page"`, `"selected"`, and `"all"` scopes.
 String values that begin with spreadsheet formula characters are neutralized
 by default; trusted applications can set `escapeFormulaValues: false`.
 
+Versioned state persistence is available through the additive `persistence`
+configuration:
+
+```tsx
+<DataTable
+  columns={columns}
+  data={rows}
+  getRowId={(row) => row.id}
+  persistence={{
+    key: "people-table",
+    version: 2,
+    slices: ["visibility", "sizing", "order", "pinning", "density"],
+    debounceMs: 150,
+    migrate: (payload) => migratePeopleTableState(payload),
+    onError: ({ error, operation }) => {
+      reportPersistenceError(operation, error);
+    },
+  }}
+/>
+```
+
+`columnPrefsKey="people-table"` remains supported as a shorthand. Legacy raw
+preference objects are validated, loaded, and upgraded to the versioned
+envelope on the next write.
+
+Unified state and imperative commands can be adopted incrementally:
+
+```tsx
+const apiRef = React.createRef<DataTableApi<Person>>();
+const [tableState, setTableState] = React.useState<DataTableState>(
+  initialPeopleTableState,
+);
+
+<DataTable
+  apiRef={apiRef}
+  columns={columns}
+  data={rows}
+  getRowId={(row) => row.id}
+  state={tableState}
+  onStateChange={setTableState}
+/>;
+
+apiRef.current?.scrollToRow("person-42");
+const snapshot = apiRef.current?.snapshot();
+```
+
+Legacy controlled props remain supported and take precedence over the matching
+unified slice during 3.x. A development warning identifies conflicting inputs.
+
 ### Column filters
 
 Declare toolbar filters on column meta:

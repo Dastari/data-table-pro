@@ -5,7 +5,9 @@ import type {
 } from "@tanstack/react-table";
 import type {
   DataTableActionErrorContext,
+  DataTableApi,
   DataTableProps,
+  DataTableState,
 } from "../types";
 import type { DataTableUiKit } from "../ui-kit";
 import { cn } from "../../lib/utils";
@@ -23,7 +25,9 @@ import { useDataTableColumns } from "./use-data-table-columns";
 import { useDataTableInstance } from "./use-data-table-instance";
 import { useDataTableScrollViewport } from "./use-data-table-scroll-viewport";
 import {
+  exportDataTableCsv,
   getColumnId,
+  getInitialColumnPinning,
 } from "./data-table-utils";
 import { useDataTableState } from "./use-data-table-state";
 import { useDataTableToolbarFeatures } from "./use-data-table-toolbar-features";
@@ -115,6 +119,11 @@ export function createDataTable(ui: DataTableUiKit) {
     onDensityChange,
     enableDensityToggle = false,
     columnPrefsKey,
+    persistence,
+    initialState,
+    state: unifiedState,
+    onStateChange,
+    apiRef,
     labels,
     summaryRows = [],
     cardRenderer,
@@ -135,6 +144,8 @@ export function createDataTable(ui: DataTableUiKit) {
     editableRows,
     columnVisibility,
     onColumnVisibilityChange,
+    columnSizing,
+    onColumnSizingChange,
     enableColumnResizing = false,
     columnResizeMode = "onChange",
     layoutMode = "fill",
@@ -163,6 +174,132 @@ export function createDataTable(ui: DataTableUiKit) {
     const resolvedLabels = React.useMemo(
       () => resolveDataTableLabels(labels),
       [labels],
+    );
+    const resolvedToolbarQueryValue =
+      toolbarQueryValue ?? unifiedState?.globalFilter;
+    const resolvedSorting = sorting ?? unifiedState?.sorting;
+    const resolvedPageIndex =
+      pageIndex ?? unifiedState?.pagination?.pageIndex;
+    const resolvedPageSize = pageSize ?? unifiedState?.pagination?.pageSize;
+    const resolvedRowSelection =
+      rowSelection ?? unifiedState?.rowSelection;
+    const resolvedColumnVisibility =
+      columnVisibility ?? unifiedState?.columnVisibility;
+    const resolvedColumnFilters =
+      columnFilters ?? unifiedState?.columnFilters;
+    const resolvedExpanded = expanded ?? unifiedState?.expanded;
+    const resolvedColumnOrder =
+      columnOrder ?? unifiedState?.columnOrder;
+    const resolvedColumnPinning =
+      columnPinning ?? unifiedState?.columnPinning;
+    const resolvedColumnSizing =
+      columnSizing ?? unifiedState?.columnSizing;
+    const resolvedDensity = density ?? unifiedState?.density;
+    const resolvedViewMode = viewMode ?? unifiedState?.viewMode;
+    const resolvedShowHiddenRows =
+      showHiddenRows ?? unifiedState?.showHiddenRows;
+    useDataTableStateConflictWarnings(unifiedState, {
+      columnFilters: columnFilters !== undefined,
+      columnOrder: columnOrder !== undefined,
+      columnPinning: columnPinning !== undefined,
+      columnSizing: columnSizing !== undefined,
+      columnVisibility: columnVisibility !== undefined,
+      density: density !== undefined,
+      expanded: expanded !== undefined,
+      globalFilter: toolbarQueryValue !== undefined,
+      pagination: pageIndex !== undefined || pageSize !== undefined,
+      rowSelection: rowSelection !== undefined,
+      showHiddenRows: showHiddenRows !== undefined,
+      sorting: sorting !== undefined,
+      viewMode: viewMode !== undefined,
+    });
+    const handleToolbarQueryValueChange = useDataTableStateSliceChange(
+      "globalFilter",
+      onToolbarQueryValueChange,
+      onStateChange,
+    );
+    const handleSortingPropChange = useDataTableStateSliceChange(
+      "sorting",
+      onSortingChange,
+      onStateChange,
+    );
+    const handleRowSelectionPropChange = useDataTableStateSliceChange(
+      "rowSelection",
+      onRowSelectionChange,
+      onStateChange,
+    );
+    const handleColumnVisibilityPropChange = useDataTableStateSliceChange(
+      "columnVisibility",
+      onColumnVisibilityChange,
+      onStateChange,
+    );
+    const handleColumnFiltersPropChange = useDataTableStateSliceChange(
+      "columnFilters",
+      onColumnFiltersChange,
+      onStateChange,
+    );
+    const handleExpandedPropChange = useDataTableStateSliceChange(
+      "expanded",
+      onExpandedChange,
+      onStateChange,
+    );
+    const handleColumnOrderPropChange = useDataTableStateSliceChange(
+      "columnOrder",
+      onColumnOrderChange,
+      onStateChange,
+    );
+    const handleColumnPinningPropChange = useDataTableStateSliceChange(
+      "columnPinning",
+      onColumnPinningChange,
+      onStateChange,
+    );
+    const handleColumnSizingPropChange = useDataTableStateSliceChange(
+      "columnSizing",
+      onColumnSizingChange,
+      onStateChange,
+    );
+    const handleDensityPropChange = useDataTableStateSliceChange(
+      "density",
+      onDensityChange,
+      onStateChange,
+    );
+    const handleViewModePropChange = useDataTableStateSliceChange(
+      "viewMode",
+      onViewModeChange,
+      onStateChange,
+    );
+    const handleShowHiddenRowsPropChange = useDataTableStateSliceChange(
+      "showHiddenRows",
+      onShowHiddenRowsChange,
+      onStateChange,
+    );
+    const handlePageIndexPropChange = React.useCallback(
+      (nextPageIndex: number) => {
+        onPageIndexChange?.(nextPageIndex);
+        onStateChange?.((current) => ({
+          ...current,
+          pagination: {
+            pageIndex: nextPageIndex,
+            pageSize:
+              resolvedPageSize ?? current.pagination.pageSize,
+          },
+        }));
+      },
+      [onPageIndexChange, onStateChange, resolvedPageSize],
+    );
+    const handlePageSizePropChange = React.useCallback(
+      (nextPageSize: number) => {
+        onPageSizeChange?.(nextPageSize);
+        onStateChange?.((current) => ({
+          ...current,
+          pagination: {
+            pageIndex:
+              resolvedPageIndex ?? current.pagination.pageIndex,
+            pageSize: nextPageSize,
+          },
+        }));
+      },
+      [onPageSizeChange, onStateChange, resolvedPageIndex],
     );
     const runAction = React.useCallback(
       (
@@ -222,6 +359,7 @@ export function createDataTable(ui: DataTableUiKit) {
       currentColumnOrder,
       currentColumnPinning,
       currentColumnSizing,
+      currentColumnVisibility,
       currentDensity,
       currentExpanded,
       currentPagination,
@@ -253,47 +391,51 @@ export function createDataTable(ui: DataTableUiKit) {
       tableGetRowId,
       visibleData,
     } = useDataTableState({
-      columnFilters,
-      columnOrder,
-      columnPinning,
+      columnFilters: resolvedColumnFilters,
+      columnOrder: resolvedColumnOrder,
+      columnPinning: resolvedColumnPinning,
+      columnSizing: resolvedColumnSizing,
       columnPrefsKey,
-      columnVisibility,
+      persistence,
+      columnVisibility: resolvedColumnVisibility,
       columns,
       containerRef,
       data,
-      density,
+      density: resolvedDensity,
       enableRowSelection,
       enableToolbarQueryFiltering,
-      expanded,
+      expanded: resolvedExpanded,
       getRowId,
       hiddenRows,
       isLoading,
       loadingRowCount,
       manualFiltering,
-      onColumnFiltersChange,
-      onColumnOrderChange,
-      onColumnPinningChange,
-      onColumnVisibilityChange,
-      onDensityChange,
-      onExpandedChange,
-      onPageIndexChange,
-      onRowSelectionChange,
-      onShowHiddenRowsChange,
-      onSortingChange,
-      onToolbarQueryValueChange,
-      onViewModeChange,
-      pageIndex,
-      pageSize,
+      initialState,
+      onColumnFiltersChange: handleColumnFiltersPropChange,
+      onColumnOrderChange: handleColumnOrderPropChange,
+      onColumnPinningChange: handleColumnPinningPropChange,
+      onColumnSizingChange: handleColumnSizingPropChange,
+      onColumnVisibilityChange: handleColumnVisibilityPropChange,
+      onDensityChange: handleDensityPropChange,
+      onExpandedChange: handleExpandedPropChange,
+      onPageIndexChange: handlePageIndexPropChange,
+      onRowSelectionChange: handleRowSelectionPropChange,
+      onShowHiddenRowsChange: handleShowHiddenRowsPropChange,
+      onSortingChange: handleSortingPropChange,
+      onToolbarQueryValueChange: handleToolbarQueryValueChange,
+      onViewModeChange: handleViewModePropChange,
+      pageIndex: resolvedPageIndex,
+      pageSize: resolvedPageSize,
       resolvedLabels,
-      rowSelection,
+      rowSelection: resolvedRowSelection,
       rowsPerPageOptions,
       selectionActions,
-      showHiddenRows,
-      sorting,
+      showHiddenRows: resolvedShowHiddenRows,
+      sorting: resolvedSorting,
       toolbarQueryDebounceMs,
       toolbarQueryPlaceholder,
-      toolbarQueryValue,
-      viewMode,
+      toolbarQueryValue: resolvedToolbarQueryValue,
+      viewMode: resolvedViewMode,
     });
     const {
       cancelEditing,
@@ -397,11 +539,11 @@ export function createDataTable(ui: DataTableUiKit) {
       manualPagination,
       manualSorting,
       onActionError,
-      onPageIndexChange,
-      onPageSizeChange,
+      onPageIndexChange: handlePageIndexPropChange,
+      onPageSizeChange: handlePageSizePropChange,
       pageCount,
-      pageIndex,
-      pageSize,
+      pageIndex: resolvedPageIndex,
+      pageSize: resolvedPageSize,
       renderExpandedRow,
       setCurrentRowSelection,
       setCurrentSorting,
@@ -417,11 +559,9 @@ export function createDataTable(ui: DataTableUiKit) {
       virtualization,
       viewportHeight,
     });
-    const columnSizing = currentColumnSizing;
-
     const columnLayout = useColumnLayout({
       columns,
-      columnSizing,
+      columnSizing: currentColumnSizing,
       editableRows: Boolean(editableRows),
       enableRowSelection,
       hasRowActions: rowActions.length > 0,
@@ -564,6 +704,163 @@ export function createDataTable(ui: DataTableUiKit) {
         })),
       [runAction, selectionActions],
     );
+    const currentDataTableState = React.useMemo<DataTableState>(
+      () => ({
+        sorting: currentSorting,
+        pagination: currentPagination,
+        rowSelection: currentRowSelection,
+        columnVisibility: currentColumnVisibility,
+        columnFilters: currentColumnFilters,
+        expanded: currentExpanded,
+        columnOrder: currentColumnOrder,
+        columnPinning: currentColumnPinning,
+        columnSizing: currentColumnSizing,
+        density: currentDensity,
+        viewMode: currentViewMode,
+        showHiddenRows: currentShowHiddenRows,
+        globalFilter: localSearchValue,
+      }),
+      [
+        currentColumnFilters,
+        currentColumnOrder,
+        currentColumnPinning,
+        currentColumnSizing,
+        currentColumnVisibility,
+        currentDensity,
+        currentExpanded,
+        currentPagination,
+        currentRowSelection,
+        currentShowHiddenRows,
+        currentSorting,
+        currentViewMode,
+        localSearchValue,
+      ],
+    );
+    const getCurrentState = React.useCallback(
+      () => cloneDataTableState(currentDataTableState),
+      [currentDataTableState],
+    );
+    const restoreState = React.useCallback(
+      (nextState: Partial<DataTableState>) => {
+        if (nextState.sorting !== undefined) {
+          table.setSorting(nextState.sorting);
+        }
+        if (nextState.pagination !== undefined) {
+          table.setPagination(nextState.pagination);
+        }
+        if (nextState.rowSelection !== undefined) {
+          table.setRowSelection(nextState.rowSelection);
+        }
+        if (nextState.columnVisibility !== undefined) {
+          table.setColumnVisibility(nextState.columnVisibility);
+        }
+        if (nextState.columnFilters !== undefined) {
+          table.setColumnFilters(nextState.columnFilters);
+        }
+        if (nextState.expanded !== undefined) {
+          table.setExpanded(nextState.expanded);
+        }
+        if (nextState.columnOrder !== undefined) {
+          table.setColumnOrder(nextState.columnOrder);
+        }
+        if (nextState.columnPinning !== undefined) {
+          table.setColumnPinning(nextState.columnPinning);
+        }
+        if (nextState.columnSizing !== undefined) {
+          table.setColumnSizing(nextState.columnSizing);
+        }
+        if (nextState.density !== undefined) {
+          handleDensityChange(nextState.density);
+        }
+        if (nextState.viewMode !== undefined) {
+          handleViewModeChange(nextState.viewMode);
+        }
+        if (nextState.showHiddenRows !== undefined) {
+          handleShowHiddenRowsChange(nextState.showHiddenRows);
+        }
+        if (nextState.globalFilter !== undefined) {
+          setLocalSearchValue(nextState.globalFilter);
+        }
+      },
+      [
+        handleDensityChange,
+        handleShowHiddenRowsChange,
+        handleViewModeChange,
+        setLocalSearchValue,
+        table,
+      ],
+    );
+    const resetColumnLayout = React.useCallback(() => {
+      restoreState({
+        columnVisibility: initialState?.columnVisibility ?? {},
+        columnOrder: initialState?.columnOrder ?? [],
+        columnPinning:
+          initialState?.columnPinning ?? getInitialColumnPinning(columns),
+        columnSizing: initialState?.columnSizing ?? {},
+      });
+    }, [columns, initialState, restoreState]);
+    const resetState = React.useCallback(() => {
+      restoreState({
+        sorting: initialState?.sorting ?? [],
+        pagination: initialState?.pagination ?? {
+          pageIndex: 0,
+          pageSize: rowsPerPageOptions[0] ?? 20,
+        },
+        rowSelection: initialState?.rowSelection ?? {},
+        columnVisibility: initialState?.columnVisibility ?? {},
+        columnFilters: initialState?.columnFilters ?? [],
+        expanded: initialState?.expanded ?? {},
+        columnOrder: initialState?.columnOrder ?? [],
+        columnPinning:
+          initialState?.columnPinning ?? getInitialColumnPinning(columns),
+        columnSizing: initialState?.columnSizing ?? {},
+        density: initialState?.density ?? "comfortable",
+        viewMode: initialState?.viewMode ?? "table",
+        showHiddenRows: initialState?.showHiddenRows ?? false,
+        globalFilter: initialState?.globalFilter ?? "",
+      });
+    }, [columns, initialState, restoreState, rowsPerPageOptions]);
+    const exportCsvFromApi = React.useCallback<
+      DataTableApi<TData>["exportCsv"]
+    >(
+      (options) =>
+        exportDataTableCsv({
+          csvExport: options ?? (csvExport || true),
+          labels: resolvedLabels,
+          table,
+        }),
+      [csvExport, resolvedLabels, table],
+    );
+    React.useImperativeHandle(
+      apiRef,
+      () => ({
+        getTable: () => tableRef.current,
+        getState: getCurrentState,
+        snapshot: getCurrentState,
+        restore: restoreState,
+        resetColumnLayout,
+        resetState,
+        focus: () => {
+          containerRef.current?.focus();
+        },
+        scrollToRow: (rowId) =>
+          scrollDataTableElementIntoView(containerRef.current, "row", rowId),
+        scrollToColumn: (columnId) =>
+          scrollDataTableElementIntoView(
+            containerRef.current,
+            "column",
+            columnId,
+          ),
+        exportCsv: exportCsvFromApi,
+      }),
+      [
+        exportCsvFromApi,
+        getCurrentState,
+        resetColumnLayout,
+        resetState,
+        restoreState,
+      ],
+    );
 
     return (
       <TooltipProvider>
@@ -572,6 +869,7 @@ export function createDataTable(ui: DataTableUiKit) {
           data-dtp-slot="data-table-root"
           data-density={currentDensity}
           dir={dir}
+          tabIndex={-1}
           className={cn(
             "@container/data-table data-table-container-query flex flex-col",
             flexGrow ? "h-full min-h-0 flex-1" : "grow",
@@ -783,4 +1081,112 @@ function runDataTableAction<TData>(
   void Promise.resolve(result).catch((error: unknown) => {
     onActionError?.({ ...context, error });
   });
+}
+
+function useDataTableStateSliceChange<K extends keyof DataTableState>(
+  key: K,
+  onLegacyChange: ((value: DataTableState[K]) => void) | undefined,
+  onStateChange: DataTableProps<unknown>["onStateChange"],
+) {
+  const handleChange = React.useCallback(
+    (value: DataTableState[K]) => {
+      onLegacyChange?.(value);
+      onStateChange?.((current) => ({
+        ...current,
+        [key]: value,
+      }));
+    },
+    [key, onLegacyChange, onStateChange],
+  );
+
+  return onLegacyChange || onStateChange ? handleChange : undefined;
+}
+
+function useDataTableStateConflictWarnings(
+  state: Partial<DataTableState> | undefined,
+  legacySlices: Record<keyof DataTableState, boolean>,
+) {
+  const warnedSlicesRef = React.useRef(new Set<keyof DataTableState>());
+
+  React.useEffect(() => {
+    if (!state || !isDevelopmentEnvironment()) {
+      return;
+    }
+
+    for (const key of Object.keys(legacySlices) as Array<
+      keyof DataTableState
+    >) {
+      if (
+        state[key] === undefined ||
+        !legacySlices[key] ||
+        warnedSlicesRef.current.has(key)
+      ) {
+        continue;
+      }
+
+      warnedSlicesRef.current.add(key);
+      console.warn(
+        `[data-table-pro] Both state.${key} and its legacy controlled prop were provided. The legacy prop takes precedence during the 3.x migration window.`,
+      );
+    }
+  }, [legacySlices, state]);
+}
+
+function isDevelopmentEnvironment() {
+  const nodeEnvironment = (
+    globalThis as {
+      process?: { env?: { NODE_ENV?: string } };
+    }
+  ).process?.env?.NODE_ENV;
+
+  return nodeEnvironment !== "production";
+}
+
+function cloneDataTableState(state: DataTableState): DataTableState {
+  return {
+    sorting: state.sorting.map((item) => ({ ...item })),
+    pagination: { ...state.pagination },
+    rowSelection: { ...state.rowSelection },
+    columnVisibility: { ...state.columnVisibility },
+    columnFilters: state.columnFilters.map((item) => ({ ...item })),
+    expanded:
+      typeof state.expanded === "boolean"
+        ? state.expanded
+        : { ...state.expanded },
+    columnOrder: [...state.columnOrder],
+    columnPinning: {
+      left: state.columnPinning.left
+        ? [...state.columnPinning.left]
+        : undefined,
+      right: state.columnPinning.right
+        ? [...state.columnPinning.right]
+        : undefined,
+    },
+    columnSizing: { ...state.columnSizing },
+    density: state.density,
+    viewMode: state.viewMode,
+    showHiddenRows: state.showHiddenRows,
+    globalFilter: state.globalFilter,
+  };
+}
+
+function scrollDataTableElementIntoView(
+  container: HTMLDivElement | null,
+  kind: "row" | "column",
+  value: string,
+) {
+  if (!container) {
+    return false;
+  }
+
+  const attribute = kind === "row" ? "data-row-id" : "data-column-id";
+  const element = Array.from(
+    container.querySelectorAll<HTMLElement>(`[${attribute}]`),
+  ).find((candidate) => candidate.getAttribute(attribute) === value);
+  if (!element) {
+    return false;
+  }
+
+  element.scrollIntoView?.({ block: "nearest", inline: "nearest" });
+  return true;
 }

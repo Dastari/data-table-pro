@@ -21,6 +21,59 @@ New `onActionError` handling is additive. Built-in async callbacks no longer
 leave rejected promises unhandled; consumers can use the error context to show
 their preferred toast, retry, or inline error state.
 
+## Adopt versioned persistence during 3.x
+
+`columnPrefsKey` remains functional. It now reads legacy raw preference objects
+and upgrades them to a validated, versioned envelope on the next write.
+
+Applications that need schema changes, custom storage, or explicit persisted
+slices can move additively:
+
+```tsx
+// Before and still supported
+<DataTable columnPrefsKey="people" />
+
+// Additive 3.x replacement
+<DataTable
+  persistence={{
+    key: "people",
+    version: 2,
+    slices: ["visibility", "sizing", "order", "pinning", "density"],
+    migrate: (payload, targetVersion) =>
+      migrateTablePreferences(payload, targetVersion),
+  }}
+/>
+```
+
+When both props are supplied, `persistence` takes precedence. No 4.0 removal is
+active yet.
+
+## Adopt unified state during 3.x
+
+The split controlled props remain supported. `initialState`, `state`, and
+`onStateChange` can be adopted one slice at a time:
+
+```tsx
+const [tableState, setTableState] = useState<DataTableState>(initialState);
+
+<DataTable
+  state={tableState}
+  onStateChange={setTableState}
+  columns={columns}
+  data={rows}
+  getRowId={(row) => row.id}
+/>
+```
+
+During 3.x, a legacy controlled prop takes precedence over its matching unified
+slice. For example, `pageIndex`/`pageSize` override `state.pagination`, and
+`sorting` overrides `state.sorting`. Development builds warn when both are
+present so migrations can remove conflicts deliberately.
+
+Column sizing can now be controlled with `columnSizing` and
+`onColumnSizingChange`. `apiRef` provides snapshot/restore and reset commands
+without requiring imports from `data-table-pro/advanced`.
+
 ## Planned 4.0 migration
 
 No 4.0 breaking change is active in 3.0.9. The modernization roadmap defines

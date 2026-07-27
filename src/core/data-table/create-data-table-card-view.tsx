@@ -169,6 +169,7 @@ export function createDataTableCardView(
             <Card
               key={rowId}
               role="listitem"
+              data-row-id={rowId}
               draggable={getRowDraggable?.(originalRow) ?? false}
               data-dtp-slot="data-table-card-item"
               data-state={isSelected ? "selected" : undefined}

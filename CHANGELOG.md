@@ -2,6 +2,36 @@
 
 ## Unreleased
 
+### Features
+
+- Added the additive `persistence` configuration with versioned payloads,
+  selected state slices, custom storage, serialization/deserialization,
+  migration, debounce, and error hooks.
+- Kept `columnPrefsKey` as a 3.x shorthand and automatically reads its legacy
+  unversioned payload before upgrading it on the next write.
+- Added unified `initialState`, partial controlled `state`, and
+  TanStack-compatible `onStateChange` APIs with documented legacy-prop
+  precedence and development warnings for conflicts.
+- Added controlled `columnSizing` and `onColumnSizingChange`.
+- Added a typed `apiRef` for table inspection, state snapshots/restoration,
+  reset commands, focus, row/column scrolling, and programmatic CSV export.
+
+### Fixes
+
+- Validated persisted visibility, sizing, order, pinning, and density values
+  before applying them.
+- Debounced persistence writes and skipped writes when the serialized payload
+  has not changed.
+- Made consecutive controlled/uncontrolled updater functions resolve
+  transactionally from the latest reported value instead of a stale render
+  closure.
+
+### Quality
+
+- Added SSR rendering coverage for all three adapters.
+- Added demo typechecking, generated-`dist` drift detection, and package-content
+  verification to CI.
+
 ## 3.0.9
 
 ### Fixes

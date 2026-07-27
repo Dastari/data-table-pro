@@ -1,11 +1,11 @@
-import * as React30 from 'react';
+import * as React37 from 'react';
 import { cva } from 'class-variance-authority';
 import { Slot, Separator as Separator$1, Checkbox as Checkbox$1, DropdownMenu as DropdownMenu$1, ScrollArea as ScrollArea$1, Select as Select$1, Tooltip as Tooltip$1 } from 'radix-ui';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { jsx, jsxs, Fragment } from 'react/jsx-runtime';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { flexRender, functionalUpdate, useReactTable, getPaginationRowModel, getExpandedRowModel, getSortedRowModel, getFilteredRowModel, getCoreRowModel } from '@tanstack/react-table';
+import { flexRender, useReactTable, getPaginationRowModel, getExpandedRowModel, getSortedRowModel, getFilteredRowModel, getCoreRowModel } from '@tanstack/react-table';
 import { flushSync } from 'react-dom';
 
 // src/components/ui/button.tsx
@@ -749,7 +749,7 @@ function InputGroup({
     }
   );
 }
-var InputGroupInput = React30.forwardRef(function InputGroupInput2({ className, ...props }, ref) {
+var InputGroupInput = React37.forwardRef(function InputGroupInput2({ className, ...props }, ref) {
   return /* @__PURE__ */ jsx(
     "input",
     {
@@ -801,8 +801,8 @@ function InputGroupText({
   );
 }
 InputGroupInput.displayName = "InputGroupInput";
-var Input = React30.forwardRef(function Input2({ className, passwordToggle = false, type, ...props }, ref) {
-  const [showPassword, setShowPassword] = React30.useState(false);
+var Input = React37.forwardRef(function Input2({ className, passwordToggle = false, type, ...props }, ref) {
+  const [showPassword, setShowPassword] = React37.useState(false);
   const canTogglePassword = passwordToggle && type === "password";
   if (!canTogglePassword) {
     return /* @__PURE__ */ jsx(
@@ -1538,9 +1538,9 @@ function isHiddenAtContainerWidth(hideOn, containerWidth) {
 // src/core/data-table/use-data-table-container-width.ts
 var BREAKPOINT_WIDTHS = Object.values(DATA_TABLE_CONTAINER_BREAKPOINT_WIDTHS).slice().sort((first, second) => first - second);
 function useDataTableContainerWidth(containerRef) {
-  const widthRef = React30.useRef(0);
-  const [width, setWidth] = React30.useState(0);
-  React30.useEffect(() => {
+  const widthRef = React37.useRef(0);
+  const [width, setWidth] = React37.useState(0);
+  React37.useEffect(() => {
     const element = containerRef.current;
     if (!element) {
       return;
@@ -1591,9 +1591,9 @@ function quantizeContainerWidth(width) {
   return bucket;
 }
 function useDataTableScrollViewport(containerRef, refreshKey) {
-  const [viewportElement, setViewportElement] = React30.useState(null);
-  const [viewportHeight, setViewportHeight] = React30.useState(0);
-  React30.useEffect(() => {
+  const [viewportElement, setViewportElement] = React37.useState(null);
+  const [viewportHeight, setViewportHeight] = React37.useState(0);
+  React37.useEffect(() => {
     const element = containerRef.current?.querySelector(
       "[data-slot='scroll-area-viewport']"
     ) ?? null;
@@ -1666,7 +1666,7 @@ function DataTableCardPanel({
   virtualization
 }) {
   const shouldRenderCards = shouldRenderInitialLoading || renderedRows.length > 0;
-  const cardScrollContainerRef = React30.useRef(null);
+  const cardScrollContainerRef = React37.useRef(null);
   const { viewportElement, viewportHeight } = useDataTableScrollViewport(
     cardScrollContainerRef,
     shouldRenderCards
@@ -1855,18 +1855,18 @@ function useRowEditing({
   editableRows,
   onError
 }) {
-  const [editingRowId, setEditingRowId] = React30.useState(null);
-  const [draftValues, setDraftValues] = React30.useState({});
-  const draftValuesRef = React30.useRef(draftValues);
-  const [isSavingEdit, setIsSavingEdit] = React30.useState(false);
-  React30.useEffect(() => {
+  const [editingRowId, setEditingRowId] = React37.useState(null);
+  const [draftValues, setDraftValues] = React37.useState({});
+  const draftValuesRef = React37.useRef(draftValues);
+  const [isSavingEdit, setIsSavingEdit] = React37.useState(false);
+  React37.useEffect(() => {
     draftValuesRef.current = draftValues;
   }, [draftValues]);
-  const cancelEditing = React30.useCallback(() => {
+  const cancelEditing = React37.useCallback(() => {
     setEditingRowId(null);
     setDraftValues({});
   }, []);
-  const startEditingRow = React30.useCallback(
+  const startEditingRow = React37.useCallback(
     (row, rowId) => {
       const initialValues = editableRows?.getInitialValues?.(row) ?? defaultDraftValues(row, columns);
       setDraftValues(initialValues);
@@ -1874,7 +1874,7 @@ function useRowEditing({
     },
     [columns, editableRows]
   );
-  const saveEdit = React30.useCallback(
+  const saveEdit = React37.useCallback(
     async (row) => {
       if (!editableRows) {
         return;
@@ -1882,7 +1882,7 @@ function useRowEditing({
       setIsSavingEdit(true);
       try {
         await editableRows.onSaveRow(row, draftValuesRef.current);
-        React30.startTransition(cancelEditing);
+        React37.startTransition(cancelEditing);
       } catch (error) {
         onError?.(error, row);
       } finally {
@@ -2075,7 +2075,7 @@ function isComplexRenderedCellContent(content) {
   if (content == null) {
     return false;
   }
-  return React30.isValidElement(content) || Array.isArray(content) || typeof content === "object";
+  return React37.isValidElement(content) || Array.isArray(content) || typeof content === "object";
 }
 function formatDateValue(value) {
   if (typeof value === "number") {
@@ -2404,10 +2404,11 @@ function DataTableBodyRowInner({
   visibleLeafColumnCount
 }) {
   const { Checkbox: Checkbox2, Input: Input3, Skeleton: Skeleton2, TableCell: TableCell2, TableRow: TableRow2 } = components;
-  return /* @__PURE__ */ jsxs(React30.Fragment, { children: [
+  return /* @__PURE__ */ jsxs(React37.Fragment, { children: [
     /* @__PURE__ */ jsx(
       TableRow2,
       {
+        "data-row-id": row.id,
         draggable: isInitialLoadingRow ? false : isDraggable,
         "data-loading": loadingState?.isLoading || void 0,
         "data-state": isInitialLoadingRow ? void 0 : isSelected ? "selected" : void 0,
@@ -2563,7 +2564,7 @@ function sameColumnLayouts(previous, next, cells) {
 function sameCellStyle(previous, next) {
   return previous?.width === next?.width && previous?.minWidth === next?.minWidth && previous?.maxWidth === next?.maxWidth && previous?.insetInlineStart === next?.insetInlineStart && previous?.insetInlineEnd === next?.insetInlineEnd;
 }
-var DataTableBodyRow = React30.memo(
+var DataTableBodyRow = React37.memo(
   DataTableBodyRowInner,
   areDataTableBodyRowsEqual
 );
@@ -2594,6 +2595,7 @@ function DataTableHeaderCellInner({
     TableHead2,
     {
       colSpan: header.colSpan,
+      "data-column-id": header.column.id,
       className: cn(
         "relative border-b",
         getDensityHeaderClassName(currentDensity),
@@ -2720,7 +2722,7 @@ function sameHeaderGroupHeaders(previous, next) {
 function sameHeaderLayout(previous, next) {
   return previous.fixedSide === next.fixedSide && previous.isSpacerColumn === next.isSpacerColumn && previous.isUtilityColumn === next.isUtilityColumn && previous.pinnedClassName === next.pinnedClassName && previous.utilityClassName === next.utilityClassName && previous.headerStyle?.width === next.headerStyle?.width && previous.headerStyle?.minWidth === next.headerStyle?.minWidth && previous.headerStyle?.maxWidth === next.headerStyle?.maxWidth && previous.headerStyle?.insetInlineStart === next.headerStyle?.insetInlineStart && previous.headerStyle?.insetInlineEnd === next.headerStyle?.insetInlineEnd;
 }
-var DataTableHeaderCell = React30.memo(
+var DataTableHeaderCell = React37.memo(
   DataTableHeaderCellInner,
   areDataTableHeaderCellsEqual
 );
@@ -3093,7 +3095,7 @@ function useDataTableColumns({
   startEditingRow,
   tableRef
 }) {
-  const selectRowRange = React30.useCallback(
+  const selectRowRange = React37.useCallback(
     (targetRowId, selected) => {
       const tableInstance = tableRef.current;
       if (!tableInstance || !lastSelectedRowIdRef.current) {
@@ -3123,7 +3125,7 @@ function useDataTableColumns({
     },
     [lastSelectedRowIdRef, tableRef]
   );
-  return React30.useMemo(() => {
+  return React37.useMemo(() => {
     const defs = [];
     if (renderExpandedRow) {
       defs.push({
@@ -3303,13 +3305,13 @@ function useDataTableInfiniteScroll({
   onLoadMore,
   onError
 }) {
-  const sentinelRef = React30.useRef(null);
-  const isRequestInFlightRef = React30.useRef(false);
-  const onLoadMoreEvent = React30.useEffectEvent(onLoadMore);
-  const onErrorEvent = React30.useEffectEvent((error) => {
+  const sentinelRef = React37.useRef(null);
+  const isRequestInFlightRef = React37.useRef(false);
+  const onLoadMoreEvent = React37.useEffectEvent(onLoadMore);
+  const onErrorEvent = React37.useEffectEvent((error) => {
     onError?.(error);
   });
-  React30.useEffect(() => {
+  React37.useEffect(() => {
     if (!enabled || !hasMore || isLoadingMore) {
       return;
     }
@@ -3355,7 +3357,7 @@ function useDataTablePaginationClamp({
   pageIndex,
   setLocalPageIndex
 }) {
-  React30.useEffect(() => {
+  React37.useEffect(() => {
     if (!enabled) {
       return;
     }
@@ -3419,12 +3421,12 @@ function useDataTableInstance({
   virtualization,
   viewportHeight
 }) {
-  const generatedColumnIds = React30.useMemo(() => {
+  const generatedColumnIds = React37.useMemo(() => {
     return tableColumns.map(
       (column, index) => getColumnId(column, index)
     );
   }, [tableColumns]);
-  const effectiveColumnOrder = React30.useMemo(() => {
+  const effectiveColumnOrder = React37.useMemo(() => {
     const columnIds = generatedColumnIds;
     const dataColumnIds = columnIds.filter(
       (columnId) => !isUtilityColumnId(columnId) && columnId !== "__spacer__"
@@ -3446,7 +3448,7 @@ function useDataTableInstance({
       ...columnIds.filter((columnId) => columnId === "__actions__")
     ];
   }, [currentColumnOrder, generatedColumnIds]);
-  const effectiveColumnPinning = React30.useMemo(() => {
+  const effectiveColumnPinning = React37.useMemo(() => {
     const columnIdSet = new Set(generatedColumnIds);
     const dataColumnIdSet = new Set(
       generatedColumnIds.filter(
@@ -3472,7 +3474,7 @@ function useDataTableInstance({
       ]
     };
   }, [currentColumnPinning, generatedColumnIds]);
-  const tableState = React30.useMemo(
+  const tableState = React37.useMemo(
     () => ({
       sorting: currentSorting,
       pagination: currentPagination,
@@ -3498,7 +3500,7 @@ function useDataTableInstance({
       globalFilterValue
     ]
   );
-  const handlePaginationChange = React30.useCallback(
+  const handlePaginationChange = React37.useCallback(
     (updater) => {
       const nextValue = typeof updater === "function" ? updater(currentPagination) : updater;
       if (pageIndex === void 0 || pageSize === void 0) {
@@ -3523,9 +3525,12 @@ function useDataTableInstance({
       setLocalPagination
     ]
   );
-  const handleColumnSizingChange = React30.useCallback((updater) => {
-    setLocalColumnSizing((current) => functionalUpdate(updater, current));
-  }, [setLocalColumnSizing]);
+  const handleColumnSizingChange = React37.useCallback(
+    (updater) => {
+      setLocalColumnSizing(updater);
+    },
+    [setLocalColumnSizing]
+  );
   const table = useReactTable({
     data: tableData,
     columns: tableColumns,
@@ -3560,7 +3565,7 @@ function useDataTableInstance({
   });
   tableRef.current = table;
   const visibleLeafColumns = table.getVisibleLeafColumns();
-  const reorderColumn = React30.useCallback(
+  const reorderColumn = React37.useCallback(
     (sourceColumnId, targetColumnId) => {
       if (sourceColumnId === targetColumnId) {
         return;
@@ -3606,7 +3611,7 @@ function useDataTableInstance({
     Math.ceil(effectiveTotalRowCount / currentPagination.pageSize)
   ) : usesManualRows ? currentPagination.pageIndex + (hasNextPage ? 2 : 1) : table.getPageCount());
   const maxPageIndex = Math.max(0, effectivePageCount - 1);
-  const setLocalPageIndex = React30.useCallback(
+  const setLocalPageIndex = React37.useCallback(
     (nextPageIndex) => {
       if (pageIndex !== void 0) {
         return;
@@ -3624,7 +3629,7 @@ function useDataTableInstance({
     pageIndex: currentPagination.pageIndex,
     setLocalPageIndex
   });
-  const handleFooterPageIndexChange = React30.useCallback(
+  const handleFooterPageIndexChange = React37.useCallback(
     (nextPageIndex) => {
       if (nextPageIndex === currentPagination.pageIndex) {
         return;
@@ -3643,7 +3648,7 @@ function useDataTableInstance({
       setLocalPagination
     ]
   );
-  const handleFooterPageSizeChange = React30.useCallback(
+  const handleFooterPageSizeChange = React37.useCallback(
     (nextPageSize) => {
       if (currentPagination.pageIndex !== 0) {
         onPageIndexChange?.(0);
@@ -3700,52 +3705,245 @@ function useControllableState({
   onChange,
   value
 }) {
-  const [uncontrolledValue, setUncontrolledValue] = React30.useState(defaultValue);
+  const [uncontrolledValue, setUncontrolledValue] = React37.useState(defaultValue);
   const currentValue = value ?? uncontrolledValue;
-  const setValue = React30.useCallback(
+  const currentValueRef = React37.useRef(currentValue);
+  React37.useEffect(() => {
+    currentValueRef.current = currentValue;
+  }, [currentValue]);
+  const setValue = React37.useCallback(
     (updater) => {
-      const nextValue = typeof updater === "function" ? updater(currentValue) : updater;
+      const nextValue = typeof updater === "function" ? updater(currentValueRef.current) : updater;
+      currentValueRef.current = nextValue;
       onChange?.(nextValue);
       if (value === void 0) {
         setUncontrolledValue(nextValue);
       }
     },
-    [currentValue, onChange, value]
+    [onChange, value]
   );
   return [currentValue, setValue];
 }
 var STORAGE_PREFIX = "data-table-pro:column-prefs:";
-function readDataTableColumnPrefs(key) {
-  if (!key || typeof window === "undefined") {
+var DEFAULT_VERSION = 1;
+var ALL_SLICES = [
+  "visibility",
+  "sizing",
+  "order",
+  "pinning",
+  "density"
+];
+function readDataTableColumnPrefs(input) {
+  const config = resolvePersistenceConfig(input);
+  if (!config) {
     return {};
   }
+  const storage = resolveStorage(config);
+  if (!storage) {
+    return {};
+  }
+  const storageKey = getStorageKey(config.key);
+  let value;
   try {
-    const value = window.localStorage.getItem(`${STORAGE_PREFIX}${key}`);
-    if (!value) {
+    value = storage.getItem(storageKey);
+  } catch (error) {
+    config.onError?.({ error, operation: "read" });
+    return {};
+  }
+  if (!value) {
+    return {};
+  }
+  let parsed;
+  try {
+    parsed = (config.deserialize ?? JSON.parse)(value);
+  } catch (error) {
+    config.onError?.({ error, operation: "deserialize" });
+    return {};
+  }
+  const targetVersion = config.version ?? DEFAULT_VERSION;
+  let candidate;
+  if (isPersistencePayload(parsed)) {
+    if (parsed.version === targetVersion) {
+      candidate = parsed.state;
+    } else if (config.migrate) {
+      try {
+        candidate = config.migrate(
+          {
+            version: parsed.version,
+            state: parsed.state
+          },
+          targetVersion
+        );
+      } catch (error) {
+        config.onError?.({ error, operation: "migrate" });
+        return {};
+      }
+    } else {
       return {};
     }
-    const parsed = JSON.parse(value);
-    return parsed && typeof parsed === "object" ? parsed : {};
-  } catch {
-    return {};
+  } else {
+    candidate = parsed;
   }
+  return selectPersistenceSlices(
+    validateDataTableColumnPrefs(candidate),
+    config.slices
+  );
 }
 function usePersistDataTableColumnPrefs({
   key,
+  persistence,
   prefs
 }) {
-  React30.useEffect(() => {
-    if (!key || typeof window === "undefined") {
-      return;
+  const config = persistence ?? resolvePersistenceConfig(key);
+  const storage = config ? resolveStorage(config) : void 0;
+  const storageKey = config ? getStorageKey(config.key) : void 0;
+  const version = config?.version ?? DEFAULT_VERSION;
+  const debounceMs = Math.max(0, config?.debounceMs ?? 100);
+  const selectedState = selectPersistenceSlices(prefs, config?.slices);
+  const serialized = React37.useMemo(() => {
+    if (!config) {
+      return { value: void 0 };
     }
     try {
-      window.localStorage.setItem(
-        `${STORAGE_PREFIX}${key}`,
-        JSON.stringify(prefs)
-      );
-    } catch {
+      const payload = {
+        version,
+        state: selectedState
+      };
+      return {
+        value: (config.serialize ?? JSON.stringify)(payload)
+      };
+    } catch (error) {
+      return { error, value: void 0 };
     }
-  }, [key, prefs]);
+  }, [config, selectedState, version]);
+  const onErrorEvent = React37.useEffectEvent(
+    (error, operation) => {
+      config?.onError?.({ error, operation });
+    }
+  );
+  React37.useEffect(() => {
+    if (serialized.error !== void 0) {
+      onErrorEvent(serialized.error, "serialize");
+    }
+  }, [serialized.error]);
+  React37.useEffect(() => {
+    if (!storage || !storageKey || serialized.value === void 0) {
+      return;
+    }
+    const write = () => {
+      try {
+        if (storage.getItem(storageKey) === serialized.value) {
+          return;
+        }
+        storage.setItem(storageKey, serialized.value);
+      } catch (error) {
+        onErrorEvent(error, "write");
+      }
+    };
+    if (debounceMs === 0) {
+      write();
+      return;
+    }
+    const timeout = globalThis.setTimeout(write, debounceMs);
+    return () => {
+      globalThis.clearTimeout(timeout);
+    };
+  }, [debounceMs, serialized.value, storage, storageKey]);
+}
+function resolvePersistenceConfig(input) {
+  if (!input) {
+    return void 0;
+  }
+  return typeof input === "string" ? { key: input } : input;
+}
+function resolveStorage(config) {
+  if (config.storage) {
+    return config.storage;
+  }
+  if (typeof window === "undefined") {
+    return void 0;
+  }
+  try {
+    return window.localStorage;
+  } catch (error) {
+    config.onError?.({ error, operation: "read" });
+    return void 0;
+  }
+}
+function getStorageKey(key) {
+  return `${STORAGE_PREFIX}${key}`;
+}
+function isPersistencePayload(value) {
+  return isRecord(value) && Object.prototype.hasOwnProperty.call(value, "version") && Object.prototype.hasOwnProperty.call(value, "state");
+}
+function selectPersistenceSlices(prefs, slices) {
+  const selected = new Set(slices ?? ALL_SLICES);
+  const result = {};
+  for (const slice of ALL_SLICES) {
+    if (selected.has(slice) && prefs[slice] !== void 0) {
+      Object.assign(result, { [slice]: prefs[slice] });
+    }
+  }
+  return result;
+}
+function validateDataTableColumnPrefs(value) {
+  if (!isRecord(value)) {
+    return {};
+  }
+  const prefs = {};
+  const visibility = validateBooleanRecord(value.visibility);
+  if (visibility) {
+    prefs.visibility = visibility;
+  }
+  const sizing = validateSizingRecord(value.sizing);
+  if (sizing) {
+    prefs.sizing = sizing;
+  }
+  const order = validateStringArray(value.order);
+  if (order) {
+    prefs.order = order;
+  }
+  if (isRecord(value.pinning)) {
+    const left = validateStringArray(value.pinning.left) ?? [];
+    const right = validateStringArray(value.pinning.right) ?? [];
+    prefs.pinning = { left, right };
+  }
+  if (isDataTableDensity(value.density)) {
+    prefs.density = value.density;
+  }
+  return prefs;
+}
+function validateBooleanRecord(value) {
+  if (!isRecord(value)) {
+    return void 0;
+  }
+  return Object.fromEntries(
+    Object.entries(value).filter(
+      (entry) => typeof entry[1] === "boolean"
+    )
+  );
+}
+function validateSizingRecord(value) {
+  if (!isRecord(value)) {
+    return void 0;
+  }
+  return Object.fromEntries(
+    Object.entries(value).filter(
+      (entry) => typeof entry[1] === "number" && Number.isFinite(entry[1]) && entry[1] >= 0
+    )
+  );
+}
+function validateStringArray(value) {
+  if (!Array.isArray(value)) {
+    return void 0;
+  }
+  return value.filter((item) => typeof item === "string");
+}
+function isDataTableDensity(value) {
+  return value === "compact" || value === "comfortable" || value === "spacious";
+}
+function isRecord(value) {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
 // src/core/data-table/use-data-table-state.ts
@@ -3753,7 +3951,9 @@ function useDataTableState({
   columnFilters,
   columnOrder,
   columnPinning,
+  columnSizing,
   columnPrefsKey,
+  persistence,
   columnVisibility,
   columns,
   data,
@@ -3763,12 +3963,14 @@ function useDataTableState({
   expanded,
   getRowId,
   hiddenRows,
+  initialState,
   isLoading,
   loadingRowCount,
   manualFiltering,
   onColumnFiltersChange,
   onColumnOrderChange,
   onColumnPinningChange,
+  onColumnSizingChange,
   onColumnVisibilityChange,
   onDensityChange,
   onExpandedChange,
@@ -3792,85 +3994,93 @@ function useDataTableState({
   viewMode,
   containerRef
 }) {
-  const persistedColumnPrefs = React30.useMemo(
-    () => readDataTableColumnPrefs(columnPrefsKey),
-    [columnPrefsKey]
+  const persistenceConfig = React37.useMemo(
+    () => persistence ?? (columnPrefsKey ? { key: columnPrefsKey } : void 0),
+    [columnPrefsKey, persistence]
   );
-  const [localPagination, setLocalPagination] = React30.useState({
-    pageIndex: 0,
-    pageSize: rowsPerPageOptions[0] ?? 20
+  const persistedColumnPrefs = React37.useMemo(
+    () => readDataTableColumnPrefs(persistenceConfig),
+    [persistenceConfig]
+  );
+  const [localPagination, setLocalPagination] = React37.useState({
+    pageIndex: initialState?.pagination?.pageIndex ?? 0,
+    pageSize: initialState?.pagination?.pageSize ?? rowsPerPageOptions[0] ?? 20
   });
-  const [localColumnSizing, setLocalColumnSizing] = React30.useState(() => persistedColumnPrefs.sizing ?? {});
   const [currentSorting, setCurrentSorting] = useControllableState({
     value: sorting,
     onChange: onSortingChange,
-    defaultValue: []
+    defaultValue: () => initialState?.sorting ?? []
   });
   const [currentRowSelection, setCurrentRowSelection] = useControllableState({
     value: rowSelection,
     onChange: onRowSelectionChange,
-    defaultValue: {}
+    defaultValue: () => initialState?.rowSelection ?? {}
   });
   const [currentColumnVisibility, setCurrentColumnVisibility] = useControllableState({
     value: columnVisibility,
     onChange: onColumnVisibilityChange,
-    defaultValue: () => persistedColumnPrefs.visibility ?? {}
+    defaultValue: () => initialState?.columnVisibility ?? persistedColumnPrefs.visibility ?? {}
   });
   const [currentColumnFilters, setCurrentColumnFilters] = useControllableState({
     value: columnFilters,
     onChange: onColumnFiltersChange,
-    defaultValue: []
+    defaultValue: () => initialState?.columnFilters ?? []
   });
   const [currentExpanded, setCurrentExpanded] = useControllableState({
     value: expanded,
     onChange: onExpandedChange,
-    defaultValue: {}
+    defaultValue: () => initialState?.expanded ?? {}
   });
   const [currentColumnOrder, setCurrentColumnOrder] = useControllableState({
     value: columnOrder,
     onChange: onColumnOrderChange,
-    defaultValue: () => persistedColumnPrefs.order ?? []
+    defaultValue: () => initialState?.columnOrder ?? persistedColumnPrefs.order ?? []
   });
   const [currentColumnPinning, setCurrentColumnPinning] = useControllableState({
     value: columnPinning,
     onChange: onColumnPinningChange,
-    defaultValue: () => persistedColumnPrefs.pinning ?? getInitialColumnPinning(columns)
+    defaultValue: () => initialState?.columnPinning ?? persistedColumnPrefs.pinning ?? getInitialColumnPinning(columns)
+  });
+  const [currentColumnSizing, setCurrentColumnSizing] = useControllableState({
+    value: columnSizing,
+    onChange: onColumnSizingChange,
+    defaultValue: () => initialState?.columnSizing ?? persistedColumnPrefs.sizing ?? {}
   });
   const [currentViewMode, setCurrentViewMode] = useControllableState({
     value: viewMode,
     onChange: onViewModeChange,
-    defaultValue: () => viewMode ?? "table"
+    defaultValue: () => initialState?.viewMode ?? "table"
   });
   const [currentShowHiddenRows, setCurrentShowHiddenRows] = useControllableState({
     value: showHiddenRows,
     onChange: onShowHiddenRowsChange,
-    defaultValue: () => showHiddenRows ?? false
+    defaultValue: () => initialState?.showHiddenRows ?? false
   });
   const [currentDensity, setCurrentDensity] = useControllableState({
     value: density,
     onChange: onDensityChange,
-    defaultValue: () => density ?? persistedColumnPrefs.density ?? "comfortable"
+    defaultValue: () => initialState?.density ?? persistedColumnPrefs.density ?? "comfortable"
   });
-  const resolvedToolbarQueryValue = toolbarQueryValue ?? "";
+  const resolvedToolbarQueryValue = toolbarQueryValue ?? initialState?.globalFilter ?? "";
   const resolvedToolbarQueryPlaceholder = toolbarQueryPlaceholder ?? resolvedLabels.searchPlaceholder;
   const resolvedToolbarQueryDebounceMs = toolbarQueryDebounceMs ?? 250;
-  const [localSearchValue, setLocalSearchValue] = React30.useState(
+  const [localSearchValue, setLocalSearchValue] = React37.useState(
     resolvedToolbarQueryValue
   );
   const containerWidth = useDataTableContainerWidth(containerRef);
   const hasOnSearchValueChange = Boolean(onToolbarQueryValueChange);
-  const lastReportedSearchValueRef = React30.useRef(resolvedToolbarQueryValue);
-  const onToolbarQueryValueChangeEvent = React30.useEffectEvent(
+  const lastReportedSearchValueRef = React37.useRef(resolvedToolbarQueryValue);
+  const onToolbarQueryValueChangeEvent = React37.useEffectEvent(
     (value) => {
       lastReportedSearchValueRef.current = value;
       onToolbarQueryValueChange?.(value);
     }
   );
-  React30.useEffect(() => {
+  React37.useEffect(() => {
     lastReportedSearchValueRef.current = resolvedToolbarQueryValue;
     setLocalSearchValue(resolvedToolbarQueryValue);
   }, [resolvedToolbarQueryValue]);
-  React30.useEffect(() => {
+  React37.useEffect(() => {
     if (!hasOnSearchValueChange) {
       return;
     }
@@ -3892,7 +4102,7 @@ function useDataTableState({
     resolvedToolbarQueryDebounceMs,
     resolvedToolbarQueryValue
   ]);
-  const currentPagination = React30.useMemo(
+  const currentPagination = React37.useMemo(
     () => ({
       pageIndex: pageIndex ?? localPagination.pageIndex,
       pageSize: pageSize ?? localPagination.pageSize
@@ -3908,27 +4118,26 @@ function useDataTableState({
     1,
     loadingRowCount ?? Math.min(5, currentPagination.pageSize)
   );
-  const currentColumnSizing = localColumnSizing;
   const globalFilterValue = enableToolbarQueryFiltering ? localSearchValue : "";
-  const handleViewModeChange = React30.useCallback(
+  const handleViewModeChange = React37.useCallback(
     (nextViewMode) => {
       setCurrentViewMode(nextViewMode);
     },
     [setCurrentViewMode]
   );
-  const handleShowHiddenRowsChange = React30.useCallback(
+  const handleShowHiddenRowsChange = React37.useCallback(
     (nextShowHiddenRows) => {
       setCurrentShowHiddenRows(nextShowHiddenRows);
     },
     [setCurrentShowHiddenRows]
   );
-  const handleDensityChange = React30.useCallback(
+  const handleDensityChange = React37.useCallback(
     (nextDensity) => {
       setCurrentDensity(nextDensity);
     },
     [setCurrentDensity]
   );
-  const resetPageIndexForFilterChange = React30.useCallback(() => {
+  const resetPageIndexForFilterChange = React37.useCallback(() => {
     onPageIndexChange?.(0);
     if (pageIndex === void 0) {
       setLocalPagination(
@@ -3936,15 +4145,15 @@ function useDataTableState({
       );
     }
   }, [onPageIndexChange, pageIndex]);
-  const filterResetSignature = React30.useMemo(
+  const filterResetSignature = React37.useMemo(
     () => JSON.stringify({
       globalFilterValue,
       columnFilters: currentColumnFilters
     }),
     [currentColumnFilters, globalFilterValue]
   );
-  const lastFilterResetSignatureRef = React30.useRef(filterResetSignature);
-  React30.useEffect(() => {
+  const lastFilterResetSignatureRef = React37.useRef(filterResetSignature);
+  React37.useEffect(() => {
     if (manualFiltering) {
       lastFilterResetSignatureRef.current = filterResetSignature;
       return;
@@ -3956,16 +4165,16 @@ function useDataTableState({
     resetPageIndexForFilterChange();
   }, [filterResetSignature, manualFiltering, resetPageIndexForFilterChange]);
   usePersistDataTableColumnPrefs({
-    key: columnPrefsKey,
+    persistence: persistenceConfig,
     prefs: {
       visibility: columnVisibility ? void 0 : currentColumnVisibility,
-      sizing: currentColumnSizing,
+      sizing: columnSizing === void 0 ? currentColumnSizing : void 0,
       order: columnOrder ? void 0 : currentColumnOrder,
       pinning: columnPinning ? void 0 : currentColumnPinning,
       density: density ? void 0 : currentDensity
     }
   });
-  const responsiveColumnVisibility = React30.useMemo(() => {
+  const responsiveColumnVisibility = React37.useMemo(() => {
     return columns.reduce((visibility, column, index) => {
       const columnId = getColumnId(column, index);
       if (isHiddenAtContainerWidth(column.meta?.hideOn, containerWidth)) {
@@ -3974,25 +4183,25 @@ function useDataTableState({
       return visibility;
     }, {});
   }, [columns, containerWidth]);
-  const effectiveColumnVisibility = React30.useMemo(() => {
+  const effectiveColumnVisibility = React37.useMemo(() => {
     return {
       ...currentColumnVisibility,
       ...responsiveColumnVisibility
     };
   }, [currentColumnVisibility, responsiveColumnVisibility]);
-  const visibleData = React30.useMemo(
+  const visibleData = React37.useMemo(
     () => data.filter(
       (row) => isRowVisible(row, hiddenRows, currentShowHiddenRows)
     ),
     [currentShowHiddenRows, data, hiddenRows]
   );
   const shouldRenderInitialLoading = isLoading && visibleData.length === 0;
-  const loadingRows = React30.useMemo(
+  const loadingRows = React37.useMemo(
     () => createDataTableLoadingRows(resolvedLoadingRowCount),
     [resolvedLoadingRowCount]
   );
   const tableData = shouldRenderInitialLoading ? loadingRows : visibleData;
-  const tableGetRowId = React30.useCallback(
+  const tableGetRowId = React37.useCallback(
     (row, index) => {
       if (isDataTableLoadingRow(row)) {
         return getDataTableLoadingRowId(index);
@@ -4002,7 +4211,7 @@ function useDataTableState({
     [getRowId]
   );
   const shouldResolveSelectedRows = enableRowSelection || (selectionActions?.length ?? 0) > 0 || Object.values(currentRowSelection).some(Boolean);
-  const rowById = React30.useMemo(() => {
+  const rowById = React37.useMemo(() => {
     if (!shouldResolveSelectedRows) {
       return /* @__PURE__ */ new Map();
     }
@@ -4010,7 +4219,7 @@ function useDataTableState({
       visibleData.map((row, index) => [getRowId(row, index), row])
     );
   }, [getRowId, shouldResolveSelectedRows, visibleData]);
-  const selectedRows = React30.useMemo(() => {
+  const selectedRows = React37.useMemo(() => {
     if (!shouldResolveSelectedRows) {
       return [];
     }
@@ -4021,6 +4230,7 @@ function useDataTableState({
     currentColumnOrder,
     currentColumnPinning,
     currentColumnSizing,
+    currentColumnVisibility,
     currentDensity,
     currentExpanded,
     currentPagination,
@@ -4044,7 +4254,7 @@ function useDataTableState({
     setCurrentExpanded,
     setCurrentRowSelection,
     setCurrentSorting,
-    setLocalColumnSizing,
+    setLocalColumnSizing: setCurrentColumnSizing,
     setLocalPagination,
     setLocalSearchValue,
     shouldRenderInitialLoading,
@@ -4082,7 +4292,7 @@ function useColumnLayout({
   uiClassNames,
   visibleLeafColumns
 }) {
-  const explicitlySizedColumnIds = React30.useMemo(() => {
+  const explicitlySizedColumnIds = React37.useMemo(() => {
     const ids = /* @__PURE__ */ new Set();
     for (const [index, column] of columns.entries()) {
       if (Object.prototype.hasOwnProperty.call(column, "size")) {
@@ -4106,7 +4316,7 @@ function useColumnLayout({
     hasRowActions,
     hasRowExpansion
   ]);
-  const minimumColumnWidths = React30.useMemo(() => {
+  const minimumColumnWidths = React37.useMemo(() => {
     const widths = /* @__PURE__ */ new Map();
     for (const [index, column] of columns.entries()) {
       const configuredMinWidth = getConfiguredColumnMinWidth(column);
@@ -4116,7 +4326,7 @@ function useColumnLayout({
     }
     return widths;
   }, [columns]);
-  const pinnedColumns = React30.useMemo(() => {
+  const pinnedColumns = React37.useMemo(() => {
     const left = /* @__PURE__ */ new Map();
     const right = /* @__PURE__ */ new Map();
     let leftOffset = 0;
@@ -4135,7 +4345,7 @@ function useColumnLayout({
     }
     return { left, right };
   }, [visibleLeafColumns]);
-  const fillColumnId = React30.useMemo(() => {
+  const fillColumnId = React37.useMemo(() => {
     if (layoutMode !== "fill") {
       return void 0;
     }
@@ -4155,7 +4365,7 @@ function useColumnLayout({
     layoutMode,
     visibleLeafColumns
   ]);
-  const fixedWidthColumnIds = React30.useMemo(() => {
+  const fixedWidthColumnIds = React37.useMemo(() => {
     const ids = /* @__PURE__ */ new Set([
       ...explicitlySizedColumnIds,
       ...Object.keys(columnSizing)
@@ -4165,7 +4375,7 @@ function useColumnLayout({
     }
     return ids;
   }, [columnSizing, explicitlySizedColumnIds, fillColumnId]);
-  const columnLayouts = React30.useMemo(() => {
+  const columnLayouts = React37.useMemo(() => {
     const layouts = /* @__PURE__ */ new Map();
     for (const column of visibleLeafColumns) {
       const isSelectionColumn = column.id === "__select__";
@@ -4214,7 +4424,7 @@ function useColumnLayout({
     uiClassNames,
     visibleLeafColumns
   ]);
-  const fillMinWidth = React30.useMemo(() => {
+  const fillMinWidth = React37.useMemo(() => {
     return visibleLeafColumns.reduce((total, column) => {
       const layout = columnLayouts.get(column.id);
       const configuredMinWidth = minimumColumnWidths.get(column.id);
@@ -4234,7 +4444,7 @@ function useColumnLayout({
     minimumColumnWidths,
     visibleLeafColumns
   ]);
-  const getColumnLayout = React30.useCallback(
+  const getColumnLayout = React37.useCallback(
     (columnId) => columnLayouts.get(columnId) ?? EMPTY_COLUMN_LAYOUT,
     [columnLayouts]
   );
@@ -4351,6 +4561,7 @@ function createDataTableCardView(ui, DataTableRowActions) {
             Card2,
             {
               role: "listitem",
+              "data-row-id": rowId,
               draggable: getRowDraggable?.(originalRow) ?? false,
               "data-dtp-slot": "data-table-card-item",
               "data-state": isSelected ? "selected" : void 0,
@@ -4828,7 +5039,7 @@ function createDataTableRowActions(ui) {
     labels
   }) {
     const actions = rowActions.filter((action) => canUseRowAction(action, row));
-    const stopRowClickPropagation = React30.useCallback(
+    const stopRowClickPropagation = React37.useCallback(
       (event) => {
         event.stopPropagation();
       },
@@ -4965,8 +5176,8 @@ function createDataTableToolbar(ui) {
     toolbarVisibility,
     openFileDialog
   }) {
-    const compactSearchInputRef = React30.useRef(null);
-    const [isCompactSearchVisible, setIsCompactSearchVisible] = React30.useState(false);
+    const compactSearchInputRef = React37.useRef(null);
+    const [isCompactSearchVisible, setIsCompactSearchVisible] = React37.useState(false);
     const compactToolbarIconButtonClassName = uiClassNames.toolbarCompactIconButton ?? "";
     const primaryActions = toolbarActions.filter(
       (action) => (action.placement ?? "primary") === "primary"
@@ -4991,7 +5202,7 @@ function createDataTableToolbar(ui) {
     const hasVisibleCustomToolbar = showCustomToolbar && Boolean(customToolbar);
     const hasVisibleCompactToolbar = showCustomToolbar && Boolean(compactToolbar ?? customToolbar);
     const selectedRowCountLabel = labels.selectedRows(selectedRows.length);
-    React30.useEffect(() => {
+    React37.useEffect(() => {
       if (!isCompactSearchVisible) {
         return;
       }
@@ -5509,7 +5720,7 @@ function useDataTableToolbarFeatures({
   visibleData,
   csvExport
 }) {
-  const columnVisibilityOptions = React30.useMemo(() => {
+  const columnVisibilityOptions = React37.useMemo(() => {
     return columns.map((column, index) => {
       const id = getColumnId(column, index);
       const header = column.header;
@@ -5525,7 +5736,7 @@ function useDataTableToolbarFeatures({
       };
     });
   }, [columns, currentColumnPinning, effectiveColumnVisibility]);
-  const toolbarColumnFilters = React30.useMemo(() => {
+  const toolbarColumnFilters = React37.useMemo(() => {
     if (enableColumnFilters === false) {
       return [];
     }
@@ -5552,7 +5763,7 @@ function useDataTableToolbarFeatures({
       ];
     });
   }, [columns, currentColumnFilters, enableColumnFilters, visibleData]);
-  const handleToolbarColumnFilterChange = React30.useCallback(
+  const handleToolbarColumnFilterChange = React37.useCallback(
     (columnId, value) => {
       handleColumnFiltersChange((current) => {
         const next = current.filter((filter) => filter.id !== columnId);
@@ -5564,10 +5775,10 @@ function useDataTableToolbarFeatures({
     },
     [handleColumnFiltersChange]
   );
-  const handleClearColumnFilters = React30.useCallback(() => {
+  const handleClearColumnFilters = React37.useCallback(() => {
     handleColumnFiltersChange([]);
   }, [handleColumnFiltersChange]);
-  const handleToolbarColumnPinningChange = React30.useCallback(
+  const handleToolbarColumnPinningChange = React37.useCallback(
     (columnId, side) => {
       handleColumnPinningChange((current) => {
         const left = (current.left ?? []).filter((id) => id !== columnId);
@@ -5583,7 +5794,7 @@ function useDataTableToolbarFeatures({
     },
     [handleColumnPinningChange]
   );
-  const handleCsvExport = React30.useCallback(() => {
+  const handleCsvExport = React37.useCallback(() => {
     if (!csvExport) {
       return;
     }
@@ -5591,7 +5802,7 @@ function useDataTableToolbarFeatures({
       csvExport,
       table});
   }, [csvExport, labels, table]);
-  const effectiveToolbarActions = React30.useMemo(() => {
+  const effectiveToolbarActions = React37.useMemo(() => {
     if (!csvExport) {
       return toolbarActions ?? [];
     }
@@ -5634,7 +5845,7 @@ function createDataTable(ui) {
     TableRow: TableRow2,
     Tooltip: Tooltip2,
     TooltipContent: TooltipContent2,
-    TooltipProvider: TooltipProvider2 = React30.Fragment,
+    TooltipProvider: TooltipProvider2 = React37.Fragment,
     TooltipTrigger: TooltipTrigger2
   } = ui;
   const DataTableEmptyState = createDataTableEmptyState(ui);
@@ -5699,6 +5910,11 @@ function createDataTable(ui) {
     onDensityChange,
     enableDensityToggle = false,
     columnPrefsKey,
+    persistence,
+    initialState,
+    state: unifiedState,
+    onStateChange,
+    apiRef,
     labels,
     summaryRows = [],
     cardRenderer,
@@ -5719,6 +5935,8 @@ function createDataTable(ui) {
     editableRows,
     columnVisibility,
     onColumnVisibilityChange,
+    columnSizing,
+    onColumnSizingChange,
     enableColumnResizing = false,
     columnResizeMode = "onChange",
     layoutMode = "fill",
@@ -5738,23 +5956,138 @@ function createDataTable(ui) {
     fileUpload,
     virtualization
   }) {
-    const containerRef = React30.useRef(null);
-    const fileInputRef = React30.useRef(null);
-    const tableScrollContainerRef = React30.useRef(null);
-    const draggedColumnIdRef = React30.useRef(null);
-    const tableRef = React30.useRef(null);
-    const lastSelectedRowIdRef = React30.useRef(null);
-    const resolvedLabels = React30.useMemo(
+    const containerRef = React37.useRef(null);
+    const fileInputRef = React37.useRef(null);
+    const tableScrollContainerRef = React37.useRef(null);
+    const draggedColumnIdRef = React37.useRef(null);
+    const tableRef = React37.useRef(null);
+    const lastSelectedRowIdRef = React37.useRef(null);
+    const resolvedLabels = React37.useMemo(
       () => resolveDataTableLabels(labels),
       [labels]
     );
-    const runAction = React30.useCallback(
+    const resolvedToolbarQueryValue = toolbarQueryValue ?? unifiedState?.globalFilter;
+    const resolvedSorting = sorting ?? unifiedState?.sorting;
+    const resolvedPageIndex = pageIndex ?? unifiedState?.pagination?.pageIndex;
+    const resolvedPageSize = pageSize ?? unifiedState?.pagination?.pageSize;
+    const resolvedRowSelection = rowSelection ?? unifiedState?.rowSelection;
+    const resolvedColumnVisibility = columnVisibility ?? unifiedState?.columnVisibility;
+    const resolvedColumnFilters = columnFilters ?? unifiedState?.columnFilters;
+    const resolvedExpanded = expanded ?? unifiedState?.expanded;
+    const resolvedColumnOrder = columnOrder ?? unifiedState?.columnOrder;
+    const resolvedColumnPinning = columnPinning ?? unifiedState?.columnPinning;
+    const resolvedColumnSizing = columnSizing ?? unifiedState?.columnSizing;
+    const resolvedDensity = density ?? unifiedState?.density;
+    const resolvedViewMode = viewMode ?? unifiedState?.viewMode;
+    const resolvedShowHiddenRows = showHiddenRows ?? unifiedState?.showHiddenRows;
+    useDataTableStateConflictWarnings(unifiedState, {
+      columnFilters: columnFilters !== void 0,
+      columnOrder: columnOrder !== void 0,
+      columnPinning: columnPinning !== void 0,
+      columnSizing: columnSizing !== void 0,
+      columnVisibility: columnVisibility !== void 0,
+      density: density !== void 0,
+      expanded: expanded !== void 0,
+      globalFilter: toolbarQueryValue !== void 0,
+      pagination: pageIndex !== void 0 || pageSize !== void 0,
+      rowSelection: rowSelection !== void 0,
+      showHiddenRows: showHiddenRows !== void 0,
+      sorting: sorting !== void 0,
+      viewMode: viewMode !== void 0
+    });
+    const handleToolbarQueryValueChange = useDataTableStateSliceChange(
+      "globalFilter",
+      onToolbarQueryValueChange,
+      onStateChange
+    );
+    const handleSortingPropChange = useDataTableStateSliceChange(
+      "sorting",
+      onSortingChange,
+      onStateChange
+    );
+    const handleRowSelectionPropChange = useDataTableStateSliceChange(
+      "rowSelection",
+      onRowSelectionChange,
+      onStateChange
+    );
+    const handleColumnVisibilityPropChange = useDataTableStateSliceChange(
+      "columnVisibility",
+      onColumnVisibilityChange,
+      onStateChange
+    );
+    const handleColumnFiltersPropChange = useDataTableStateSliceChange(
+      "columnFilters",
+      onColumnFiltersChange,
+      onStateChange
+    );
+    const handleExpandedPropChange = useDataTableStateSliceChange(
+      "expanded",
+      onExpandedChange,
+      onStateChange
+    );
+    const handleColumnOrderPropChange = useDataTableStateSliceChange(
+      "columnOrder",
+      onColumnOrderChange,
+      onStateChange
+    );
+    const handleColumnPinningPropChange = useDataTableStateSliceChange(
+      "columnPinning",
+      onColumnPinningChange,
+      onStateChange
+    );
+    const handleColumnSizingPropChange = useDataTableStateSliceChange(
+      "columnSizing",
+      onColumnSizingChange,
+      onStateChange
+    );
+    const handleDensityPropChange = useDataTableStateSliceChange(
+      "density",
+      onDensityChange,
+      onStateChange
+    );
+    const handleViewModePropChange = useDataTableStateSliceChange(
+      "viewMode",
+      onViewModeChange,
+      onStateChange
+    );
+    const handleShowHiddenRowsPropChange = useDataTableStateSliceChange(
+      "showHiddenRows",
+      onShowHiddenRowsChange,
+      onStateChange
+    );
+    const handlePageIndexPropChange = React37.useCallback(
+      (nextPageIndex) => {
+        onPageIndexChange?.(nextPageIndex);
+        onStateChange?.((current) => ({
+          ...current,
+          pagination: {
+            pageIndex: nextPageIndex,
+            pageSize: resolvedPageSize ?? current.pagination.pageSize
+          }
+        }));
+      },
+      [onPageIndexChange, onStateChange, resolvedPageSize]
+    );
+    const handlePageSizePropChange = React37.useCallback(
+      (nextPageSize) => {
+        onPageSizeChange?.(nextPageSize);
+        onStateChange?.((current) => ({
+          ...current,
+          pagination: {
+            pageIndex: resolvedPageIndex ?? current.pagination.pageIndex,
+            pageSize: nextPageSize
+          }
+        }));
+      },
+      [onPageSizeChange, onStateChange, resolvedPageIndex]
+    );
+    const runAction = React37.useCallback(
       (context, action) => {
         runDataTableAction(action, context, onActionError);
       },
       [onActionError]
     );
-    const guardedRowActions = React30.useMemo(
+    const guardedRowActions = React37.useMemo(
       () => rowActions.map((action) => ({
         ...action,
         onClick: (row) => {
@@ -5770,7 +6103,7 @@ function createDataTable(ui) {
       })),
       [rowActions, runAction]
     );
-    const guardedOnRowClick = React30.useMemo(
+    const guardedOnRowClick = React37.useMemo(
       () => onRowClick ? (context) => {
         runAction(
           {
@@ -5782,7 +6115,7 @@ function createDataTable(ui) {
       } : void 0,
       [onRowClick, runAction]
     );
-    const handleEditError = React30.useCallback(
+    const handleEditError = React37.useCallback(
       (error, row) => {
         onActionError?.({
           error,
@@ -5797,6 +6130,7 @@ function createDataTable(ui) {
       currentColumnOrder,
       currentColumnPinning,
       currentColumnSizing,
+      currentColumnVisibility,
       currentDensity,
       currentExpanded,
       currentPagination,
@@ -5828,47 +6162,51 @@ function createDataTable(ui) {
       tableGetRowId,
       visibleData
     } = useDataTableState({
-      columnFilters,
-      columnOrder,
-      columnPinning,
+      columnFilters: resolvedColumnFilters,
+      columnOrder: resolvedColumnOrder,
+      columnPinning: resolvedColumnPinning,
+      columnSizing: resolvedColumnSizing,
       columnPrefsKey,
-      columnVisibility,
+      persistence,
+      columnVisibility: resolvedColumnVisibility,
       columns,
       containerRef,
       data,
-      density,
+      density: resolvedDensity,
       enableRowSelection,
       enableToolbarQueryFiltering,
-      expanded,
+      expanded: resolvedExpanded,
       getRowId,
       hiddenRows,
       isLoading,
       loadingRowCount,
       manualFiltering,
-      onColumnFiltersChange,
-      onColumnOrderChange,
-      onColumnPinningChange,
-      onColumnVisibilityChange,
-      onDensityChange,
-      onExpandedChange,
-      onPageIndexChange,
-      onRowSelectionChange,
-      onShowHiddenRowsChange,
-      onSortingChange,
-      onToolbarQueryValueChange,
-      onViewModeChange,
-      pageIndex,
-      pageSize,
+      initialState,
+      onColumnFiltersChange: handleColumnFiltersPropChange,
+      onColumnOrderChange: handleColumnOrderPropChange,
+      onColumnPinningChange: handleColumnPinningPropChange,
+      onColumnSizingChange: handleColumnSizingPropChange,
+      onColumnVisibilityChange: handleColumnVisibilityPropChange,
+      onDensityChange: handleDensityPropChange,
+      onExpandedChange: handleExpandedPropChange,
+      onPageIndexChange: handlePageIndexPropChange,
+      onRowSelectionChange: handleRowSelectionPropChange,
+      onShowHiddenRowsChange: handleShowHiddenRowsPropChange,
+      onSortingChange: handleSortingPropChange,
+      onToolbarQueryValueChange: handleToolbarQueryValueChange,
+      onViewModeChange: handleViewModePropChange,
+      pageIndex: resolvedPageIndex,
+      pageSize: resolvedPageSize,
       resolvedLabels,
-      rowSelection,
+      rowSelection: resolvedRowSelection,
       rowsPerPageOptions,
       selectionActions,
-      showHiddenRows,
-      sorting,
+      showHiddenRows: resolvedShowHiddenRows,
+      sorting: resolvedSorting,
       toolbarQueryDebounceMs,
       toolbarQueryPlaceholder,
-      toolbarQueryValue,
-      viewMode
+      toolbarQueryValue: resolvedToolbarQueryValue,
+      viewMode: resolvedViewMode
     });
     const {
       cancelEditing,
@@ -5885,13 +6223,13 @@ function createDataTable(ui) {
       onError: handleEditError
     });
     const { viewportElement: tableScrollElement, viewportHeight } = useDataTableScrollViewport(tableScrollContainerRef, currentViewMode);
-    const openFileDialog = React30.useCallback(() => {
+    const openFileDialog = React37.useCallback(() => {
       if (fileUpload?.disabled) {
         return;
       }
       fileInputRef.current?.click();
     }, [fileUpload?.disabled]);
-    const handleSelectedFiles = React30.useCallback(
+    const handleSelectedFiles = React37.useCallback(
       (files) => {
         runAction(
           {
@@ -5968,11 +6306,11 @@ function createDataTable(ui) {
       manualPagination,
       manualSorting,
       onActionError,
-      onPageIndexChange,
-      onPageSizeChange,
+      onPageIndexChange: handlePageIndexPropChange,
+      onPageSizeChange: handlePageSizePropChange,
       pageCount,
-      pageIndex,
-      pageSize,
+      pageIndex: resolvedPageIndex,
+      pageSize: resolvedPageSize,
       renderExpandedRow,
       setCurrentRowSelection,
       setCurrentSorting,
@@ -5988,10 +6326,9 @@ function createDataTable(ui) {
       virtualization,
       viewportHeight
     });
-    const columnSizing = currentColumnSizing;
     const columnLayout = useColumnLayout({
       columns,
-      columnSizing,
+      columnSizing: currentColumnSizing,
       editableRows: Boolean(editableRows),
       enableRowSelection,
       hasRowActions: rowActions.length > 0,
@@ -6001,7 +6338,7 @@ function createDataTable(ui) {
       visibleLeafColumns
     });
     const { explicitlySizedColumnIds, fillMinWidth, getColumnLayout } = columnLayout;
-    const explicitCustomCellColumnIds = React30.useMemo(() => {
+    const explicitCustomCellColumnIds = React37.useMemo(() => {
       return new Set(
         columns.flatMap((column, index) => {
           return Object.prototype.hasOwnProperty.call(column, "cell") && typeof column.cell === "function" ? [getColumnId(column, index)] : [];
@@ -6009,7 +6346,7 @@ function createDataTable(ui) {
       );
     }, [columns]);
     const visibleLeafColumnCount = visibleLeafColumns.length;
-    const bodyRowComponents = React30.useMemo(
+    const bodyRowComponents = React37.useMemo(
       () => ({
         Checkbox: Checkbox2,
         Input: Input3,
@@ -6019,11 +6356,11 @@ function createDataTable(ui) {
       }),
       []
     );
-    const hasCardTitle = React30.useMemo(
+    const hasCardTitle = React37.useMemo(
       () => columns.some((column) => column.meta?.cardTitle),
       [columns]
     );
-    const primeColumnForResize = React30.useCallback(
+    const primeColumnForResize = React37.useCallback(
       (columnId, currentSize) => {
         if (explicitlySizedColumnIds.has(columnId) || Object.prototype.hasOwnProperty.call(
           table.getState().columnSizing,
@@ -6040,7 +6377,7 @@ function createDataTable(ui) {
       },
       [explicitlySizedColumnIds, table]
     );
-    const resetColumnSize = React30.useCallback(
+    const resetColumnSize = React37.useCallback(
       (columnId) => {
         if (explicitlySizedColumnIds.has(columnId)) {
           table.getColumn(columnId)?.resetSize();
@@ -6083,7 +6420,7 @@ function createDataTable(ui) {
       toolbarActions,
       visibleData
     });
-    const guardedToolbarActions = React30.useMemo(
+    const guardedToolbarActions = React37.useMemo(
       () => effectiveToolbarActions.map((action) => ({
         ...action,
         onClick: (context) => {
@@ -6098,7 +6435,7 @@ function createDataTable(ui) {
       })),
       [effectiveToolbarActions, runAction]
     );
-    const guardedSelectionActions = React30.useMemo(
+    const guardedSelectionActions = React37.useMemo(
       () => selectionActions.map((action) => ({
         ...action,
         onClick: (context) => {
@@ -6113,6 +6450,155 @@ function createDataTable(ui) {
       })),
       [runAction, selectionActions]
     );
+    const currentDataTableState = React37.useMemo(
+      () => ({
+        sorting: currentSorting,
+        pagination: currentPagination,
+        rowSelection: currentRowSelection,
+        columnVisibility: currentColumnVisibility,
+        columnFilters: currentColumnFilters,
+        expanded: currentExpanded,
+        columnOrder: currentColumnOrder,
+        columnPinning: currentColumnPinning,
+        columnSizing: currentColumnSizing,
+        density: currentDensity,
+        viewMode: currentViewMode,
+        showHiddenRows: currentShowHiddenRows,
+        globalFilter: localSearchValue
+      }),
+      [
+        currentColumnFilters,
+        currentColumnOrder,
+        currentColumnPinning,
+        currentColumnSizing,
+        currentColumnVisibility,
+        currentDensity,
+        currentExpanded,
+        currentPagination,
+        currentRowSelection,
+        currentShowHiddenRows,
+        currentSorting,
+        currentViewMode,
+        localSearchValue
+      ]
+    );
+    const getCurrentState = React37.useCallback(
+      () => cloneDataTableState(currentDataTableState),
+      [currentDataTableState]
+    );
+    const restoreState = React37.useCallback(
+      (nextState) => {
+        if (nextState.sorting !== void 0) {
+          table.setSorting(nextState.sorting);
+        }
+        if (nextState.pagination !== void 0) {
+          table.setPagination(nextState.pagination);
+        }
+        if (nextState.rowSelection !== void 0) {
+          table.setRowSelection(nextState.rowSelection);
+        }
+        if (nextState.columnVisibility !== void 0) {
+          table.setColumnVisibility(nextState.columnVisibility);
+        }
+        if (nextState.columnFilters !== void 0) {
+          table.setColumnFilters(nextState.columnFilters);
+        }
+        if (nextState.expanded !== void 0) {
+          table.setExpanded(nextState.expanded);
+        }
+        if (nextState.columnOrder !== void 0) {
+          table.setColumnOrder(nextState.columnOrder);
+        }
+        if (nextState.columnPinning !== void 0) {
+          table.setColumnPinning(nextState.columnPinning);
+        }
+        if (nextState.columnSizing !== void 0) {
+          table.setColumnSizing(nextState.columnSizing);
+        }
+        if (nextState.density !== void 0) {
+          handleDensityChange(nextState.density);
+        }
+        if (nextState.viewMode !== void 0) {
+          handleViewModeChange(nextState.viewMode);
+        }
+        if (nextState.showHiddenRows !== void 0) {
+          handleShowHiddenRowsChange(nextState.showHiddenRows);
+        }
+        if (nextState.globalFilter !== void 0) {
+          setLocalSearchValue(nextState.globalFilter);
+        }
+      },
+      [
+        handleDensityChange,
+        handleShowHiddenRowsChange,
+        handleViewModeChange,
+        setLocalSearchValue,
+        table
+      ]
+    );
+    const resetColumnLayout = React37.useCallback(() => {
+      restoreState({
+        columnVisibility: initialState?.columnVisibility ?? {},
+        columnOrder: initialState?.columnOrder ?? [],
+        columnPinning: initialState?.columnPinning ?? getInitialColumnPinning(columns),
+        columnSizing: initialState?.columnSizing ?? {}
+      });
+    }, [columns, initialState, restoreState]);
+    const resetState = React37.useCallback(() => {
+      restoreState({
+        sorting: initialState?.sorting ?? [],
+        pagination: initialState?.pagination ?? {
+          pageIndex: 0,
+          pageSize: rowsPerPageOptions[0] ?? 20
+        },
+        rowSelection: initialState?.rowSelection ?? {},
+        columnVisibility: initialState?.columnVisibility ?? {},
+        columnFilters: initialState?.columnFilters ?? [],
+        expanded: initialState?.expanded ?? {},
+        columnOrder: initialState?.columnOrder ?? [],
+        columnPinning: initialState?.columnPinning ?? getInitialColumnPinning(columns),
+        columnSizing: initialState?.columnSizing ?? {},
+        density: initialState?.density ?? "comfortable",
+        viewMode: initialState?.viewMode ?? "table",
+        showHiddenRows: initialState?.showHiddenRows ?? false,
+        globalFilter: initialState?.globalFilter ?? ""
+      });
+    }, [columns, initialState, restoreState, rowsPerPageOptions]);
+    const exportCsvFromApi = React37.useCallback(
+      (options) => exportDataTableCsv({
+        csvExport: options ?? (csvExport || true),
+        table
+      }),
+      [csvExport, resolvedLabels, table]
+    );
+    React37.useImperativeHandle(
+      apiRef,
+      () => ({
+        getTable: () => tableRef.current,
+        getState: getCurrentState,
+        snapshot: getCurrentState,
+        restore: restoreState,
+        resetColumnLayout,
+        resetState,
+        focus: () => {
+          containerRef.current?.focus();
+        },
+        scrollToRow: (rowId) => scrollDataTableElementIntoView(containerRef.current, "row", rowId),
+        scrollToColumn: (columnId) => scrollDataTableElementIntoView(
+          containerRef.current,
+          "column",
+          columnId
+        ),
+        exportCsv: exportCsvFromApi
+      }),
+      [
+        exportCsvFromApi,
+        getCurrentState,
+        resetColumnLayout,
+        resetState,
+        restoreState
+      ]
+    );
     return /* @__PURE__ */ jsx(TooltipProvider2, { children: /* @__PURE__ */ jsxs(
       "div",
       {
@@ -6120,6 +6606,7 @@ function createDataTable(ui) {
         "data-dtp-slot": "data-table-root",
         "data-density": currentDensity,
         dir,
+        tabIndex: -1,
         className: cn(
           "@container/data-table data-table-container-query flex flex-col",
           flexGrow ? "h-full min-h-0 flex-1" : "grow",
@@ -6339,7 +6826,75 @@ function runDataTableAction(action, context, onActionError) {
     onActionError?.({ ...context, error });
   });
 }
+function useDataTableStateSliceChange(key, onLegacyChange, onStateChange) {
+  const handleChange = React37.useCallback(
+    (value) => {
+      onLegacyChange?.(value);
+      onStateChange?.((current) => ({
+        ...current,
+        [key]: value
+      }));
+    },
+    [key, onLegacyChange, onStateChange]
+  );
+  return onLegacyChange || onStateChange ? handleChange : void 0;
+}
+function useDataTableStateConflictWarnings(state, legacySlices) {
+  const warnedSlicesRef = React37.useRef(/* @__PURE__ */ new Set());
+  React37.useEffect(() => {
+    if (!state || !isDevelopmentEnvironment()) {
+      return;
+    }
+    for (const key of Object.keys(legacySlices)) {
+      if (state[key] === void 0 || !legacySlices[key] || warnedSlicesRef.current.has(key)) {
+        continue;
+      }
+      warnedSlicesRef.current.add(key);
+      console.warn(
+        `[data-table-pro] Both state.${key} and its legacy controlled prop were provided. The legacy prop takes precedence during the 3.x migration window.`
+      );
+    }
+  }, [legacySlices, state]);
+}
+function isDevelopmentEnvironment() {
+  const nodeEnvironment = globalThis.process?.env?.NODE_ENV;
+  return nodeEnvironment !== "production";
+}
+function cloneDataTableState(state) {
+  return {
+    sorting: state.sorting.map((item) => ({ ...item })),
+    pagination: { ...state.pagination },
+    rowSelection: { ...state.rowSelection },
+    columnVisibility: { ...state.columnVisibility },
+    columnFilters: state.columnFilters.map((item) => ({ ...item })),
+    expanded: typeof state.expanded === "boolean" ? state.expanded : { ...state.expanded },
+    columnOrder: [...state.columnOrder],
+    columnPinning: {
+      left: state.columnPinning.left ? [...state.columnPinning.left] : void 0,
+      right: state.columnPinning.right ? [...state.columnPinning.right] : void 0
+    },
+    columnSizing: { ...state.columnSizing },
+    density: state.density,
+    viewMode: state.viewMode,
+    showHiddenRows: state.showHiddenRows,
+    globalFilter: state.globalFilter
+  };
+}
+function scrollDataTableElementIntoView(container, kind, value) {
+  if (!container) {
+    return false;
+  }
+  const attribute = kind === "row" ? "data-row-id" : "data-column-id";
+  const element = Array.from(
+    container.querySelectorAll(`[${attribute}]`)
+  ).find((candidate) => candidate.getAttribute(attribute) === value);
+  if (!element) {
+    return false;
+  }
+  element.scrollIntoView?.({ block: "nearest", inline: "nearest" });
+  return true;
+}
 
 export { Button, Card, CardContent, CardDescription, CardFooter, CardHeader, Checkbox, DataTableBodyRow, DataTableCardPanel, DataTableFooterSection, DataTableHeaderCell, DataTableTablePanel, DataTableToolbarSection, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuSubContent, DropdownMenuSubTrigger, Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle, Input, InputGroup, InputGroupAddon, InputGroupInput, Pagination, PaginationFirst, PaginationLast, PaginationLink, PaginationNext, PaginationPrevious, ScrollArea, ScrollBar, SelectContent, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, Separator, Skeleton, Table, TableBody, TableCaption, TableCell, TableFooter, TableHead, TableHeader, TableRow, TooltipContent, cn, createDataTable, primitiveUiKit, useColumnLayout, useControllableState, useDataTableColumns, useDataTableInstance, useDataTableState, useRowEditing };
-//# sourceMappingURL=chunk-44ZEEUAT.js.map
-//# sourceMappingURL=chunk-44ZEEUAT.js.map
+//# sourceMappingURL=chunk-LFYUSXWQ.js.map
+//# sourceMappingURL=chunk-LFYUSXWQ.js.map

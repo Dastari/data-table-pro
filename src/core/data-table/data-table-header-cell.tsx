@@ -66,6 +66,7 @@ function DataTableHeaderCellInner<TData>({
     <TableHead
       key={header.id}
       colSpan={header.colSpan}
+      data-column-id={header.column.id}
       className={cn(
         "relative border-b",
         getDensityHeaderClassName(currentDensity),

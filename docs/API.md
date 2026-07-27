@@ -124,6 +124,7 @@ The Gridcn consumers must also import a host-managed The Gridcn theme or token s
 These are exported from the adapter entrypoints and from `data-table-pro/types`.
 
 - `DataTableAlign`
+- `DataTableApi`
 - `DataTableCardVirtualizationConfig`
 - `DataTableCellOverflow`
 - `DataTableCardRendererProps`
@@ -149,11 +150,18 @@ These are exported from the adapter entrypoints and from `data-table-pro/types`.
 - `DataTableFileUploadConfig`
 - `DataTableHiddenRowsConfig`
 - `DataTableInfiniteScroll`
+- `DataTableInitialState`
 - `DataTableLabels`
 - `DataTableLoadingState`
+- `DataTablePersistenceConfig`
+- `DataTablePersistenceOperation`
+- `DataTablePersistencePayload`
+- `DataTablePersistenceSlice`
+- `DataTablePersistenceStorage`
 - `DataTableProps`
 - `DataTableRowAction`
 - `DataTableRowLoadingState`
+- `DataTableState`
 - `DataTableSelectionAction`
 - `DataTableSummaryRow`
 - `DataTableToolbarAction`
@@ -175,6 +183,30 @@ function DataTable<TData>(props: DataTableProps<TData>): React.ReactElement;
 | `columns` | `Array<DataTableColumnDef<TData, any>>` | Column definitions passed to TanStack Table. |
 | `data` | `Array<TData>` | Row data. |
 | `getRowId` | `(row: TData, index: number) => string` | Stable row identifier used for selection, editing, and row actions. |
+
+### Unified state and API ref
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `initialState` | `Partial<DataTableState>` | built-in defaults | Initial values for uncontrolled state slices. Initial values take precedence over persisted preferences. |
+| `state` | `Partial<DataTableState>` | `undefined` | Controls any supplied unified state slices. |
+| `onStateChange` | `(updater: Updater<DataTableState>) => void` | `undefined` | Receives TanStack-compatible full-state updater functions. React state setters can be passed directly. |
+| `apiRef` | `React.Ref<DataTableApi<TData>>` | `undefined` | Exposes typed inspection, state, focus, scroll, reset, and CSV commands. |
+
+Legacy controlled props remain supported. If a legacy prop and its matching
+`state` slice are both supplied, the legacy prop takes precedence during the
+3.x migration window and a development warning is emitted.
+
+`DataTableApi<TData>` provides:
+
+- `getTable()` for the TanStack table instance
+- `getState()` and `snapshot()` for cloned wrapper state
+- `restore(partialState)`, `resetColumnLayout()`, and `resetState()`
+- `focus()`, `scrollToRow(rowId)`, and `scrollToColumn(columnId)`
+- `exportCsv(options?)`
+
+Scroll commands return `false` when the requested rendered element is not
+currently available, including a virtual row outside the active window.
 
 ### Basic content props
 
@@ -393,11 +425,33 @@ Column meta can customize editing with `renderEditCell`, `parseEditValue`, and `
 | `columnPinning` | `ColumnPinningState` | internal state seeded from `meta.fixed` | Controlled column pinning. |
 | `onColumnPinningChange` | `(pinning: ColumnPinningState) => void` | `undefined` | Column pinning callback. |
 | `enableColumnPinning` | `boolean` | `false` | Adds pin/unpin controls to the table options menu. |
-| `columnPrefsKey` | `string` | `undefined` | Persists uncontrolled visibility, sizing, order, pinning, and density in `localStorage`. |
+| `columnPrefsKey` | `string` | `undefined` | Compatibility shorthand for versioned persistence of uncontrolled visibility, sizing, order, pinning, and density in `localStorage`. |
+| `persistence` | `DataTablePersistenceConfig` | `undefined` | Versioned persistence configuration. Takes precedence over `columnPrefsKey` and supports selected slices, custom storage/serialization, migration, debouncing, and error reporting. |
 | `enableColumnResizing` | `boolean` | `false` | Enables resize handles on resizable columns. |
 | `columnResizeMode` | `"onChange" \| "onEnd"` | `"onChange"` | TanStack Table resize mode. |
+| `columnSizing` | `ColumnSizingState` | internal state | Controlled column sizing state. |
+| `onColumnSizingChange` | `(sizing: ColumnSizingState) => void` | `undefined` | Controlled sizing callback. |
 | `layoutMode` | `"fill" \| "fit"` | `"fill"` | `fill` stretches the table to the container; `fit` sizes to content width. |
 | `stickyHeader` | `boolean` | `true` | Makes the table header sticky inside the scroll area. |
+
+The default persistence envelope is:
+
+```ts
+type DataTablePersistencePayload = {
+  version: string | number;
+  state: DataTableColumnPrefs;
+};
+```
+
+`persistence.version` defaults to `1`, `debounceMs` defaults to `100`, and
+`slices` defaults to all column-preference slices. A payload with a different
+version is ignored unless `migrate(payload, targetVersion)` returns a new
+preference state. Legacy raw `columnPrefsKey` objects are treated as
+pre-versioned data, validated, and upgraded on the next write.
+
+Persistence errors are best-effort and do not break rendering.
+`onError({ error, operation })` reports `"read"`, `"write"`, `"serialize"`,
+`"deserialize"`, or `"migrate"`.
 
 ### Export, density, labels, and summary props
 

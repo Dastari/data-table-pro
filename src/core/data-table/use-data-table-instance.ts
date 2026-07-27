@@ -1,6 +1,5 @@
 import * as React from "react";
 import {
-  functionalUpdate,
   getCoreRowModel,
   getExpandedRowModel,
   getFilteredRowModel,
@@ -121,9 +120,7 @@ export function useDataTableInstance<TData>({
   renderExpandedRow: DataTableProps<TData>["renderExpandedRow"];
   setCurrentRowSelection: OnChangeFn<Record<string, boolean>>;
   setCurrentSorting: OnChangeFn<SortingState>;
-  setLocalColumnSizing: React.Dispatch<
-    React.SetStateAction<ColumnSizingState>
-  >;
+  setLocalColumnSizing: OnChangeFn<ColumnSizingState>;
   setLocalPagination: React.Dispatch<React.SetStateAction<PaginationState>>;
   shouldRenderInitialLoading: boolean;
   tableColumns: Array<ColumnDef<TData, unknown>>;
@@ -262,9 +259,12 @@ export function useDataTableInstance<TData>({
 
   const handleColumnSizingChange = React.useCallback<
     OnChangeFn<ColumnSizingState>
-  >((updater) => {
-    setLocalColumnSizing((current) => functionalUpdate(updater, current));
-  }, [setLocalColumnSizing]);
+  >(
+    (updater) => {
+      setLocalColumnSizing(updater);
+    },
+    [setLocalColumnSizing],
+  );
 
   // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Table owns its instance functions.
   const table = useReactTable({

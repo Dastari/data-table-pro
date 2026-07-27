@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ColumnDef, CellContext, FilterFnOption, ColumnFiltersState, SortingState, ExpandedState, Row, ColumnOrderState, ColumnPinningState, VisibilityState, HeaderContext } from '@tanstack/react-table';
+import { ColumnDef, CellContext, FilterFnOption, ColumnFiltersState, SortingState, ExpandedState, Row, ColumnOrderState, ColumnPinningState, VisibilityState, PaginationState, ColumnSizingState, Updater, Table, HeaderContext } from '@tanstack/react-table';
 
 type DataTableViewMode = "table" | "card";
 type DataTableAlign = "start" | "center" | "end";
@@ -225,6 +225,58 @@ type DataTableColumnPrefs = {
     pinning?: ColumnPinningState;
     density?: DataTableDensity;
 };
+type DataTablePersistenceSlice = keyof DataTableColumnPrefs;
+type DataTablePersistenceStorage = Pick<Storage, "getItem" | "setItem" | "removeItem">;
+type DataTablePersistenceOperation = "read" | "write" | "serialize" | "deserialize" | "migrate";
+type DataTablePersistencePayload = {
+    version: string | number;
+    state: DataTableColumnPrefs;
+};
+type DataTablePersistenceConfig = {
+    key: string;
+    version?: string | number;
+    slices?: Array<DataTablePersistenceSlice>;
+    storage?: DataTablePersistenceStorage;
+    serialize?: (payload: DataTablePersistencePayload) => string;
+    deserialize?: (value: string) => unknown;
+    migrate?: (payload: {
+        version: unknown;
+        state: unknown;
+    }, targetVersion: string | number) => DataTableColumnPrefs | undefined;
+    debounceMs?: number;
+    onError?: (context: {
+        error: unknown;
+        operation: DataTablePersistenceOperation;
+    }) => void;
+};
+type DataTableState = {
+    sorting: SortingState;
+    pagination: PaginationState;
+    rowSelection: Record<string, boolean>;
+    columnVisibility: VisibilityState;
+    columnFilters: ColumnFiltersState;
+    expanded: ExpandedState;
+    columnOrder: ColumnOrderState;
+    columnPinning: ColumnPinningState;
+    columnSizing: ColumnSizingState;
+    density: DataTableDensity;
+    viewMode: DataTableViewMode;
+    showHiddenRows: boolean;
+    globalFilter: string;
+};
+type DataTableInitialState = Partial<DataTableState>;
+type DataTableApi<TData> = {
+    getTable: () => Table<TData> | null;
+    getState: () => DataTableState;
+    snapshot: () => DataTableState;
+    restore: (state: Partial<DataTableState>) => void;
+    resetColumnLayout: () => void;
+    resetState: () => void;
+    focus: () => void;
+    scrollToRow: (rowId: string) => boolean;
+    scrollToColumn: (columnId: string) => boolean;
+    exportCsv: (options?: boolean | DataTableCsvExportOptions<TData>) => Promise<void>;
+};
 type DataTableLabels = {
     searchPlaceholder: string;
     searchTable: string;
@@ -333,6 +385,11 @@ type DataTableProps<TData> = {
     onDensityChange?: (density: DataTableDensity) => void;
     enableDensityToggle?: boolean;
     columnPrefsKey?: string;
+    persistence?: DataTablePersistenceConfig;
+    initialState?: DataTableInitialState;
+    state?: Partial<DataTableState>;
+    onStateChange?: (updater: Updater<DataTableState>) => void;
+    apiRef?: React.Ref<DataTableApi<TData>>;
     labels?: Partial<DataTableLabels>;
     summaryRows?: Array<DataTableSummaryRow<TData>>;
     cardRenderer?: (props: DataTableCardRendererProps<TData>) => React.ReactNode;
@@ -353,6 +410,8 @@ type DataTableProps<TData> = {
     editableRows?: DataTableEditableRowsConfig<TData>;
     columnVisibility?: VisibilityState;
     onColumnVisibilityChange?: (visibility: VisibilityState) => void;
+    columnSizing?: ColumnSizingState;
+    onColumnSizingChange?: (sizing: ColumnSizingState) => void;
     enableColumnResizing?: boolean;
     columnResizeMode?: "onChange" | "onEnd";
     layoutMode?: "fill" | "fit";
@@ -387,4 +446,4 @@ declare function hideOnClassName(hideOn: DataTableContainerBreakpoint | Array<Da
 declare function isHiddenAtContainerWidth(hideOn: DataTableContainerBreakpoint | Array<DataTableContainerBreakpoint> | undefined, containerWidth: number): boolean;
 declare function rowSelectionStateFromRows<TData>(rows: Array<Row<TData>>): TData[];
 
-export { DATA_TABLE_CONTAINER_BREAKPOINT_WIDTHS, type DataTableActionErrorContext, type DataTableActionErrorSource, type DataTableAlign, type DataTableCardRendererProps, type DataTableCardSizing, type DataTableCardVirtualizationConfig, type DataTableCellEditRenderProps, type DataTableCellOverflow, type DataTableColumnDef, type DataTableColumnFilterConfig, type DataTableColumnFilterOption, type DataTableColumnFilterType, type DataTableColumnFixed, type DataTableColumnMeta, type DataTableColumnPrefs, type DataTableColumnType, type DataTableColumnVisibilityOption, type DataTableContainerBreakpoint, type DataTableCsvExportOptions, type DataTableCsvExportScope, type DataTableDensity, type DataTableDragAndDropConfig, type DataTableEditableRowsConfig, type DataTableEmptyStateContext, type DataTableExpandedRowProps, type DataTableFileUploadConfig, type DataTableHiddenRowsConfig, type DataTableInfiniteScroll, type DataTableLabels, type DataTableLoadingState, type DataTableProps, type DataTableRowAction, type DataTableRowLoadingState, type DataTableSelectionAction, type DataTableSummaryRow, type DataTableToolbarAction, type DataTableToolbarVisibility, type DataTableViewMode, type DataTableVirtualizationConfig, alignClassName, canEditRow, canUseRowAction, cellAlignClassName, headerAlignClassName, hideOnClassName, isHiddenAtContainerWidth, isRowVisible, resolveColumnAlign, resolveRowActionLabel, rowSelectionStateFromRows };
+export { DATA_TABLE_CONTAINER_BREAKPOINT_WIDTHS, type DataTableActionErrorContext, type DataTableActionErrorSource, type DataTableAlign, type DataTableApi, type DataTableCardRendererProps, type DataTableCardSizing, type DataTableCardVirtualizationConfig, type DataTableCellEditRenderProps, type DataTableCellOverflow, type DataTableColumnDef, type DataTableColumnFilterConfig, type DataTableColumnFilterOption, type DataTableColumnFilterType, type DataTableColumnFixed, type DataTableColumnMeta, type DataTableColumnPrefs, type DataTableColumnType, type DataTableColumnVisibilityOption, type DataTableContainerBreakpoint, type DataTableCsvExportOptions, type DataTableCsvExportScope, type DataTableDensity, type DataTableDragAndDropConfig, type DataTableEditableRowsConfig, type DataTableEmptyStateContext, type DataTableExpandedRowProps, type DataTableFileUploadConfig, type DataTableHiddenRowsConfig, type DataTableInfiniteScroll, type DataTableInitialState, type DataTableLabels, type DataTableLoadingState, type DataTablePersistenceConfig, type DataTablePersistenceOperation, type DataTablePersistencePayload, type DataTablePersistenceSlice, type DataTablePersistenceStorage, type DataTableProps, type DataTableRowAction, type DataTableRowLoadingState, type DataTableSelectionAction, type DataTableState, type DataTableSummaryRow, type DataTableToolbarAction, type DataTableToolbarVisibility, type DataTableViewMode, type DataTableVirtualizationConfig, alignClassName, canEditRow, canUseRowAction, cellAlignClassName, headerAlignClassName, hideOnClassName, isHiddenAtContainerWidth, isRowVisible, resolveColumnAlign, resolveRowActionLabel, rowSelectionStateFromRows };

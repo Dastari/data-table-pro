@@ -5,11 +5,15 @@ import type {
   ColumnDef,
   ColumnOrderState,
   ColumnPinningState,
+  ColumnSizingState,
   ExpandedState,
   FilterFnOption,
   HeaderContext,
+  PaginationState,
   Row,
   SortingState,
+  Table as TanStackTable,
+  Updater,
   VisibilityState,
 } from "@tanstack/react-table";
 
@@ -293,6 +297,76 @@ export type DataTableColumnPrefs = {
   density?: DataTableDensity;
 };
 
+export type DataTablePersistenceSlice = keyof DataTableColumnPrefs;
+
+export type DataTablePersistenceStorage = Pick<
+  Storage,
+  "getItem" | "setItem" | "removeItem"
+>;
+
+export type DataTablePersistenceOperation =
+  | "read"
+  | "write"
+  | "serialize"
+  | "deserialize"
+  | "migrate";
+
+export type DataTablePersistencePayload = {
+  version: string | number;
+  state: DataTableColumnPrefs;
+};
+
+export type DataTablePersistenceConfig = {
+  key: string;
+  version?: string | number;
+  slices?: Array<DataTablePersistenceSlice>;
+  storage?: DataTablePersistenceStorage;
+  serialize?: (payload: DataTablePersistencePayload) => string;
+  deserialize?: (value: string) => unknown;
+  migrate?: (
+    payload: { version: unknown; state: unknown },
+    targetVersion: string | number,
+  ) => DataTableColumnPrefs | undefined;
+  debounceMs?: number;
+  onError?: (context: {
+    error: unknown;
+    operation: DataTablePersistenceOperation;
+  }) => void;
+};
+
+export type DataTableState = {
+  sorting: SortingState;
+  pagination: PaginationState;
+  rowSelection: Record<string, boolean>;
+  columnVisibility: VisibilityState;
+  columnFilters: ColumnFiltersState;
+  expanded: ExpandedState;
+  columnOrder: ColumnOrderState;
+  columnPinning: ColumnPinningState;
+  columnSizing: ColumnSizingState;
+  density: DataTableDensity;
+  viewMode: DataTableViewMode;
+  showHiddenRows: boolean;
+  globalFilter: string;
+};
+
+export type DataTableInitialState = Partial<DataTableState>;
+
+export type DataTableApi<TData> = {
+  getTable: () => TanStackTable<TData> | null;
+  getState: () => DataTableState;
+  snapshot: () => DataTableState;
+  restore: (state: Partial<DataTableState>) => void;
+  resetColumnLayout: () => void;
+  resetState: () => void;
+  focus: () => void;
+  scrollToRow: (rowId: string) => boolean;
+  scrollToColumn: (columnId: string) => boolean;
+  exportCsv: (
+    options?: boolean | DataTableCsvExportOptions<TData>,
+  ) => Promise<void>;
+};
+
 export type DataTableLabels = {
   searchPlaceholder: string;
   searchTable: string;
@@ -405,6 +479,11 @@ export type DataTableProps<TData> = {
   onDensityChange?: (density: DataTableDensity) => void;
   enableDensityToggle?: boolean;
   columnPrefsKey?: string;
+  persistence?: DataTablePersistenceConfig;
+  initialState?: DataTableInitialState;
+  state?: Partial<DataTableState>;
+  onStateChange?: (updater: Updater<DataTableState>) => void;
+  apiRef?: React.Ref<DataTableApi<TData>>;
   labels?: Partial<DataTableLabels>;
   summaryRows?: Array<DataTableSummaryRow<TData>>;
   cardRenderer?: (props: DataTableCardRendererProps<TData>) => React.ReactNode;
@@ -430,6 +509,8 @@ export type DataTableProps<TData> = {
   editableRows?: DataTableEditableRowsConfig<TData>;
   columnVisibility?: VisibilityState;
   onColumnVisibilityChange?: (visibility: VisibilityState) => void;
+  columnSizing?: ColumnSizingState;
+  onColumnSizingChange?: (sizing: ColumnSizingState) => void;
   enableColumnResizing?: boolean;
   columnResizeMode?: "onChange" | "onEnd";
   layoutMode?: "fill" | "fit";

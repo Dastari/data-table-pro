@@ -12,13 +12,19 @@ export function useControllableState<T>({
 }) {
   const [uncontrolledValue, setUncontrolledValue] = React.useState(defaultValue);
   const currentValue = value ?? uncontrolledValue;
+  const currentValueRef = React.useRef(currentValue);
+
+  React.useEffect(() => {
+    currentValueRef.current = currentValue;
+  }, [currentValue]);
 
   const setValue = React.useCallback(
     (updater: Updater<T>) => {
       const nextValue =
         typeof updater === "function"
-          ? (updater as (current: T) => T)(currentValue)
+          ? (updater as (current: T) => T)(currentValueRef.current)
           : updater;
+      currentValueRef.current = nextValue;
 
       onChange?.(nextValue);
 
@@ -26,7 +32,7 @@ export function useControllableState<T>({
         setUncontrolledValue(nextValue);
       }
     },
-    [currentValue, onChange, value],
+    [onChange, value],
   );
 
   return [currentValue, setValue] as const;

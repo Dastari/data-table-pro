@@ -73,6 +73,7 @@ function DataTableBodyRowInner<TData>({
   return (
     <React.Fragment>
       <TableRow
+        data-row-id={row.id}
         draggable={isInitialLoadingRow ? false : isDraggable}
         data-loading={loadingState?.isLoading || undefined}
         data-state={

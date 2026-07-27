@@ -33,7 +33,9 @@ export function useDataTableState<TData>({
   columnFilters,
   columnOrder,
   columnPinning,
+  columnSizing,
   columnPrefsKey,
+  persistence,
   columnVisibility,
   columns,
   data,
@@ -43,12 +45,14 @@ export function useDataTableState<TData>({
   expanded,
   getRowId,
   hiddenRows,
+  initialState,
   isLoading,
   loadingRowCount,
   manualFiltering,
   onColumnFiltersChange,
   onColumnOrderChange,
   onColumnPinningChange,
+  onColumnSizingChange,
   onColumnVisibilityChange,
   onDensityChange,
   onExpandedChange,
@@ -75,7 +79,9 @@ export function useDataTableState<TData>({
   columnFilters: DataTableProps<TData>["columnFilters"];
   columnOrder: DataTableProps<TData>["columnOrder"];
   columnPinning: DataTableProps<TData>["columnPinning"];
+  columnSizing?: DataTableProps<TData>["columnSizing"];
   columnPrefsKey: DataTableProps<TData>["columnPrefsKey"];
+  persistence?: DataTableProps<TData>["persistence"];
   columnVisibility: DataTableProps<TData>["columnVisibility"];
   columns: DataTableProps<TData>["columns"];
   data: DataTableProps<TData>["data"];
@@ -85,12 +91,14 @@ export function useDataTableState<TData>({
   expanded: DataTableProps<TData>["expanded"];
   getRowId: DataTableProps<TData>["getRowId"];
   hiddenRows: DataTableProps<TData>["hiddenRows"];
+  initialState?: DataTableProps<TData>["initialState"];
   isLoading: boolean;
   loadingRowCount: DataTableProps<TData>["loadingRowCount"];
   manualFiltering: boolean;
   onColumnFiltersChange: DataTableProps<TData>["onColumnFiltersChange"];
   onColumnOrderChange: DataTableProps<TData>["onColumnOrderChange"];
   onColumnPinningChange: DataTableProps<TData>["onColumnPinningChange"];
+  onColumnSizingChange?: DataTableProps<TData>["onColumnSizingChange"];
   onColumnVisibilityChange: DataTableProps<TData>["onColumnVisibilityChange"];
   onDensityChange: DataTableProps<TData>["onDensityChange"];
   onExpandedChange: DataTableProps<TData>["onExpandedChange"];
@@ -114,82 +122,103 @@ export function useDataTableState<TData>({
   viewMode: DataTableProps<TData>["viewMode"];
   containerRef: React.RefObject<HTMLDivElement | null>;
 }) {
+  const persistenceConfig = React.useMemo(
+    () => persistence ?? (columnPrefsKey ? { key: columnPrefsKey } : undefined),
+    [columnPrefsKey, persistence],
+  );
   const persistedColumnPrefs = React.useMemo(
-    () => readDataTableColumnPrefs(columnPrefsKey),
-    [columnPrefsKey],
+    () => readDataTableColumnPrefs(persistenceConfig),
+    [persistenceConfig],
   );
   const [localPagination, setLocalPagination] =
     React.useState<PaginationState>({
-      pageIndex: 0,
-      pageSize: rowsPerPageOptions[0] ?? 20,
+      pageIndex: initialState?.pagination?.pageIndex ?? 0,
+      pageSize:
+        initialState?.pagination?.pageSize ??
+        rowsPerPageOptions[0] ??
+        20,
     });
-  const [localColumnSizing, setLocalColumnSizing] =
-    React.useState<ColumnSizingState>(() => persistedColumnPrefs.sizing ?? {});
   const [currentSorting, setCurrentSorting] =
     useControllableState<SortingState>({
       value: sorting,
       onChange: onSortingChange,
-      defaultValue: [],
+      defaultValue: () => initialState?.sorting ?? [],
     });
   const [currentRowSelection, setCurrentRowSelection] = useControllableState<
     Record<string, boolean>
   >({
-    value: rowSelection,
-    onChange: onRowSelectionChange,
-    defaultValue: {},
+      value: rowSelection,
+      onChange: onRowSelectionChange,
+      defaultValue: () => initialState?.rowSelection ?? {},
   });
   const [currentColumnVisibility, setCurrentColumnVisibility] =
     useControllableState<VisibilityState>({
       value: columnVisibility,
       onChange: onColumnVisibilityChange,
-      defaultValue: () => persistedColumnPrefs.visibility ?? {},
+      defaultValue: () =>
+        initialState?.columnVisibility ??
+        persistedColumnPrefs.visibility ??
+        {},
     });
   const [currentColumnFilters, setCurrentColumnFilters] =
     useControllableState<ColumnFiltersState>({
       value: columnFilters,
       onChange: onColumnFiltersChange,
-      defaultValue: [],
+      defaultValue: () => initialState?.columnFilters ?? [],
     });
   const [currentExpanded, setCurrentExpanded] =
     useControllableState<ExpandedState>({
       value: expanded,
       onChange: onExpandedChange,
-      defaultValue: {},
+      defaultValue: () => initialState?.expanded ?? {},
     });
   const [currentColumnOrder, setCurrentColumnOrder] =
     useControllableState<ColumnOrderState>({
       value: columnOrder,
       onChange: onColumnOrderChange,
-      defaultValue: () => persistedColumnPrefs.order ?? [],
+      defaultValue: () =>
+        initialState?.columnOrder ?? persistedColumnPrefs.order ?? [],
     });
   const [currentColumnPinning, setCurrentColumnPinning] =
     useControllableState<ColumnPinningState>({
       value: columnPinning,
       onChange: onColumnPinningChange,
       defaultValue: () =>
-        persistedColumnPrefs.pinning ?? getInitialColumnPinning(columns),
+        initialState?.columnPinning ??
+        persistedColumnPrefs.pinning ??
+        getInitialColumnPinning(columns),
+    });
+  const [currentColumnSizing, setCurrentColumnSizing] =
+    useControllableState<ColumnSizingState>({
+      value: columnSizing,
+      onChange: onColumnSizingChange,
+      defaultValue: () =>
+        initialState?.columnSizing ?? persistedColumnPrefs.sizing ?? {},
     });
   const [currentViewMode, setCurrentViewMode] = useControllableState<
     "table" | "card"
   >({
     value: viewMode,
     onChange: onViewModeChange,
-    defaultValue: () => viewMode ?? "table",
+    defaultValue: () => initialState?.viewMode ?? "table",
   });
   const [currentShowHiddenRows, setCurrentShowHiddenRows] =
     useControllableState<boolean>({
       value: showHiddenRows,
       onChange: onShowHiddenRowsChange,
-      defaultValue: () => showHiddenRows ?? false,
+      defaultValue: () => initialState?.showHiddenRows ?? false,
     });
   const [currentDensity, setCurrentDensity] =
     useControllableState<DataTableDensity>({
       value: density,
       onChange: onDensityChange,
       defaultValue: () =>
-        density ?? persistedColumnPrefs.density ?? "comfortable",
+        initialState?.density ??
+        persistedColumnPrefs.density ??
+        "comfortable",
     });
-  const resolvedToolbarQueryValue = toolbarQueryValue ?? "";
+  const resolvedToolbarQueryValue =
+    toolbarQueryValue ?? initialState?.globalFilter ?? "";
   const resolvedToolbarQueryPlaceholder =
     toolbarQueryPlaceholder ?? resolvedLabels.searchPlaceholder;
   const resolvedToolbarQueryDebounceMs = toolbarQueryDebounceMs ?? 250;
@@ -254,7 +283,6 @@ export function useDataTableState<TData>({
     1,
     loadingRowCount ?? Math.min(5, currentPagination.pageSize),
   );
-  const currentColumnSizing = localColumnSizing;
   const globalFilterValue = enableToolbarQueryFiltering
     ? localSearchValue
     : "";
@@ -309,10 +337,11 @@ export function useDataTableState<TData>({
   }, [filterResetSignature, manualFiltering, resetPageIndexForFilterChange]);
 
   usePersistDataTableColumnPrefs({
-    key: columnPrefsKey,
+    persistence: persistenceConfig,
     prefs: {
       visibility: columnVisibility ? undefined : currentColumnVisibility,
-      sizing: currentColumnSizing,
+      sizing:
+        columnSizing === undefined ? currentColumnSizing : undefined,
       order: columnOrder ? undefined : currentColumnOrder,
       pinning: columnPinning ? undefined : currentColumnPinning,
       density: density ? undefined : currentDensity,
@@ -387,6 +416,7 @@ export function useDataTableState<TData>({
     currentColumnOrder,
     currentColumnPinning,
     currentColumnSizing,
+    currentColumnVisibility,
     currentDensity,
     currentExpanded,
     currentPagination,
@@ -410,7 +440,7 @@ export function useDataTableState<TData>({
     setCurrentExpanded,
     setCurrentRowSelection,
     setCurrentSorting,
-    setLocalColumnSizing,
+    setLocalColumnSizing: setCurrentColumnSizing,
     setLocalPagination,
     setLocalSearchValue,
     shouldRenderInitialLoading,
