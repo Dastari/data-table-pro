@@ -815,7 +815,7 @@ for (const suite of suites) {
       expect(lastHeader?.style.maxWidth).toBe("50px");
     });
 
-    it("adds vertical breathing room around table selection checkboxes", () => {
+    it("adds vertical margin directly to table selection checkboxes", () => {
       renderTable({ enableRowSelection: true });
 
       const selectAll = screen.getByRole("checkbox", {
@@ -823,8 +823,10 @@ for (const suite of suites) {
       });
       const selectRow = screen.getByRole("checkbox", { name: "Select row" });
 
-      expect(selectAll.parentElement?.className).toContain("py-1");
-      expect(selectRow.parentElement?.className).toContain("py-1");
+      expect(selectAll.className).toContain("my-0.5");
+      expect(selectRow.className).toContain("my-0.5");
+      expect(selectAll.parentElement?.className).not.toContain("py-1");
+      expect(selectRow.parentElement?.className).not.toContain("py-1");
     });
 
     it("renders utility columns outside fixed data columns", () => {

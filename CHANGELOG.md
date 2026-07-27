@@ -14,7 +14,7 @@
 ### Fixes
 
 - Changed shadcn inputs, selects, checkboxes, and outline controls to use the table container's `bg-card` background while retaining host theme tokens and variant-specific button colors.
-- Increased vertical clearance around table selection checkboxes so their two-pixel ring is not clipped by header or body cell content.
+- Applied a two-pixel top and bottom margin directly to table selection checkboxes so their ring is not clipped by header or body cell boundaries.
 - Updated styling regression coverage for the shared card-background contract.
 
 ### Validation
