@@ -1,5 +1,33 @@
 # Migration Guide
 
+## Unreleased dependency and toolchain baseline
+
+The package peer minimums have moved to:
+
+- `react@^19.2.8`
+- `react-dom@^19.2.8`
+- `nuqs@^2.9.2` when using `data-table-pro/url-state`
+- `@heroui/styles@^3.2.2` when using `data-table-pro/heroui`
+
+No table prop, type, or entrypoint was removed, but applications pinned below
+one of these peer minimums must update that dependency before consuming the
+next release.
+
+Repository contributors now need a jsdom 30-supported Node.js release
+(`^22.22.2`, `^24.15.0`, or `>=26`) and pnpm 11.17.0. CI uses Node.js
+22.22.2. TypeScript 7.0 removes `baseUrl` and does not expose the programmatic
+compiler API needed by typescript-eslint and tsup. The repository therefore
+follows the TypeScript team's side-by-side migration:
+
+- `@typescript/native` aliases TypeScript 7 and provides `tsc`
+- `typescript` aliases `@typescript/typescript6` for API-based tooling
+- path mappings use explicit relative paths instead of `baseUrl`
+
+Keep both compiler packages until the linting and declaration-bundling tools
+support the TypeScript 7 API. pnpm 11 also enforces an explicit dependency
+build policy: esbuild's installer is allowed, while MSW's unused transitive
+postinstall is denied.
+
 ## Unreleased clickable-row semantic correction
 
 Clickable table rows now preserve their native row semantics instead of

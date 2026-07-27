@@ -1,0 +1,9 @@
+allowBuilds:
+  esbuild: true
+  msw: false
+overrides:
+  "@hono/node-server": 2.0.12
+  esbuild: 0.28.1
+minimumReleaseAgeExclude:
+  - globals@17.8.0
+  - jsdom@30.0.0

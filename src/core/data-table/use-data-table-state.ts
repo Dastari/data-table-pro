@@ -237,6 +237,8 @@ export function useDataTableState<TData>({
 
   React.useEffect(() => {
     lastReportedSearchValueRef.current = resolvedToolbarQueryValue;
+    // A controlled query change must replace any pending debounced draft.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLocalSearchValue(resolvedToolbarQueryValue);
   }, [resolvedToolbarQueryValue]);
 

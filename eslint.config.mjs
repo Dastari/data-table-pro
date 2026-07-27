@@ -30,6 +30,9 @@ export default tseslint.config(
     rules: {
       ...reactHooks.configs.recommended.rules,
       "@typescript-eslint/consistent-type-imports": "error",
+      // TanStack's generic column definitions require narrowing assertions
+      // that the TypeScript 6 API can incorrectly classify as unnecessary.
+      "@typescript-eslint/no-unnecessary-type-assertion": "off",
       "@typescript-eslint/no-unused-vars": [
         "error",
         {

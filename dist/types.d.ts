@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ColumnDef, CellContext, FilterFnOption, ColumnFiltersState, SortingState, ExpandedState, Row, ColumnOrderState, ColumnPinningState, VisibilityState, PaginationState, ColumnSizingState, Updater, Table, HeaderContext } from '@tanstack/react-table';
+import { Table, SortingState, PaginationState, VisibilityState, ColumnFiltersState, ExpandedState, ColumnOrderState, ColumnPinningState, ColumnSizingState, ColumnDef, CellContext, FilterFnOption, Row, Updater, HeaderContext } from '@tanstack/react-table';
 
 type DataTableViewMode = "table" | "card";
 type DataTableAlign = "start" | "center" | "end";

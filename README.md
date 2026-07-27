@@ -38,10 +38,10 @@ This package is installed from GitHub refs. It is not published to npm. Release 
 
 Peer dependencies:
 
-- `react@^19.2`
-- `react-dom@^19.2`
-- `nuqs@^2.8` only when using `data-table-pro/url-state`
-- `@heroui/styles@^3` when using `data-table-pro/heroui`
+- `react@^19.2.8`
+- `react-dom@^19.2.8`
+- `nuqs@^2.9.2` only when using `data-table-pro/url-state`
+- `@heroui/styles@^3.2.2` when using `data-table-pro/heroui`
 
 Baseline assumptions:
 
@@ -406,6 +406,13 @@ editing, card view, hidden rows, infinite scroll, file upload hooks, drag
 hooks, and loading states.
 
 ## Quality Gates
+
+Contributors need a jsdom 30-supported Node.js release (`^22.22.2`,
+`^24.15.0`, or `>=26`) and pnpm 11.17.0. CI uses Node.js 22.22.2.
+TypeScript 7 provides the `tsc` command; the `typescript` package name
+intentionally points to the official TypeScript 6 compatibility package
+because ESLint and declaration bundling still require the compiler API that
+TypeScript 7.0 does not ship.
 
 Run the same focused checks used by CI:
 

@@ -44,6 +44,22 @@
 
 ### Quality
 
+- Updated every direct npm dependency to its latest registry release,
+  including ESLint 10, TypeScript 7, jsdom 30, pnpm 11, React 19.2.8, Vite
+  8.1.5, Tailwind CSS 4.3.3, HeroUI styles 3.2.2, Radix UI 1.6.7, and Vitest
+  4.1.10.
+- Added the TypeScript team's supported side-by-side compiler setup:
+  TypeScript 7 runs `tsc`, while `@typescript/typescript6` supplies the
+  programmatic API still required by typescript-eslint and tsup.
+- Migrated TypeScript path mappings away from the removed `baseUrl` option and
+  updated ESLint 10 rule handling without changing controlled search behavior.
+- Updated checkout, setup-node, and setup-pnpm to their latest GitHub Actions
+  majors and raised the CI development runtime to Node.js 22.22.2.
+- Added pnpm 11 build-script policy for esbuild and supply-chain exceptions for
+  newly released direct dependencies selected by this update.
+- Refreshed the complete transitive graph and pinned patched esbuild and Hono
+  server releases where upstream tool ranges still selected vulnerable
+  versions. `pnpm audit` now reports no known vulnerabilities.
 - Added Playwright layout and screenshot coverage for shadcn, HeroUI, and The
   Gridcn in light and dark themes, including checkbox-clearance assertions.
 - Added scoped axe accessibility audits for every adapter/theme browser case.
@@ -59,6 +75,11 @@
 ### Compatibility
 
 - No public prop, type, or package entrypoint was removed.
+- Peer minimums are now React/React DOM 19.2.8, optional `nuqs` 2.9.2, and
+  optional `@heroui/styles` 3.2.2.
+- Repository development now requires a jsdom 30-supported Node.js release
+  (`^22.22.2`, `^24.15.0`, or `>=26`) and pnpm 11.17.0. This does not raise
+  the runtime Node.js requirement of the packaged table code.
 - Clickable table rows no longer render as `tr[role="button"]`. Consumers that
   used this undocumented DOM selector should target their own row class from
   `getRowClassName` or the table row associated with their rendered content.
