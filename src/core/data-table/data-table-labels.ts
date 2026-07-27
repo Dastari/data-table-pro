@@ -1,6 +1,8 @@
 import type { DataTableLabels } from "../types";
 
-export const DATA_TABLE_DEFAULT_LABELS: DataTableLabels = {
+type ResolvedDataTableLabels = Required<DataTableLabels>;
+
+export const DATA_TABLE_DEFAULT_LABELS: ResolvedDataTableLabels = {
   searchPlaceholder: "Search rows...",
   searchTable: "Search table",
   clearSearch: "Clear search",
@@ -18,10 +20,21 @@ export const DATA_TABLE_DEFAULT_LABELS: DataTableLabels = {
   recordsPerPage: "Records per page",
   totalRecords: (count) => `Total records: ${count}`,
   pageStatus: (pageIndex, pageCount) => `Page ${pageIndex + 1} of ${pageCount}`,
+  pageStatusUnknown: (pageIndex) => `Page ${pageIndex + 1}`,
+  pagination: "Pagination",
+  morePages: "More pages",
   firstPage: "First page",
   previousPage: "Previous page",
   nextPage: "Next page",
   lastPage: "Last page",
+  selectAllVisibleRows: "Select all visible rows",
+  selectRow: "Select row",
+  selectCardRow: (rowId) => `Select row ${rowId}`,
+  switchToTableView: "Switch to table view",
+  switchToCardView: "Switch to card view",
+  tableView: "Table view",
+  cardView: "Card view",
+  allFilterOptions: "All",
   actions: "Actions",
   rowActions: "Row actions",
   editRow: "Edit row",
@@ -39,9 +52,11 @@ export const DATA_TABLE_DEFAULT_LABELS: DataTableLabels = {
   unpin: "Unpin",
 };
 
-export function resolveDataTableLabels(labels?: Partial<DataTableLabels>) {
+export function resolveDataTableLabels(
+  labels?: Partial<DataTableLabels>,
+): ResolvedDataTableLabels {
   return {
     ...DATA_TABLE_DEFAULT_LABELS,
     ...labels,
-  };
+  } as ResolvedDataTableLabels;
 }

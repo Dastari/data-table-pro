@@ -20,7 +20,6 @@ import {
   getDataTableLoadingRowId,
   getInitialColumnPinning,
   isDataTableLoadingRow,
-  rowMatchesToolbarQuery,
 } from "./data-table-utils";
 import {
   readDataTableColumnPrefs,
@@ -256,7 +255,9 @@ export function useDataTableState<TData>({
     loadingRowCount ?? Math.min(5, currentPagination.pageSize),
   );
   const currentColumnSizing = localColumnSizing;
-  const globalFilterValue = "";
+  const globalFilterValue = enableToolbarQueryFiltering
+    ? localSearchValue
+    : "";
   const handleViewModeChange = React.useCallback(
     (nextViewMode: "table" | "card") => {
       setCurrentViewMode(nextViewMode);
@@ -339,25 +340,6 @@ export function useDataTableState<TData>({
       ),
     [currentShowHiddenRows, data, hiddenRows],
   );
-  const toolbarFilteredData = React.useMemo(() => {
-    if (
-      manualFiltering ||
-      !enableToolbarQueryFiltering ||
-      !localSearchValue.trim()
-    ) {
-      return visibleData;
-    }
-
-    return visibleData.filter((row) =>
-      rowMatchesToolbarQuery(row, columns, localSearchValue),
-    );
-  }, [
-    columns,
-    enableToolbarQueryFiltering,
-    localSearchValue,
-    manualFiltering,
-    visibleData,
-  ]);
   const shouldRenderInitialLoading = isLoading && visibleData.length === 0;
   const loadingRows = React.useMemo(
     () => createDataTableLoadingRows<TData>(resolvedLoadingRowCount),
@@ -365,7 +347,7 @@ export function useDataTableState<TData>({
   );
   const tableData = shouldRenderInitialLoading
     ? loadingRows
-    : toolbarFilteredData;
+    : visibleData;
   const tableGetRowId = React.useCallback(
     (row: TData, index: number) => {
       if (isDataTableLoadingRow(row)) {
@@ -434,7 +416,11 @@ export function useDataTableState<TData>({
     shouldRenderInitialLoading,
     tableData,
     tableGetRowId,
-    toolbarFilteredData,
+    /**
+     * @deprecated Read the filtered TanStack row model from the table
+     * instance. This alias remains for advanced 3.x callers.
+     */
+    toolbarFilteredData: visibleData,
     visibleData,
   };
 }

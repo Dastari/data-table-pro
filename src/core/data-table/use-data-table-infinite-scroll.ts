@@ -5,14 +5,20 @@ export function useDataTableInfiniteScroll({
   hasMore,
   isLoadingMore,
   onLoadMore,
+  onError,
 }: {
   enabled: boolean;
   hasMore: boolean;
   isLoadingMore?: boolean;
   onLoadMore: () => void | Promise<void>;
+  onError?: (error: unknown) => void;
 }) {
   const sentinelRef = React.useRef<HTMLDivElement | null>(null);
+  const isRequestInFlightRef = React.useRef(false);
   const onLoadMoreEvent = React.useEffectEvent(onLoadMore);
+  const onErrorEvent = React.useEffectEvent((error: unknown) => {
+    onError?.(error);
+  });
 
   React.useEffect(() => {
     if (!enabled || !hasMore || isLoadingMore) {
@@ -27,8 +33,25 @@ export function useDataTableInfiniteScroll({
     const observer = new IntersectionObserver(
       (entries) => {
         const entry = entries[0];
-        if (entry.isIntersecting) {
-          void onLoadMoreEvent();
+        if (entry.isIntersecting && !isRequestInFlightRef.current) {
+          isRequestInFlightRef.current = true;
+
+          let result: void | Promise<void>;
+          try {
+            result = onLoadMoreEvent();
+          } catch (error) {
+            isRequestInFlightRef.current = false;
+            onErrorEvent(error);
+            return;
+          }
+
+          void Promise.resolve(result)
+            .catch((error: unknown) => {
+              onErrorEvent(error);
+            })
+            .finally(() => {
+              isRequestInFlightRef.current = false;
+            });
         }
       },
       {

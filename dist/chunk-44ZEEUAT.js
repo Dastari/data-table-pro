@@ -999,6 +999,7 @@ function PaginationLast({
 }
 function PaginationEllipsis({
   className,
+  text = "More pages",
   ...props
 }) {
   return /* @__PURE__ */ jsxs(
@@ -1013,7 +1014,7 @@ function PaginationEllipsis({
       ...props,
       children: [
         /* @__PURE__ */ jsx(IconDots, {}),
-        /* @__PURE__ */ jsx("span", { className: "sr-only", children: "More pages" })
+        /* @__PURE__ */ jsx("span", { className: "sr-only", children: text })
       ]
     }
   );
@@ -1824,6 +1825,7 @@ function DataTableFooterSection({
   handleFooterPageIndexChange,
   handleFooterPageSizeChange,
   labels,
+  pageCountKnown = true,
   rowsPerPageOptions,
   showFooter
 }) {
@@ -1836,6 +1838,7 @@ function DataTableFooterSection({
       {
         pageIndex: currentPagination.pageIndex,
         pageCount: effectivePageCount,
+        pageCountKnown,
         pageSize: currentPagination.pageSize,
         totalRowCount: footerTotalRowCount,
         rowsPerPageOptions,
@@ -1849,7 +1852,8 @@ function DataTableFooterSection({
 }
 function useRowEditing({
   columns,
-  editableRows
+  editableRows,
+  onError
 }) {
   const [editingRowId, setEditingRowId] = React30.useState(null);
   const [draftValues, setDraftValues] = React30.useState({});
@@ -1879,11 +1883,13 @@ function useRowEditing({
       try {
         await editableRows.onSaveRow(row, draftValuesRef.current);
         React30.startTransition(cancelEditing);
+      } catch (error) {
+        onError?.(error, row);
       } finally {
         setIsSavingEdit(false);
       }
     },
-    [cancelEditing, editableRows]
+    [cancelEditing, editableRows, onError]
   );
   return {
     cancelEditing,
@@ -2126,6 +2132,16 @@ function getConfiguredColumnMinWidth(column) {
   return void 0;
 }
 function decorateFilterableColumn(column) {
+  if ("columns" in column && Array.isArray(column.columns)) {
+    return {
+      ...column,
+      columns: column.columns.map(
+        (childColumn) => decorateFilterableColumn(
+          childColumn
+        )
+      )
+    };
+  }
   const filter = column.meta?.filter;
   if (!filter || column.filterFn) {
     return column;
@@ -2178,24 +2194,12 @@ function hasFilterValue(value) {
   }
   return value !== void 0 && value !== null && value !== "";
 }
-function rowMatchesToolbarQuery(row, columns, query) {
-  const normalizedQuery = query.trim().toLowerCase();
+function dataTableGlobalFilterFn(row, columnId, filterValue) {
+  const normalizedQuery = normalizeFilterValue(filterValue).trim().toLowerCase();
   if (!normalizedQuery) {
     return true;
   }
-  return columns.some((column) => {
-    const value = getColumnSearchValue(row, column);
-    return normalizeFilterValue(value).toLowerCase().includes(normalizedQuery);
-  });
-}
-function getColumnSearchValue(row, column) {
-  if ("accessorKey" in column && typeof column.accessorKey === "string") {
-    return row[column.accessorKey];
-  }
-  if ("accessorFn" in column && typeof column.accessorFn === "function") {
-    return column.accessorFn(row, 0);
-  }
-  return void 0;
+  return normalizeFilterValue(row.getValue(columnId)).toLowerCase().includes(normalizedQuery);
 }
 async function exportDataTableCsv({
   csvExport,
@@ -2206,11 +2210,12 @@ async function exportDataTableCsv({
   }
   const options = csvExport === true ? {} : csvExport;
   const filename = options.filename ?? "data-table.csv";
+  const scope = options.scope ?? "filtered";
   const exportColumnIds = options.columns ? new Set(options.columns) : void 0;
   const columns = table.getVisibleLeafColumns().filter(
     (column) => !isUtilityColumnId(column.id) && column.id !== "__spacer__" && (!exportColumnIds || exportColumnIds.has(column.id))
   );
-  const rows = table.getFilteredRowModel().rows;
+  const rows = getCsvExportRows(table, scope);
   const csvRows = [];
   if (options.includeHeaders ?? true) {
     csvRows.push(
@@ -2232,12 +2237,17 @@ async function exportDataTableCsv({
       })
     );
   }
-  const csv = csvRows.map((row) => row.map(escapeCsvCell).join(",")).join("\n");
+  const lineEnding = options.lineEnding ?? "\r\n";
+  const escapeFormulaValues = options.escapeFormulaValues ?? true;
+  const csv = csvRows.map(
+    (row) => row.map((value) => escapeCsvCell(value, escapeFormulaValues)).join(",")
+  ).join(lineEnding);
   if (options.onExport) {
     await options.onExport({
       csv,
       filename,
-      rows: rows.map((row) => row.original)
+      rows: rows.map((row) => row.original),
+      scope
     });
     return;
   }
@@ -2252,8 +2262,23 @@ async function exportDataTableCsv({
   anchor.click();
   window.URL.revokeObjectURL(url);
 }
-function escapeCsvCell(value) {
-  const text = normalizeFilterValue(value);
+function getCsvExportRows(table, scope) {
+  switch (scope) {
+    case "page":
+      return table.getRowModel().rows;
+    case "selected":
+      return table.getPrePaginationRowModel().rows.filter((row) => row.getIsSelected());
+    case "all":
+      return table.getCoreRowModel().rows;
+    default:
+      return table.getPrePaginationRowModel().rows;
+  }
+}
+function escapeCsvCell(value, escapeFormulaValues) {
+  let text = normalizeFilterValue(value);
+  if (escapeFormulaValues && typeof value === "string" && /^[\t\r ]*[=+\-@]/.test(value)) {
+    text = `'${text}`;
+  }
   if (/[",\n\r]/.test(text)) {
     return `"${text.replace(/"/g, '""')}"`;
   }
@@ -2568,6 +2593,7 @@ function DataTableHeaderCellInner({
   return /* @__PURE__ */ jsxs(
     TableHead2,
     {
+      colSpan: header.colSpan,
       className: cn(
         "relative border-b",
         getDensityHeaderClassName(currentDensity),
@@ -2989,6 +3015,62 @@ function DataTableToolbarSection({
     }
   ) });
 }
+
+// src/core/data-table/data-table-labels.ts
+var DATA_TABLE_DEFAULT_LABELS = {
+  searchPlaceholder: "Search rows...",
+  searchTable: "Search table",
+  clearSearch: "Clear search",
+  noRowsTitle: "No rows yet",
+  noRowsDescription: "Create a record or refresh this view once data exists.",
+  noMatchingRowsTitle: "No matching rows",
+  noMatchingRowsDescription: "Try a different search term or clear filters.",
+  tableOptions: "Show table options",
+  columns: "Columns",
+  filters: "Filters",
+  clearFilters: "Clear filters",
+  selectedRows: (count) => `${count} record${count === 1 ? "" : "s"} selected`,
+  showHiddenRows: (label) => `Show ${label}`,
+  recordsPerPage: "Records per page",
+  totalRecords: (count) => `Total records: ${count}`,
+  pageStatus: (pageIndex, pageCount) => `Page ${pageIndex + 1} of ${pageCount}`,
+  pageStatusUnknown: (pageIndex) => `Page ${pageIndex + 1}`,
+  pagination: "Pagination",
+  morePages: "More pages",
+  firstPage: "First page",
+  previousPage: "Previous page",
+  nextPage: "Next page",
+  lastPage: "Last page",
+  selectAllVisibleRows: "Select all visible rows",
+  selectRow: "Select row",
+  selectCardRow: (rowId) => `Select row ${rowId}`,
+  switchToTableView: "Switch to table view",
+  switchToCardView: "Switch to card view",
+  tableView: "Table view",
+  cardView: "Card view",
+  allFilterOptions: "All",
+  actions: "Actions",
+  rowActions: "Row actions",
+  editRow: "Edit row",
+  saveEdit: "Save",
+  cancelEdit: "Cancel editing",
+  expandRow: "Expand row",
+  collapseRow: "Collapse row",
+  exportCsv: "Export CSV",
+  density: "Density",
+  compactDensity: "Compact",
+  comfortableDensity: "Comfortable",
+  spaciousDensity: "Spacious",
+  pinLeft: "Pin left",
+  pinRight: "Pin right",
+  unpin: "Unpin"
+};
+function resolveDataTableLabels(labels) {
+  return {
+    ...DATA_TABLE_DEFAULT_LABELS,
+    ...labels
+  };
+}
 function useDataTableColumns({
   Button: Button2,
   Checkbox: Checkbox2,
@@ -3099,7 +3181,7 @@ function useDataTableColumns({
             onCheckedChange: (checked) => {
               table.toggleAllPageRowsSelected(checked === true);
             },
-            "aria-label": "Select all visible rows"
+            "aria-label": labels.selectAllVisibleRows ?? DATA_TABLE_DEFAULT_LABELS.selectAllVisibleRows
           }
         ) }),
         cell: ({ row }) => /* @__PURE__ */ jsx("div", { className: "flex items-center justify-center", children: /* @__PURE__ */ jsx(
@@ -3121,7 +3203,7 @@ function useDataTableColumns({
               lastSelectedRowIdRef.current = row.id;
               row.toggleSelected(checked === true);
             },
-            "aria-label": "Select row"
+            "aria-label": labels.selectRow ?? DATA_TABLE_DEFAULT_LABELS.selectRow
           }
         ) })
       });
@@ -3218,10 +3300,15 @@ function useDataTableInfiniteScroll({
   enabled,
   hasMore,
   isLoadingMore,
-  onLoadMore
+  onLoadMore,
+  onError
 }) {
   const sentinelRef = React30.useRef(null);
+  const isRequestInFlightRef = React30.useRef(false);
   const onLoadMoreEvent = React30.useEffectEvent(onLoadMore);
+  const onErrorEvent = React30.useEffectEvent((error) => {
+    onError?.(error);
+  });
   React30.useEffect(() => {
     if (!enabled || !hasMore || isLoadingMore) {
       return;
@@ -3233,8 +3320,21 @@ function useDataTableInfiniteScroll({
     const observer = new IntersectionObserver(
       (entries) => {
         const entry = entries[0];
-        if (entry.isIntersecting) {
-          void onLoadMoreEvent();
+        if (entry.isIntersecting && !isRequestInFlightRef.current) {
+          isRequestInFlightRef.current = true;
+          let result;
+          try {
+            result = onLoadMoreEvent();
+          } catch (error) {
+            isRequestInFlightRef.current = false;
+            onErrorEvent(error);
+            return;
+          }
+          void Promise.resolve(result).catch((error) => {
+            onErrorEvent(error);
+          }).finally(() => {
+            isRequestInFlightRef.current = false;
+          });
         }
       },
       {
@@ -3288,6 +3388,7 @@ function useDataTableInstance({
   getRowCanExpand,
   globalFilterFn,
   globalFilterValue,
+  hasNextPage,
   handleColumnFiltersChange,
   handleColumnOrderChange,
   handleColumnPinningChange,
@@ -3297,6 +3398,7 @@ function useDataTableInstance({
   manualFiltering,
   manualPagination,
   manualSorting,
+  onActionError,
   onPageIndexChange,
   onPageSizeChange,
   pageCount,
@@ -3313,7 +3415,6 @@ function useDataTableInstance({
   tableGetRowId,
   tableRef,
   tableScrollElement,
-  toolbarFilteredData,
   totalRowCount,
   virtualization,
   viewportHeight
@@ -3406,8 +3507,12 @@ function useDataTableInstance({
           pageSize: pageSize === void 0 ? nextValue.pageSize : current.pageSize
         }));
       }
-      onPageIndexChange?.(nextValue.pageIndex);
-      onPageSizeChange?.(nextValue.pageSize);
+      if (nextValue.pageIndex !== currentPagination.pageIndex) {
+        onPageIndexChange?.(nextValue.pageIndex);
+      }
+      if (nextValue.pageSize !== currentPagination.pageSize) {
+        onPageSizeChange?.(nextValue.pageSize);
+      }
     },
     [
       currentPagination,
@@ -3435,7 +3540,8 @@ function useDataTableInstance({
     columnResizeMode,
     getRowId: tableGetRowId,
     getRowCanExpand: renderExpandedRow ? (row) => getRowCanExpand?.(row.original) ?? true : void 0,
-    globalFilterFn,
+    globalFilterFn: globalFilterFn ?? dataTableGlobalFilterFn,
+    getColumnCanGlobalFilter: (column) => column.columnDef.enableGlobalFilter !== false && typeof column.accessorFn === "function",
     manualSorting,
     manualFiltering,
     manualPagination: manualPagination || Boolean(infiniteScroll?.enabled),
@@ -3490,13 +3596,15 @@ function useDataTableInstance({
     0,
     rowVirtualizer.getTotalSize() - (virtualItems.at(-1)?.end ?? virtualPaddingTop)
   ) : 0;
-  const derivedTotalRowCount = manualPagination || infiniteScroll?.enabled ? toolbarFilteredData.length : table.getFilteredRowModel().rows.length;
+  const usesManualRows = manualPagination || Boolean(infiniteScroll?.enabled);
+  const derivedTotalRowCount = usesManualRows ? void 0 : table.getFilteredRowModel().rows.length;
   const effectiveTotalRowCount = totalRowCount ?? derivedTotalRowCount;
-  const footerTotalRowCount = totalRowCount ?? effectiveTotalRowCount;
-  const effectivePageCount = shouldRenderInitialLoading ? 1 : pageCount ?? (manualPagination || infiniteScroll?.enabled ? Math.max(
+  const isPageCountKnown = !usesManualRows || pageCount !== void 0 || totalRowCount !== void 0;
+  const footerTotalRowCount = effectiveTotalRowCount;
+  const effectivePageCount = shouldRenderInitialLoading ? 1 : pageCount ?? (effectiveTotalRowCount !== void 0 ? Math.max(
     1,
     Math.ceil(effectiveTotalRowCount / currentPagination.pageSize)
-  ) : table.getPageCount());
+  ) : usesManualRows ? currentPagination.pageIndex + (hasNextPage ? 2 : 1) : table.getPageCount());
   const maxPageIndex = Math.max(0, effectivePageCount - 1);
   const setLocalPageIndex = React30.useCallback(
     (nextPageIndex) => {
@@ -3510,7 +3618,7 @@ function useDataTableInstance({
     [pageIndex, setLocalPagination]
   );
   useDataTablePaginationClamp({
-    enabled: !shouldRenderInitialLoading && !infiniteScroll?.enabled,
+    enabled: !shouldRenderInitialLoading && !infiniteScroll?.enabled && isPageCountKnown,
     maxPageIndex,
     onPageIndexChange,
     pageIndex: currentPagination.pageIndex,
@@ -3518,6 +3626,9 @@ function useDataTableInstance({
   });
   const handleFooterPageIndexChange = React30.useCallback(
     (nextPageIndex) => {
+      if (nextPageIndex === currentPagination.pageIndex) {
+        return;
+      }
       onPageIndexChange?.(nextPageIndex);
       if (pageIndex === void 0) {
         setLocalPagination(
@@ -3525,12 +3636,21 @@ function useDataTableInstance({
         );
       }
     },
-    [onPageIndexChange, pageIndex, setLocalPagination]
+    [
+      currentPagination.pageIndex,
+      onPageIndexChange,
+      pageIndex,
+      setLocalPagination
+    ]
   );
   const handleFooterPageSizeChange = React30.useCallback(
     (nextPageSize) => {
-      onPageIndexChange?.(0);
-      onPageSizeChange?.(nextPageSize);
+      if (currentPagination.pageIndex !== 0) {
+        onPageIndexChange?.(0);
+      }
+      if (nextPageSize !== currentPagination.pageSize) {
+        onPageSizeChange?.(nextPageSize);
+      }
       if (pageSize === void 0) {
         setLocalPagination({
           pageIndex: 0,
@@ -3538,14 +3658,25 @@ function useDataTableInstance({
         });
       }
     },
-    [onPageIndexChange, onPageSizeChange, pageSize, setLocalPagination]
+    [
+      currentPagination.pageIndex,
+      currentPagination.pageSize,
+      onPageIndexChange,
+      onPageSizeChange,
+      pageSize,
+      setLocalPagination
+    ]
   );
   const sentinelRef = useDataTableInfiniteScroll({
     enabled: Boolean(infiniteScroll?.enabled),
     hasMore: Boolean(infiniteScroll?.hasMore),
     isLoadingMore: infiniteScroll?.isLoadingMore,
-    onLoadMore: () => {
-      void infiniteScroll?.onLoadMore();
+    onLoadMore: () => infiniteScroll?.onLoadMore(),
+    onError: (error) => {
+      onActionError?.({
+        error,
+        source: "infiniteScroll"
+      });
     }
   });
   return {
@@ -3553,6 +3684,7 @@ function useDataTableInstance({
     footerTotalRowCount,
     handleFooterPageIndexChange,
     handleFooterPageSizeChange,
+    isPageCountKnown,
     renderedRows,
     reorderColumn,
     rowsToRender,
@@ -3777,7 +3909,7 @@ function useDataTableState({
     loadingRowCount ?? Math.min(5, currentPagination.pageSize)
   );
   const currentColumnSizing = localColumnSizing;
-  const globalFilterValue = "";
+  const globalFilterValue = enableToolbarQueryFiltering ? localSearchValue : "";
   const handleViewModeChange = React30.useCallback(
     (nextViewMode) => {
       setCurrentViewMode(nextViewMode);
@@ -3854,26 +3986,12 @@ function useDataTableState({
     ),
     [currentShowHiddenRows, data, hiddenRows]
   );
-  const toolbarFilteredData = React30.useMemo(() => {
-    if (manualFiltering || !enableToolbarQueryFiltering || !localSearchValue.trim()) {
-      return visibleData;
-    }
-    return visibleData.filter(
-      (row) => rowMatchesToolbarQuery(row, columns, localSearchValue)
-    );
-  }, [
-    columns,
-    enableToolbarQueryFiltering,
-    localSearchValue,
-    manualFiltering,
-    visibleData
-  ]);
   const shouldRenderInitialLoading = isLoading && visibleData.length === 0;
   const loadingRows = React30.useMemo(
     () => createDataTableLoadingRows(resolvedLoadingRowCount),
     [resolvedLoadingRowCount]
   );
-  const tableData = shouldRenderInitialLoading ? loadingRows : toolbarFilteredData;
+  const tableData = shouldRenderInitialLoading ? loadingRows : visibleData;
   const tableGetRowId = React30.useCallback(
     (row, index) => {
       if (isDataTableLoadingRow(row)) {
@@ -3932,7 +4050,11 @@ function useDataTableState({
     shouldRenderInitialLoading,
     tableData,
     tableGetRowId,
-    toolbarFilteredData,
+    /**
+     * @deprecated Read the filtered TanStack row model from the table
+     * instance. This alias remains for advanced 3.x callers.
+     */
+    toolbarFilteredData: visibleData,
     visibleData
   };
 }
@@ -4322,7 +4444,7 @@ function createDataTableCardView(ui, DataTableRowActions) {
                         Checkbox2,
                         {
                           checked: isSelected,
-                          "aria-label": `Select row ${rowId}`,
+                          "aria-label": (labels.selectCardRow ?? DATA_TABLE_DEFAULT_LABELS.selectCardRow)(rowId),
                           onCheckedChange: (checked) => {
                             onRowSelectionChange(
                               updateRowSelection(
@@ -4472,6 +4594,7 @@ function createDataTablePagination(ui) {
   function DataTablePagination({
     pageIndex,
     pageCount,
+    pageCountKnown,
     pageSize,
     totalRowCount,
     rowsPerPageOptions,
@@ -4479,7 +4602,7 @@ function createDataTablePagination(ui) {
     onPageSizeChange,
     labels
   }) {
-    const pages = getVisiblePages(pageIndex, Math.max(1, pageCount));
+    const pages = pageCountKnown ? getVisiblePages(pageIndex, Math.max(1, pageCount)) : [];
     const canGoPrevious = pageIndex > 0;
     const canGoNext = pageIndex + 1 < pageCount;
     const lastPageIndex = Math.max(0, pageCount - 1);
@@ -4501,6 +4624,7 @@ function createDataTablePagination(ui) {
                   /* @__PURE__ */ jsx(
                     SelectTrigger2,
                     {
+                      "aria-label": labels.recordsPerPage,
                       className: `w-22 ${uiClassNames.paginationSelectTrigger ?? ""}`,
                       children: /* @__PURE__ */ jsx(SelectValue2, {})
                     }
@@ -4512,124 +4636,140 @@ function createDataTablePagination(ui) {
           ]
         }
       ),
-      /* @__PURE__ */ jsx("div", { className: "flex shrink-0 items-center justify-center", children: /* @__PURE__ */ jsxs(
+      totalRowCount !== void 0 ? /* @__PURE__ */ jsx("div", { className: "flex shrink-0 items-center justify-center", children: /* @__PURE__ */ jsxs(
         "div",
         {
           className: `inline-flex items-center gap-2 px-2.5 py-1.5 text-sm ${uiClassNames.paginationTotal ?? ""}`,
-          "aria-label": labels.totalRecords(totalRowCount ?? 0),
+          "aria-label": labels.totalRecords(totalRowCount),
           children: [
             /* @__PURE__ */ jsx(IconDatabase, { className: "size-4" }),
-            /* @__PURE__ */ jsx("span", { className: "@md/data-table:hidden", children: totalRowCount ?? 0 }),
-            /* @__PURE__ */ jsx("span", { className: "hidden @md/data-table:inline", children: labels.totalRecords(totalRowCount ?? 0) })
+            /* @__PURE__ */ jsx("span", { className: "@md/data-table:hidden", children: totalRowCount }),
+            /* @__PURE__ */ jsx("span", { className: "hidden @md/data-table:inline", children: labels.totalRecords(totalRowCount) })
           ]
         }
-      ) }),
+      ) }) : null,
       /* @__PURE__ */ jsxs("div", { className: "flex flex-1 items-center justify-end gap-4", children: [
         /* @__PURE__ */ jsx(
           "div",
           {
             className: `hidden text-sm @md/data-table:inline ${uiClassNames.mutedText ?? "opacity-70"}`,
-            children: labels.pageStatus(pageIndex, Math.max(1, pageCount))
+            children: pageCountKnown ? labels.pageStatus(pageIndex, Math.max(1, pageCount)) : (labels.pageStatusUnknown ?? DATA_TABLE_DEFAULT_LABELS.pageStatusUnknown)(pageIndex)
           }
         ),
-        /* @__PURE__ */ jsx(Pagination2, { className: "mx-0 w-auto justify-end", children: /* @__PURE__ */ jsxs(PaginationContent2, { children: [
-          /* @__PURE__ */ jsx(PaginationItem2, { className: "@md/data-table:hidden", children: /* @__PURE__ */ jsxs(Tooltip2, { children: [
-            /* @__PURE__ */ jsx(TooltipTrigger2, { asChild: true, children: /* @__PURE__ */ jsx(
-              PaginationFirst2,
-              {
-                href: "#",
-                size: "icon-sm",
-                showText: false,
-                disabled: !canGoPrevious,
-                onClick: (event) => {
-                  event.preventDefault();
-                  if (canGoPrevious) {
-                    onPageIndexChange(0);
+        /* @__PURE__ */ jsx(
+          Pagination2,
+          {
+            "aria-label": labels.pagination ?? DATA_TABLE_DEFAULT_LABELS.pagination,
+            className: "mx-0 w-auto justify-end",
+            children: /* @__PURE__ */ jsxs(PaginationContent2, { children: [
+              /* @__PURE__ */ jsx(PaginationItem2, { className: "@md/data-table:hidden", children: /* @__PURE__ */ jsxs(Tooltip2, { children: [
+                /* @__PURE__ */ jsx(TooltipTrigger2, { asChild: true, children: /* @__PURE__ */ jsx(
+                  PaginationFirst2,
+                  {
+                    "aria-label": labels.firstPage,
+                    href: "#",
+                    size: "icon-sm",
+                    showText: false,
+                    disabled: !canGoPrevious,
+                    onClick: (event) => {
+                      event.preventDefault();
+                      if (canGoPrevious) {
+                        onPageIndexChange(0);
+                      }
+                    },
+                    text: labels.firstPage
                   }
-                },
-                children: "First"
-              }
-            ) }),
-            /* @__PURE__ */ jsx(TooltipContent2, { children: labels.firstPage })
-          ] }) }),
-          /* @__PURE__ */ jsx(PaginationItem2, { children: /* @__PURE__ */ jsxs(Tooltip2, { children: [
-            /* @__PURE__ */ jsx(TooltipTrigger2, { asChild: true, children: /* @__PURE__ */ jsx(
-              PaginationPrevious2,
-              {
-                href: "#",
-                size: "icon-sm",
-                showText: false,
-                disabled: !canGoPrevious,
-                onClick: (event) => {
-                  event.preventDefault();
-                  if (canGoPrevious) {
-                    onPageIndexChange(pageIndex - 1);
+                ) }),
+                /* @__PURE__ */ jsx(TooltipContent2, { children: labels.firstPage })
+              ] }) }),
+              /* @__PURE__ */ jsx(PaginationItem2, { children: /* @__PURE__ */ jsxs(Tooltip2, { children: [
+                /* @__PURE__ */ jsx(TooltipTrigger2, { asChild: true, children: /* @__PURE__ */ jsx(
+                  PaginationPrevious2,
+                  {
+                    "aria-label": labels.previousPage,
+                    href: "#",
+                    size: "icon-sm",
+                    showText: false,
+                    disabled: !canGoPrevious,
+                    onClick: (event) => {
+                      event.preventDefault();
+                      if (canGoPrevious) {
+                        onPageIndexChange(pageIndex - 1);
+                      }
+                    },
+                    text: labels.previousPage
                   }
-                },
-                children: "Previous"
-              }
-            ) }),
-            /* @__PURE__ */ jsx(TooltipContent2, { children: labels.previousPage })
-          ] }) }),
-          pages.map((item, index) => /* @__PURE__ */ jsx(
-            PaginationItem2,
-            {
-              className: "hidden @md/data-table:block",
-              children: item === "ellipsis" ? /* @__PURE__ */ jsx(PaginationEllipsis2, {}) : /* @__PURE__ */ jsx(
-                PaginationLink2,
+                ) }),
+                /* @__PURE__ */ jsx(TooltipContent2, { children: labels.previousPage })
+              ] }) }),
+              pages.map((item, index) => /* @__PURE__ */ jsx(
+                PaginationItem2,
                 {
-                  href: "#",
-                  isActive: item === pageIndex + 1,
-                  size: "icon-sm",
-                  onClick: (event) => {
-                    event.preventDefault();
-                    onPageIndexChange(item - 1);
-                  },
-                  children: item
-                }
-              )
-            },
-            `${item}-${index}`
-          )),
-          /* @__PURE__ */ jsx(PaginationItem2, { children: /* @__PURE__ */ jsxs(Tooltip2, { children: [
-            /* @__PURE__ */ jsx(TooltipTrigger2, { asChild: true, children: /* @__PURE__ */ jsx(
-              PaginationNext2,
-              {
-                href: "#",
-                size: "icon-sm",
-                showText: false,
-                disabled: !canGoNext,
-                onClick: (event) => {
-                  event.preventDefault();
-                  if (canGoNext) {
-                    onPageIndexChange(pageIndex + 1);
-                  }
+                  className: "hidden @md/data-table:block",
+                  children: item === "ellipsis" ? /* @__PURE__ */ jsx(
+                    PaginationEllipsis2,
+                    {
+                      text: labels.morePages ?? DATA_TABLE_DEFAULT_LABELS.morePages
+                    }
+                  ) : /* @__PURE__ */ jsx(
+                    PaginationLink2,
+                    {
+                      href: "#",
+                      isActive: item === pageIndex + 1,
+                      size: "icon-sm",
+                      onClick: (event) => {
+                        event.preventDefault();
+                        onPageIndexChange(item - 1);
+                      },
+                      children: item
+                    }
+                  )
                 },
-                children: "Next"
-              }
-            ) }),
-            /* @__PURE__ */ jsx(TooltipContent2, { children: labels.nextPage })
-          ] }) }),
-          /* @__PURE__ */ jsx(PaginationItem2, { className: "@md/data-table:hidden", children: /* @__PURE__ */ jsxs(Tooltip2, { children: [
-            /* @__PURE__ */ jsx(TooltipTrigger2, { asChild: true, children: /* @__PURE__ */ jsx(
-              PaginationLast2,
-              {
-                href: "#",
-                size: "icon-sm",
-                showText: false,
-                disabled: !canGoNext,
-                onClick: (event) => {
-                  event.preventDefault();
-                  if (canGoNext) {
-                    onPageIndexChange(lastPageIndex);
+                `${item}-${index}`
+              )),
+              /* @__PURE__ */ jsx(PaginationItem2, { children: /* @__PURE__ */ jsxs(Tooltip2, { children: [
+                /* @__PURE__ */ jsx(TooltipTrigger2, { asChild: true, children: /* @__PURE__ */ jsx(
+                  PaginationNext2,
+                  {
+                    "aria-label": labels.nextPage,
+                    href: "#",
+                    size: "icon-sm",
+                    showText: false,
+                    disabled: !canGoNext,
+                    onClick: (event) => {
+                      event.preventDefault();
+                      if (canGoNext) {
+                        onPageIndexChange(pageIndex + 1);
+                      }
+                    },
+                    text: labels.nextPage
                   }
-                },
-                children: "Last"
-              }
-            ) }),
-            /* @__PURE__ */ jsx(TooltipContent2, { children: labels.lastPage })
-          ] }) })
-        ] }) })
+                ) }),
+                /* @__PURE__ */ jsx(TooltipContent2, { children: labels.nextPage })
+              ] }) }),
+              pageCountKnown ? /* @__PURE__ */ jsx(PaginationItem2, { className: "@md/data-table:hidden", children: /* @__PURE__ */ jsxs(Tooltip2, { children: [
+                /* @__PURE__ */ jsx(TooltipTrigger2, { asChild: true, children: /* @__PURE__ */ jsx(
+                  PaginationLast2,
+                  {
+                    "aria-label": labels.lastPage,
+                    href: "#",
+                    size: "icon-sm",
+                    showText: false,
+                    text: labels.lastPage,
+                    disabled: !canGoNext,
+                    onClick: (event) => {
+                      event.preventDefault();
+                      if (canGoNext) {
+                        onPageIndexChange(lastPageIndex);
+                      }
+                    }
+                  }
+                ) }),
+                /* @__PURE__ */ jsx(TooltipContent2, { children: labels.lastPage })
+              ] }) }) : null
+            ] })
+          }
+        )
       ] })
     ] });
   }
@@ -5140,11 +5280,11 @@ function createDataTableToolbar(ui) {
                         },
                         children: [
                           /* @__PURE__ */ jsx(IconList, {}),
-                          /* @__PURE__ */ jsx("span", { className: "sr-only", children: "Switch to table view" })
+                          /* @__PURE__ */ jsx("span", { className: "sr-only", children: labels.switchToTableView ?? DATA_TABLE_DEFAULT_LABELS.switchToTableView })
                         ]
                       }
                     ) }),
-                    /* @__PURE__ */ jsx(TooltipContent2, { children: "Table view" })
+                    /* @__PURE__ */ jsx(TooltipContent2, { children: labels.tableView ?? DATA_TABLE_DEFAULT_LABELS.tableView })
                   ] }),
                   /* @__PURE__ */ jsxs(Tooltip2, { children: [
                     /* @__PURE__ */ jsx(TooltipTrigger2, { asChild: true, children: /* @__PURE__ */ jsxs(
@@ -5160,11 +5300,11 @@ function createDataTableToolbar(ui) {
                         },
                         children: [
                           /* @__PURE__ */ jsx(IconLayoutGrid, {}),
-                          /* @__PURE__ */ jsx("span", { className: "sr-only", children: "Switch to card view" })
+                          /* @__PURE__ */ jsx("span", { className: "sr-only", children: labels.switchToCardView ?? DATA_TABLE_DEFAULT_LABELS.switchToCardView })
                         ]
                       }
                     ) }),
-                    /* @__PURE__ */ jsx(TooltipContent2, { children: "Card view" })
+                    /* @__PURE__ */ jsx(TooltipContent2, { children: labels.cardView ?? DATA_TABLE_DEFAULT_LABELS.cardView })
                   ] })
                 ] }) : null,
                 showTrailingActions ? trailingActions.map((action) => {
@@ -5317,7 +5457,7 @@ function createDataTableToolbar(ui) {
               onClick: () => {
                 onColumnFilterChange(filter.id, "");
               },
-              children: "All"
+              children: labels.allFilterOptions ?? DATA_TABLE_DEFAULT_LABELS.allFilterOptions
             }
           ) : null,
           filter.options.map((option) => /* @__PURE__ */ jsx(
@@ -5354,51 +5494,6 @@ function hasColumnFilterValue(value) {
     return value.length > 0;
   }
   return value !== void 0 && value !== null && value !== "";
-}
-
-// src/core/data-table/data-table-labels.ts
-var DATA_TABLE_DEFAULT_LABELS = {
-  searchPlaceholder: "Search rows...",
-  searchTable: "Search table",
-  clearSearch: "Clear search",
-  noRowsTitle: "No rows yet",
-  noRowsDescription: "Create a record or refresh this view once data exists.",
-  noMatchingRowsTitle: "No matching rows",
-  noMatchingRowsDescription: "Try a different search term or clear filters.",
-  tableOptions: "Show table options",
-  columns: "Columns",
-  filters: "Filters",
-  clearFilters: "Clear filters",
-  selectedRows: (count) => `${count} record${count === 1 ? "" : "s"} selected`,
-  showHiddenRows: (label) => `Show ${label}`,
-  recordsPerPage: "Records per page",
-  totalRecords: (count) => `Total records: ${count}`,
-  pageStatus: (pageIndex, pageCount) => `Page ${pageIndex + 1} of ${pageCount}`,
-  firstPage: "First page",
-  previousPage: "Previous page",
-  nextPage: "Next page",
-  lastPage: "Last page",
-  actions: "Actions",
-  rowActions: "Row actions",
-  editRow: "Edit row",
-  saveEdit: "Save",
-  cancelEdit: "Cancel editing",
-  expandRow: "Expand row",
-  collapseRow: "Collapse row",
-  exportCsv: "Export CSV",
-  density: "Density",
-  compactDensity: "Compact",
-  comfortableDensity: "Comfortable",
-  spaciousDensity: "Spacious",
-  pinLeft: "Pin left",
-  pinRight: "Pin right",
-  unpin: "Unpin"
-};
-function resolveDataTableLabels(labels) {
-  return {
-    ...DATA_TABLE_DEFAULT_LABELS,
-    ...labels
-  };
 }
 function useDataTableToolbarFeatures({
   columns,
@@ -5492,7 +5587,7 @@ function useDataTableToolbarFeatures({
     if (!csvExport) {
       return;
     }
-    void exportDataTableCsv({
+    return exportDataTableCsv({
       csvExport,
       table});
   }, [csvExport, labels, table]);
@@ -5573,6 +5668,7 @@ function createDataTable(ui) {
     compactToolbar,
     rowsPerPageOptions = [10, 20, 50, 100],
     totalRowCount,
+    hasNextPage,
     sorting,
     onSortingChange,
     manualSorting = false,
@@ -5637,6 +5733,7 @@ function createDataTable(ui) {
     tableContainerClassName,
     getRowClassName,
     onRowClick,
+    onActionError,
     dragAndDrop,
     fileUpload,
     virtualization
@@ -5650,6 +5747,50 @@ function createDataTable(ui) {
     const resolvedLabels = React30.useMemo(
       () => resolveDataTableLabels(labels),
       [labels]
+    );
+    const runAction = React30.useCallback(
+      (context, action) => {
+        runDataTableAction(action, context, onActionError);
+      },
+      [onActionError]
+    );
+    const guardedRowActions = React30.useMemo(
+      () => rowActions.map((action) => ({
+        ...action,
+        onClick: (row) => {
+          runAction(
+            {
+              actionKey: action.key,
+              row,
+              source: "rowAction"
+            },
+            () => action.onClick(row)
+          );
+        }
+      })),
+      [rowActions, runAction]
+    );
+    const guardedOnRowClick = React30.useMemo(
+      () => onRowClick ? (context) => {
+        runAction(
+          {
+            row: context.row,
+            source: "rowClick"
+          },
+          () => onRowClick(context)
+        );
+      } : void 0,
+      [onRowClick, runAction]
+    );
+    const handleEditError = React30.useCallback(
+      (error, row) => {
+        onActionError?.({
+          error,
+          row,
+          source: "edit"
+        });
+      },
+      [onActionError]
     );
     const {
       currentColumnFilters,
@@ -5685,7 +5826,6 @@ function createDataTable(ui) {
       shouldRenderInitialLoading,
       tableData,
       tableGetRowId,
-      toolbarFilteredData,
       visibleData
     } = useDataTableState({
       columnFilters,
@@ -5741,7 +5881,8 @@ function createDataTable(ui) {
       startEditingRow
     } = useRowEditing({
       columns,
-      editableRows
+      editableRows,
+      onError: handleEditError
     });
     const { viewportElement: tableScrollElement, viewportHeight } = useDataTableScrollViewport(tableScrollContainerRef, currentViewMode);
     const openFileDialog = React30.useCallback(() => {
@@ -5751,10 +5892,15 @@ function createDataTable(ui) {
       fileInputRef.current?.click();
     }, [fileUpload?.disabled]);
     const handleSelectedFiles = React30.useCallback(
-      async (files) => {
-        await fileUpload?.onFilesSelected(files);
+      (files) => {
+        runAction(
+          {
+            source: "fileUpload"
+          },
+          () => fileUpload?.onFilesSelected(files)
+        );
       },
-      [fileUpload]
+      [fileUpload, runAction]
     );
     const tableColumns = useDataTableColumns({
       Button: Button2,
@@ -5773,7 +5919,7 @@ function createDataTable(ui) {
       labels: resolvedLabels,
       lastSelectedRowIdRef,
       renderExpandedRow,
-      rowActions,
+      rowActions: guardedRowActions,
       saveEdit,
       startEditingRow,
       tableRef
@@ -5783,6 +5929,7 @@ function createDataTable(ui) {
       footerTotalRowCount,
       handleFooterPageIndexChange,
       handleFooterPageSizeChange,
+      isPageCountKnown,
       renderedRows,
       reorderColumn,
       rowsToRender,
@@ -5810,6 +5957,7 @@ function createDataTable(ui) {
       getRowCanExpand,
       globalFilterFn,
       globalFilterValue,
+      hasNextPage,
       handleColumnFiltersChange: setCurrentColumnFilters,
       handleColumnOrderChange: setCurrentColumnOrder,
       handleColumnPinningChange: setCurrentColumnPinning,
@@ -5819,6 +5967,7 @@ function createDataTable(ui) {
       manualFiltering,
       manualPagination,
       manualSorting,
+      onActionError,
       onPageIndexChange,
       onPageSizeChange,
       pageCount,
@@ -5835,7 +5984,6 @@ function createDataTable(ui) {
       tableGetRowId,
       tableRef,
       tableScrollElement,
-      toolbarFilteredData,
       totalRowCount,
       virtualization,
       viewportHeight
@@ -5935,6 +6083,36 @@ function createDataTable(ui) {
       toolbarActions,
       visibleData
     });
+    const guardedToolbarActions = React30.useMemo(
+      () => effectiveToolbarActions.map((action) => ({
+        ...action,
+        onClick: (context) => {
+          runAction(
+            {
+              actionKey: action.key,
+              source: "toolbarAction"
+            },
+            () => action.onClick(context)
+          );
+        }
+      })),
+      [effectiveToolbarActions, runAction]
+    );
+    const guardedSelectionActions = React30.useMemo(
+      () => selectionActions.map((action) => ({
+        ...action,
+        onClick: (context) => {
+          runAction(
+            {
+              actionKey: action.key,
+              source: "selectionAction"
+            },
+            () => action.onClick(context)
+          );
+        }
+      })),
+      [runAction, selectionActions]
+    );
     return /* @__PURE__ */ jsx(TooltipProvider2, { children: /* @__PURE__ */ jsxs(
       "div",
       {
@@ -5964,7 +6142,7 @@ function createDataTable(ui) {
               onChange: (event) => {
                 const files = event.currentTarget.files;
                 if (files?.length) {
-                  void handleSelectedFiles(files);
+                  handleSelectedFiles(files);
                 }
                 event.currentTarget.value = "";
               }
@@ -5999,7 +6177,7 @@ function createDataTable(ui) {
                         DataTableToolbar,
                         density: currentDensity,
                         description,
-                        effectiveToolbarActions,
+                        effectiveToolbarActions: guardedToolbarActions,
                         enableColumnPinning,
                         enableDensityToggle,
                         enableViewToggle: enableViewToggle && Boolean(cardRenderer),
@@ -6014,7 +6192,7 @@ function createDataTable(ui) {
                         onViewModeChange: handleViewModeChange,
                         openFileDialog: fileUpload ? openFileDialog : void 0,
                         selectedRows,
-                        selectionActions,
+                        selectionActions: guardedSelectionActions,
                         showHiddenRows: currentShowHiddenRows,
                         table,
                         title,
@@ -6049,12 +6227,12 @@ function createDataTable(ui) {
                             hasCardTitle,
                             infiniteScroll,
                             localSearchValue,
-                            onRowClick,
+                            onRowClick: guardedOnRowClick,
                             renderedRows,
                             renderExpandedRow,
                             resolvedLabels,
                             resolvedLoadingRowCount,
-                            rowActions,
+                            rowActions: guardedRowActions,
                             ScrollArea: ScrollArea2,
                             sentinelRef,
                             setCurrentRowSelection,
@@ -6088,7 +6266,7 @@ function createDataTable(ui) {
                             infiniteScroll,
                             layoutMode,
                             localSearchValue,
-                            onRowClick,
+                            onRowClick: guardedOnRowClick,
                             primeColumnForResize,
                             renderedRows,
                             renderExpandedRow,
@@ -6133,6 +6311,7 @@ function createDataTable(ui) {
                         handleFooterPageIndexChange,
                         handleFooterPageSizeChange,
                         labels: resolvedLabels,
+                        pageCountKnown: isPageCountKnown,
                         rowsPerPageOptions,
                         showFooter: showFooter && !infiniteScroll?.enabled,
                         children
@@ -6148,7 +6327,19 @@ function createDataTable(ui) {
     ) });
   };
 }
+function runDataTableAction(action, context, onActionError) {
+  let result;
+  try {
+    result = action();
+  } catch (error) {
+    onActionError?.({ ...context, error });
+    return;
+  }
+  void Promise.resolve(result).catch((error) => {
+    onActionError?.({ ...context, error });
+  });
+}
 
 export { Button, Card, CardContent, CardDescription, CardFooter, CardHeader, Checkbox, DataTableBodyRow, DataTableCardPanel, DataTableFooterSection, DataTableHeaderCell, DataTableTablePanel, DataTableToolbarSection, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuSubContent, DropdownMenuSubTrigger, Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle, Input, InputGroup, InputGroupAddon, InputGroupInput, Pagination, PaginationFirst, PaginationLast, PaginationLink, PaginationNext, PaginationPrevious, ScrollArea, ScrollBar, SelectContent, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, Separator, Skeleton, Table, TableBody, TableCaption, TableCell, TableFooter, TableHead, TableHeader, TableRow, TooltipContent, cn, createDataTable, primitiveUiKit, useColumnLayout, useControllableState, useDataTableColumns, useDataTableInstance, useDataTableState, useRowEditing };
-//# sourceMappingURL=chunk-OHB2BTSI.js.map
-//# sourceMappingURL=chunk-OHB2BTSI.js.map
+//# sourceMappingURL=chunk-44ZEEUAT.js.map
+//# sourceMappingURL=chunk-44ZEEUAT.js.map

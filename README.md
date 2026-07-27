@@ -31,10 +31,10 @@ Dedicated subpath exports are also available:
 ## Installation
 
 ```bash
-pnpm add github:Dastari/data-table-pro#v3.0.8
+pnpm add github:Dastari/data-table-pro#v3.0.9
 ```
 
-This package is installed from GitHub refs. It is not published to npm. Release tags such as `v3.0.8` include committed `dist/` output, so consumers do not need to allow package build scripts during install.
+This package is installed from GitHub refs. It is not published to npm. Release tags such as `v3.0.9` include committed `dist/` output, so consumers do not need to allow package build scripts during install.
 
 Peer dependencies:
 
@@ -255,6 +255,30 @@ Toolbar search filters local/client-side data by default. Server-side tables can
   onToolbarQueryValueChange={setQuery}
 />
 ```
+
+Client-side toolbar search now runs through TanStack Table's global-filter
+pipeline. This means `globalFilterFn`, nested leaf columns, accessor functions,
+sorting, filtering, pagination, and CSV export share one consistent row model.
+
+Unknown-total server pagination can keep Next/Previous navigation without
+inventing a total:
+
+```tsx
+<DataTable
+  columns={columns}
+  data={pageRows}
+  getRowId={(row) => row.id}
+  manualPagination
+  pageIndex={pageIndex}
+  pageSize={pageSize}
+  hasNextPage={hasNextPage}
+  onPageIndexChange={setPageIndex}
+/>
+```
+
+CSV export supports `"filtered"`, `"page"`, `"selected"`, and `"all"` scopes.
+String values that begin with spreadsheet formula characters are neutralized
+by default; trusted applications can set `escapeFormulaValues: false`.
 
 ### Column filters
 

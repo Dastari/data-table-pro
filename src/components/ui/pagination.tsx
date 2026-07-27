@@ -179,8 +179,9 @@ function PaginationLast({
 
 function PaginationEllipsis({
   className,
+  text = "More pages",
   ...props
-}: React.ComponentProps<"span">) {
+}: React.ComponentProps<"span"> & { text?: string }) {
   return (
     <span
       aria-hidden
@@ -192,7 +193,7 @@ function PaginationEllipsis({
       {...props}
     >
       <IconDots />
-      <span className="sr-only">More pages</span>
+      <span className="sr-only">{text}</span>
     </span>
   );
 }

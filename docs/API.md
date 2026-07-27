@@ -137,7 +137,10 @@ These are exported from the adapter entrypoints and from `data-table-pro/types`.
 - `DataTableColumnType`
 - `DataTableColumnVisibilityOption`
 - `DataTableContainerBreakpoint`
+- `DataTableActionErrorContext`
+- `DataTableActionErrorSource`
 - `DataTableCsvExportOptions`
+- `DataTableCsvExportScope`
 - `DataTableDensity`
 - `DataTableDragAndDropConfig`
 - `DataTableEditableRowsConfig`
@@ -218,6 +221,7 @@ One parent requirement remains unavoidable: the nearest containing layout must e
 | `toolbarQueryDebounceMs` | `number` | `250` | Debounce delay for `onToolbarQueryValueChange`. |
 | `manualFiltering` | `boolean` | `false` | Disables built-in client filtering for toolbar query and column filters. |
 | `enableToolbarQueryFiltering` | `boolean` | `true` | Opts out of built-in toolbar-query filtering while keeping the input. |
+| `globalFilterFn` | `FilterFnOption<TData>` | built-in normalized contains match | TanStack global-filter function used by the client-side toolbar query. |
 | `columnFilters` | `ColumnFiltersState` | internal state | Controlled TanStack column filter state. |
 | `onColumnFiltersChange` | `(filters: ColumnFiltersState) => void` | `undefined` | Column filter callback. |
 | `enableColumnFilters` | `boolean` | enabled when column meta filters exist | Renders toolbar filter controls declared by `column.meta.filter`. |
@@ -296,11 +300,12 @@ Removed in `2.0.1`:
 | --- | --- | --- | --- |
 | `rowsPerPageOptions` | `Array<number>` | `[10, 20, 50, 100]` | Footer page-size options. |
 | `totalRowCount` | `number` | derived | Total rows for manual pagination or display. |
+| `hasNextPage` | `boolean` | `false` | Enables the next-page control when manual pagination has no known `totalRowCount` or `pageCount`. |
 | `pageIndex` | `number` | internal state | Controlled zero-based page index. |
 | `pageSize` | `number` | internal state | Controlled page size. |
 | `onPageIndexChange` | `(pageIndex: number) => void` | `undefined` | Page-change callback. |
 | `onPageSizeChange` | `(pageSize: number) => void` | `undefined` | Page-size callback. |
-| `pageCount` | `number` | derived | Total page count in manual mode. |
+| `pageCount` | `number` | derived for client data | Known total page count in manual mode. Omit with `totalRowCount` to use unknown-total pagination. |
 | `manualPagination` | `boolean` | `false` | Disables client-side pagination row model. |
 
 ### Selection props
@@ -319,6 +324,7 @@ Removed in `2.0.1`:
 | `toolbarActions` | `Array<DataTableToolbarAction<TData>>` | `[]` | Toolbar action buttons. |
 | `rowActions` | `Array<DataTableRowAction<TData>>` | `[]` | Per-row dropdown actions. |
 | `onRowClick` | `(context: { row: TData; rowId: string }) => void \| Promise<void>` | `undefined` | Row click handler for table and card modes. |
+| `onActionError` | `(context: DataTableActionErrorContext<TData>) => void` | `undefined` | Receives rejected or thrown built-in action callbacks with their source, optional action key, and optional row. |
 | `getRowClassName` | `(row: TData) => string \| undefined` | `undefined` | Row-level styling hook. |
 
 ### Expansion, view, and card props
@@ -357,7 +363,7 @@ Removed in `2.0.1`:
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `infiniteScroll` | `DataTableInfiniteScroll` | `undefined` | Enables sentinel-based load-more behavior and hides the pagination footer. |
+| `infiniteScroll` | `DataTableInfiniteScroll` | `undefined` | Enables sentinel-based load-more behavior and hides the pagination footer. Only one load request runs at a time; failures are reported through `onActionError`. |
 
 ### Virtualization props
 
@@ -397,13 +403,26 @@ Column meta can customize editing with `renderEditCell`, `parseEditValue`, and `
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `csvExport` | `boolean \| DataTableCsvExportOptions<TData>` | `false` | Adds a CSV toolbar action. Defaults to filtered/sorted visible data columns. |
+| `csvExport` | `boolean \| DataTableCsvExportOptions<TData>` | `false` | Adds a CSV toolbar action. Defaults to filtered/sorted rows, visible data columns, CRLF line endings, and formula neutralization. |
 | `density` | `"compact" \| "comfortable" \| "spacious"` | internal state | Controlled row density. |
 | `onDensityChange` | `(density: DataTableDensity) => void` | `undefined` | Density change callback. |
 | `enableDensityToggle` | `boolean` | `false` | Adds density controls to the table options menu. |
 | `labels` | `Partial<DataTableLabels>` | English defaults | Overrides built-in UI labels. |
 | `summaryRows` | `Array<DataTableSummaryRow<TData>>` | `[]` | Renders aggregate/footer rows aligned to visible columns. |
 | `dir` | `"ltr" \| "rtl"` | `"ltr"` | Direction used for logical pinned column offsets. |
+
+`DataTableCsvExportOptions<TData>` supports:
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `scope` | `"filtered" \| "page" \| "selected" \| "all"` | `"filtered"` | Chooses filtered/sorted rows, the current page, selected filtered rows, or all loaded rows in source order. |
+| `filename` | `string` | `"data-table.csv"` | Download filename. |
+| `includeHeaders` | `boolean` | `true` | Includes visible column headers. |
+| `columns` | `Array<string>` | visible data columns | Restricts export to the listed visible column IDs. |
+| `lineEnding` | `"\n" \| "\r\n"` | `"\r\n"` | CSV row separator. |
+| `escapeFormulaValues` | `boolean` | `true` | Prefixes formula-like string values with an apostrophe to reduce spreadsheet injection risk. |
+| `getCellValue` | cell-value callback | `undefined` | Overrides an exported cell value. |
+| `onExport` | async export callback | browser download | Receives `{ csv, filename, rows, scope }` for server- or app-owned delivery. Rejections flow to `onActionError`. |
 
 ### Cell overflow defaults
 

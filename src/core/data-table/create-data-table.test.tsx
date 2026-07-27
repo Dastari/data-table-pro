@@ -1541,7 +1541,7 @@ for (const suite of suites) {
       expect(screen.getByText("Grace")).not.toBeNull();
       expect(screen.queryByText("Linus")).toBeNull();
 
-      fireEvent.click(screen.getByLabelText("Go to next page"));
+      fireEvent.click(screen.getByLabelText("Next page"));
 
       expect(screen.queryByText("Ada")).toBeNull();
       expect(screen.queryByText("Grace")).toBeNull();
@@ -1576,7 +1576,7 @@ for (const suite of suites) {
       expect(screen.getByText("Ada")).not.toBeNull();
       expect(screen.queryByText("Linus")).toBeNull();
 
-      fireEvent.click(screen.getByLabelText("Go to next page"));
+      fireEvent.click(screen.getByLabelText("Next page"));
 
       expect(screen.queryByText("Ada")).toBeNull();
       expect(screen.getByText("Linus")).not.toBeNull();
@@ -1611,7 +1611,7 @@ for (const suite of suites) {
 
       render(<ControlledPaginationTable />);
 
-      fireEvent.click(screen.getByLabelText("Go to next page"));
+      fireEvent.click(screen.getByLabelText("Next page"));
 
       expect(screen.queryByText("Ada")).toBeNull();
       expect(screen.getByText("Linus")).not.toBeNull();

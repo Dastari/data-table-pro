@@ -10,6 +10,7 @@ import type {
 } from "../types";
 import type { DataTableUiKit } from "../ui-kit";
 import { cn } from "../../lib/utils";
+import { DATA_TABLE_DEFAULT_LABELS } from "./data-table-labels";
 
 type DataTableCardViewProps<TData> = {
   rows: Array<Row<TData>>;
@@ -262,7 +263,10 @@ export function createDataTableCardView(
                     >
                       <Checkbox
                         checked={isSelected}
-                        aria-label={`Select row ${rowId}`}
+                        aria-label={(
+                          labels.selectCardRow ??
+                          DATA_TABLE_DEFAULT_LABELS.selectCardRow
+                        )(rowId)}
                         onCheckedChange={(checked: boolean | "indeterminate") => {
                           onRowSelectionChange(
                             updateRowSelection(

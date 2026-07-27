@@ -2,10 +2,12 @@ import * as React from "react";
 import { IconDatabase } from "../icons";
 import type { DataTableLabels } from "../types";
 import type { DataTableUiKit } from "../ui-kit";
+import { DATA_TABLE_DEFAULT_LABELS } from "./data-table-labels";
 
 type DataTablePaginationProps = {
   pageIndex: number;
   pageCount: number;
+  pageCountKnown: boolean;
   pageSize: number;
   totalRowCount?: number;
   rowsPerPageOptions: Array<number>;
@@ -40,6 +42,7 @@ export function createDataTablePagination(ui: DataTableUiKit) {
   function DataTablePagination({
     pageIndex,
     pageCount,
+    pageCountKnown,
     pageSize,
     totalRowCount,
     rowsPerPageOptions,
@@ -47,7 +50,9 @@ export function createDataTablePagination(ui: DataTableUiKit) {
     onPageSizeChange,
     labels,
   }: DataTablePaginationProps) {
-    const pages = getVisiblePages(pageIndex, Math.max(1, pageCount));
+    const pages = pageCountKnown
+      ? getVisiblePages(pageIndex, Math.max(1, pageCount))
+      : [];
     const canGoPrevious = pageIndex > 0;
     const canGoNext = pageIndex + 1 < pageCount;
     const lastPageIndex = Math.max(0, pageCount - 1);
@@ -67,6 +72,7 @@ export function createDataTablePagination(ui: DataTableUiKit) {
             }}
           >
             <SelectTrigger
+              aria-label={labels.recordsPerPage}
               className={`w-22 ${uiClassNames.paginationSelectTrigger ?? ""}`}
             >
               <SelectValue />
@@ -83,31 +89,44 @@ export function createDataTablePagination(ui: DataTableUiKit) {
           </Select>
         </div>
 
-        <div className="flex shrink-0 items-center justify-center">
-          <div
-            className={`inline-flex items-center gap-2 px-2.5 py-1.5 text-sm ${uiClassNames.paginationTotal ?? ""}`}
-            aria-label={labels.totalRecords(totalRowCount ?? 0)}
-          >
-            <IconDatabase className="size-4" />
-            <span className="@md/data-table:hidden">{totalRowCount ?? 0}</span>
-            <span className="hidden @md/data-table:inline">
-              {labels.totalRecords(totalRowCount ?? 0)}
-            </span>
+        {totalRowCount !== undefined ? (
+          <div className="flex shrink-0 items-center justify-center">
+            <div
+              className={`inline-flex items-center gap-2 px-2.5 py-1.5 text-sm ${uiClassNames.paginationTotal ?? ""}`}
+              aria-label={labels.totalRecords(totalRowCount)}
+            >
+              <IconDatabase className="size-4" />
+              <span className="@md/data-table:hidden">{totalRowCount}</span>
+              <span className="hidden @md/data-table:inline">
+                {labels.totalRecords(totalRowCount)}
+              </span>
+            </div>
           </div>
-        </div>
+        ) : null}
 
         <div className="flex flex-1 items-center justify-end gap-4">
           <div
             className={`hidden text-sm @md/data-table:inline ${uiClassNames.mutedText ?? "opacity-70"}`}
           >
-            {labels.pageStatus(pageIndex, Math.max(1, pageCount))}
+            {pageCountKnown
+              ? labels.pageStatus(pageIndex, Math.max(1, pageCount))
+              : (
+                  labels.pageStatusUnknown ??
+                  DATA_TABLE_DEFAULT_LABELS.pageStatusUnknown
+                )(pageIndex)}
           </div>
-          <Pagination className="mx-0 w-auto justify-end">
+          <Pagination
+            aria-label={
+              labels.pagination ?? DATA_TABLE_DEFAULT_LABELS.pagination
+            }
+            className="mx-0 w-auto justify-end"
+          >
             <PaginationContent>
               <PaginationItem className="@md/data-table:hidden">
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <PaginationFirst
+                      aria-label={labels.firstPage}
                       href="#"
                       size="icon-sm"
                       showText={false}
@@ -118,9 +137,8 @@ export function createDataTablePagination(ui: DataTableUiKit) {
                           onPageIndexChange(0);
                         }
                       }}
-                    >
-                      First
-                    </PaginationFirst>
+                      text={labels.firstPage}
+                    />
                   </TooltipTrigger>
                   <TooltipContent>{labels.firstPage}</TooltipContent>
                 </Tooltip>
@@ -129,6 +147,7 @@ export function createDataTablePagination(ui: DataTableUiKit) {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <PaginationPrevious
+                      aria-label={labels.previousPage}
                       href="#"
                       size="icon-sm"
                       showText={false}
@@ -139,9 +158,8 @@ export function createDataTablePagination(ui: DataTableUiKit) {
                           onPageIndexChange(pageIndex - 1);
                         }
                       }}
-                    >
-                      Previous
-                    </PaginationPrevious>
+                      text={labels.previousPage}
+                    />
                   </TooltipTrigger>
                   <TooltipContent>{labels.previousPage}</TooltipContent>
                 </Tooltip>
@@ -152,7 +170,12 @@ export function createDataTablePagination(ui: DataTableUiKit) {
                   className="hidden @md/data-table:block"
                 >
                   {item === "ellipsis" ? (
-                    <PaginationEllipsis />
+                    <PaginationEllipsis
+                      text={
+                        labels.morePages ??
+                        DATA_TABLE_DEFAULT_LABELS.morePages
+                      }
+                    />
                   ) : (
                     <PaginationLink
                       href="#"
@@ -172,6 +195,7 @@ export function createDataTablePagination(ui: DataTableUiKit) {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <PaginationNext
+                      aria-label={labels.nextPage}
                       href="#"
                       size="icon-sm"
                       showText={false}
@@ -182,34 +206,37 @@ export function createDataTablePagination(ui: DataTableUiKit) {
                           onPageIndexChange(pageIndex + 1);
                         }
                       }}
-                    >
-                      Next
-                    </PaginationNext>
+                      text={labels.nextPage}
+                    />
                   </TooltipTrigger>
                   <TooltipContent>{labels.nextPage}</TooltipContent>
                 </Tooltip>
               </PaginationItem>
-              <PaginationItem className="@md/data-table:hidden">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <PaginationLast
-                      href="#"
-                      size="icon-sm"
-                      showText={false}
-                      disabled={!canGoNext}
-                      onClick={(event: React.MouseEvent<HTMLAnchorElement>) => {
-                        event.preventDefault();
-                        if (canGoNext) {
-                          onPageIndexChange(lastPageIndex);
-                        }
-                      }}
-                    >
-                      Last
-                    </PaginationLast>
-                  </TooltipTrigger>
-                  <TooltipContent>{labels.lastPage}</TooltipContent>
-                </Tooltip>
-              </PaginationItem>
+              {pageCountKnown ? (
+                <PaginationItem className="@md/data-table:hidden">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <PaginationLast
+                        aria-label={labels.lastPage}
+                        href="#"
+                        size="icon-sm"
+                        showText={false}
+                        text={labels.lastPage}
+                        disabled={!canGoNext}
+                        onClick={(
+                          event: React.MouseEvent<HTMLAnchorElement>,
+                        ) => {
+                          event.preventDefault();
+                          if (canGoNext) {
+                            onPageIndexChange(lastPageIndex);
+                          }
+                        }}
+                      />
+                    </TooltipTrigger>
+                    <TooltipContent>{labels.lastPage}</TooltipContent>
+                  </Tooltip>
+                </PaginationItem>
+              ) : null}
             </PaginationContent>
           </Pagination>
         </div>

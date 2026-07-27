@@ -10,6 +10,8 @@ type DataTableDensity = "compact" | "comfortable" | "spacious";
 type DataTableCardSizing = "fixed" | "content" | "fluid";
 type DataTableCellOverflow = "truncate" | "clip" | "wrap" | "visible";
 type DataTableColumnFilterType = "text" | "select" | "multi";
+type DataTableCsvExportScope = "filtered" | "page" | "selected" | "all";
+type DataTableActionErrorSource = "toolbarAction" | "selectionAction" | "rowAction" | "rowClick" | "edit" | "fileUpload" | "infiniteScroll";
 declare const DATA_TABLE_CONTAINER_BREAKPOINT_WIDTHS: Record<DataTableContainerBreakpoint, number>;
 type DataTableRowLoadingState = {
     isLoading: boolean;
@@ -194,6 +196,9 @@ type DataTableCsvExportOptions<TData> = {
     filename?: string;
     includeHeaders?: boolean;
     columns?: Array<string>;
+    scope?: DataTableCsvExportScope;
+    escapeFormulaValues?: boolean;
+    lineEnding?: "\n" | "\r\n";
     getCellValue?: (context: {
         row: TData;
         rowId: string;
@@ -204,7 +209,14 @@ type DataTableCsvExportOptions<TData> = {
         csv: string;
         filename: string;
         rows: Array<TData>;
+        scope: DataTableCsvExportScope;
     }) => void | Promise<void>;
+};
+type DataTableActionErrorContext<TData> = {
+    source: DataTableActionErrorSource;
+    error: unknown;
+    actionKey?: string;
+    row?: TData;
 };
 type DataTableColumnPrefs = {
     visibility?: VisibilityState;
@@ -230,10 +242,21 @@ type DataTableLabels = {
     recordsPerPage: string;
     totalRecords: (count: number) => string;
     pageStatus: (pageIndex: number, pageCount: number) => string;
+    pageStatusUnknown?: (pageIndex: number) => string;
+    pagination?: string;
+    morePages?: string;
     firstPage: string;
     previousPage: string;
     nextPage: string;
     lastPage: string;
+    selectAllVisibleRows?: string;
+    selectRow?: string;
+    selectCardRow?: (rowId: string) => string;
+    switchToTableView?: string;
+    switchToCardView?: string;
+    tableView?: string;
+    cardView?: string;
+    allFilterOptions?: string;
     actions: string;
     rowActions: string;
     editRow: string;
@@ -279,6 +302,7 @@ type DataTableProps<TData> = {
     compactToolbar?: React.ReactNode;
     rowsPerPageOptions?: Array<number>;
     totalRowCount?: number;
+    hasNextPage?: boolean;
     sorting?: SortingState;
     onSortingChange?: (sorting: SortingState) => void;
     manualSorting?: boolean;
@@ -346,6 +370,7 @@ type DataTableProps<TData> = {
         row: TData;
         rowId: string;
     }) => void | Promise<void>;
+    onActionError?: (context: DataTableActionErrorContext<TData>) => void;
     dragAndDrop?: DataTableDragAndDropConfig<TData>;
     fileUpload?: DataTableFileUploadConfig;
     virtualization?: boolean | DataTableVirtualizationConfig;
@@ -362,4 +387,4 @@ declare function hideOnClassName(hideOn: DataTableContainerBreakpoint | Array<Da
 declare function isHiddenAtContainerWidth(hideOn: DataTableContainerBreakpoint | Array<DataTableContainerBreakpoint> | undefined, containerWidth: number): boolean;
 declare function rowSelectionStateFromRows<TData>(rows: Array<Row<TData>>): TData[];
 
-export { DATA_TABLE_CONTAINER_BREAKPOINT_WIDTHS, type DataTableAlign, type DataTableCardRendererProps, type DataTableCardSizing, type DataTableCardVirtualizationConfig, type DataTableCellEditRenderProps, type DataTableCellOverflow, type DataTableColumnDef, type DataTableColumnFilterConfig, type DataTableColumnFilterOption, type DataTableColumnFilterType, type DataTableColumnFixed, type DataTableColumnMeta, type DataTableColumnPrefs, type DataTableColumnType, type DataTableColumnVisibilityOption, type DataTableContainerBreakpoint, type DataTableCsvExportOptions, type DataTableDensity, type DataTableDragAndDropConfig, type DataTableEditableRowsConfig, type DataTableEmptyStateContext, type DataTableExpandedRowProps, type DataTableFileUploadConfig, type DataTableHiddenRowsConfig, type DataTableInfiniteScroll, type DataTableLabels, type DataTableLoadingState, type DataTableProps, type DataTableRowAction, type DataTableRowLoadingState, type DataTableSelectionAction, type DataTableSummaryRow, type DataTableToolbarAction, type DataTableToolbarVisibility, type DataTableViewMode, type DataTableVirtualizationConfig, alignClassName, canEditRow, canUseRowAction, cellAlignClassName, headerAlignClassName, hideOnClassName, isHiddenAtContainerWidth, isRowVisible, resolveColumnAlign, resolveRowActionLabel, rowSelectionStateFromRows };
+export { DATA_TABLE_CONTAINER_BREAKPOINT_WIDTHS, type DataTableActionErrorContext, type DataTableActionErrorSource, type DataTableAlign, type DataTableCardRendererProps, type DataTableCardSizing, type DataTableCardVirtualizationConfig, type DataTableCellEditRenderProps, type DataTableCellOverflow, type DataTableColumnDef, type DataTableColumnFilterConfig, type DataTableColumnFilterOption, type DataTableColumnFilterType, type DataTableColumnFixed, type DataTableColumnMeta, type DataTableColumnPrefs, type DataTableColumnType, type DataTableColumnVisibilityOption, type DataTableContainerBreakpoint, type DataTableCsvExportOptions, type DataTableCsvExportScope, type DataTableDensity, type DataTableDragAndDropConfig, type DataTableEditableRowsConfig, type DataTableEmptyStateContext, type DataTableExpandedRowProps, type DataTableFileUploadConfig, type DataTableHiddenRowsConfig, type DataTableInfiniteScroll, type DataTableLabels, type DataTableLoadingState, type DataTableProps, type DataTableRowAction, type DataTableRowLoadingState, type DataTableSelectionAction, type DataTableSummaryRow, type DataTableToolbarAction, type DataTableToolbarVisibility, type DataTableViewMode, type DataTableVirtualizationConfig, alignClassName, canEditRow, canUseRowAction, cellAlignClassName, headerAlignClassName, hideOnClassName, isHiddenAtContainerWidth, isRowVisible, resolveColumnAlign, resolveRowActionLabel, rowSelectionStateFromRows };

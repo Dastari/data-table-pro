@@ -10,9 +10,11 @@ import type { DataTableUiKit } from "../ui-kit";
 export function useRowEditing<TData>({
   columns,
   editableRows,
+  onError,
 }: {
   columns: Array<DataTableColumnDef<TData, unknown>>;
   editableRows: DataTableEditableRowsConfig<TData> | undefined;
+  onError?: (error: unknown, row: TData) => void;
 }) {
   const [editingRowId, setEditingRowId] = React.useState<string | null>(null);
   const [draftValues, setDraftValues] = React.useState<
@@ -51,11 +53,13 @@ export function useRowEditing<TData>({
       try {
         await editableRows.onSaveRow(row, draftValuesRef.current);
         React.startTransition(cancelEditing);
+      } catch (error) {
+        onError?.(error, row);
       } finally {
         setIsSavingEdit(false);
       }
     },
-    [cancelEditing, editableRows],
+    [cancelEditing, editableRows, onError],
   );
 
   return {

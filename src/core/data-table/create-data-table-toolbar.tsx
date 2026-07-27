@@ -18,6 +18,7 @@ import type {
   DataTableViewMode,
 } from "../types";
 import type { DataTableUiKit } from "../ui-kit";
+import { DATA_TABLE_DEFAULT_LABELS } from "./data-table-labels";
 
 export type DataTableToolbarColumnFilter = {
   id: string;
@@ -517,10 +518,16 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
                         }}
                       >
                         <IconList />
-                        <span className="sr-only">Switch to table view</span>
+                        <span className="sr-only">
+                          {labels.switchToTableView ??
+                            DATA_TABLE_DEFAULT_LABELS.switchToTableView}
+                        </span>
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent>Table view</TooltipContent>
+                    <TooltipContent>
+                      {labels.tableView ??
+                        DATA_TABLE_DEFAULT_LABELS.tableView}
+                    </TooltipContent>
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -539,10 +546,16 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
                         }}
                       >
                         <IconLayoutGrid />
-                        <span className="sr-only">Switch to card view</span>
+                        <span className="sr-only">
+                          {labels.switchToCardView ??
+                            DATA_TABLE_DEFAULT_LABELS.switchToCardView}
+                        </span>
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent>Card view</TooltipContent>
+                    <TooltipContent>
+                      {labels.cardView ??
+                        DATA_TABLE_DEFAULT_LABELS.cardView}
+                    </TooltipContent>
                   </Tooltip>
                 </ButtonGroup>
               ) : null}
@@ -737,7 +750,8 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
                   onColumnFilterChange(filter.id, "");
                 }}
               >
-                All
+                {labels.allFilterOptions ??
+                  DATA_TABLE_DEFAULT_LABELS.allFilterOptions}
               </DropdownMenuItem>
             ) : null}
             {filter.options.map((option) => (

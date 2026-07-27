@@ -7,10 +7,11 @@ type DataTableFooterSectionProps = {
   currentPagination: PaginationState;
   DataTableFooter: React.ElementType;
   effectivePageCount: number;
-  footerTotalRowCount: number;
+  footerTotalRowCount: number | undefined;
   handleFooterPageIndexChange: (pageIndex: number) => void;
   handleFooterPageSizeChange: (pageSize: number) => void;
   labels: DataTableLabels;
+  pageCountKnown?: boolean;
   rowsPerPageOptions: Array<number>;
   showFooter: boolean;
 };
@@ -24,6 +25,7 @@ export function DataTableFooterSection({
   handleFooterPageIndexChange,
   handleFooterPageSizeChange,
   labels,
+  pageCountKnown = true,
   rowsPerPageOptions,
   showFooter,
 }: DataTableFooterSectionProps) {
@@ -37,6 +39,7 @@ export function DataTableFooterSection({
         <DataTableFooter
           pageIndex={currentPagination.pageIndex}
           pageCount={effectivePageCount}
+          pageCountKnown={pageCountKnown}
           pageSize={currentPagination.pageSize}
           totalRowCount={footerTotalRowCount}
           rowsPerPageOptions={rowsPerPageOptions}

@@ -14,6 +14,7 @@ import {
   decorateFilterableColumn,
   isDataTableLoadingRow,
 } from "./data-table-utils";
+import { DATA_TABLE_DEFAULT_LABELS } from "./data-table-labels";
 
 type DataTableRowActionsComponentProps<TData> = {
   editableRows?: DataTableEditableRowsConfig<TData>;
@@ -169,7 +170,10 @@ export function useDataTableColumns<TData>({
               onCheckedChange={(checked: boolean | "indeterminate") => {
                 table.toggleAllPageRowsSelected(checked === true);
               }}
-              aria-label="Select all visible rows"
+              aria-label={
+                labels.selectAllVisibleRows ??
+                DATA_TABLE_DEFAULT_LABELS.selectAllVisibleRows
+              }
             />
           </div>
         ),
@@ -193,7 +197,9 @@ export function useDataTableColumns<TData>({
                 lastSelectedRowIdRef.current = row.id;
                 row.toggleSelected(checked === true);
               }}
-              aria-label="Select row"
+              aria-label={
+                labels.selectRow ?? DATA_TABLE_DEFAULT_LABELS.selectRow
+              }
             />
           </div>
         ),

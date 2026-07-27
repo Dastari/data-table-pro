@@ -27,6 +27,19 @@ export type DataTableCellOverflow =
   | "wrap"
   | "visible";
 export type DataTableColumnFilterType = "text" | "select" | "multi";
+export type DataTableCsvExportScope =
+  | "filtered"
+  | "page"
+  | "selected"
+  | "all";
+export type DataTableActionErrorSource =
+  | "toolbarAction"
+  | "selectionAction"
+  | "rowAction"
+  | "rowClick"
+  | "edit"
+  | "fileUpload"
+  | "infiniteScroll";
 
 export const DATA_TABLE_CONTAINER_BREAKPOINT_WIDTHS: Record<
   DataTableContainerBreakpoint,
@@ -248,6 +261,9 @@ export type DataTableCsvExportOptions<TData> = {
   filename?: string;
   includeHeaders?: boolean;
   columns?: Array<string>;
+  scope?: DataTableCsvExportScope;
+  escapeFormulaValues?: boolean;
+  lineEnding?: "\n" | "\r\n";
   getCellValue?: (context: {
     row: TData;
     rowId: string;
@@ -258,7 +274,15 @@ export type DataTableCsvExportOptions<TData> = {
     csv: string;
     filename: string;
     rows: Array<TData>;
+    scope: DataTableCsvExportScope;
   }) => void | Promise<void>;
+};
+
+export type DataTableActionErrorContext<TData> = {
+  source: DataTableActionErrorSource;
+  error: unknown;
+  actionKey?: string;
+  row?: TData;
 };
 
 export type DataTableColumnPrefs = {
@@ -286,10 +310,21 @@ export type DataTableLabels = {
   recordsPerPage: string;
   totalRecords: (count: number) => string;
   pageStatus: (pageIndex: number, pageCount: number) => string;
+  pageStatusUnknown?: (pageIndex: number) => string;
+  pagination?: string;
+  morePages?: string;
   firstPage: string;
   previousPage: string;
   nextPage: string;
   lastPage: string;
+  selectAllVisibleRows?: string;
+  selectRow?: string;
+  selectCardRow?: (rowId: string) => string;
+  switchToTableView?: string;
+  switchToCardView?: string;
+  tableView?: string;
+  cardView?: string;
+  allFilterOptions?: string;
   actions: string;
   rowActions: string;
   editRow: string;
@@ -337,6 +372,7 @@ export type DataTableProps<TData> = {
   compactToolbar?: React.ReactNode;
   rowsPerPageOptions?: Array<number>;
   totalRowCount?: number;
+  hasNextPage?: boolean;
   sorting?: SortingState;
   onSortingChange?: (sorting: SortingState) => void;
   manualSorting?: boolean;
@@ -408,6 +444,7 @@ export type DataTableProps<TData> = {
   tableContainerClassName?: string;
   getRowClassName?: (row: TData) => string | undefined;
   onRowClick?: (context: { row: TData; rowId: string }) => void | Promise<void>;
+  onActionError?: (context: DataTableActionErrorContext<TData>) => void;
   dragAndDrop?: DataTableDragAndDropConfig<TData>;
   fileUpload?: DataTableFileUploadConfig;
   virtualization?: boolean | DataTableVirtualizationConfig;

@@ -26,6 +26,7 @@ import type {
 } from "@tanstack/react-table";
 import type { DataTableProps } from "../types";
 import {
+  dataTableGlobalFilterFn,
   getColumnId,
   isUtilityColumnId,
   moveColumnInOrder,
@@ -52,6 +53,7 @@ export function useDataTableInstance<TData>({
   getRowCanExpand,
   globalFilterFn,
   globalFilterValue,
+  hasNextPage,
   handleColumnFiltersChange,
   handleColumnOrderChange,
   handleColumnPinningChange,
@@ -61,6 +63,7 @@ export function useDataTableInstance<TData>({
   manualFiltering,
   manualPagination,
   manualSorting,
+  onActionError,
   onPageIndexChange,
   onPageSizeChange,
   pageCount,
@@ -77,7 +80,6 @@ export function useDataTableInstance<TData>({
   tableGetRowId,
   tableRef,
   tableScrollElement,
-  toolbarFilteredData,
   totalRowCount,
   virtualization,
   viewportHeight,
@@ -100,6 +102,7 @@ export function useDataTableInstance<TData>({
   getRowCanExpand: DataTableProps<TData>["getRowCanExpand"];
   globalFilterFn: FilterFnOption<TData> | undefined;
   globalFilterValue: string;
+  hasNextPage?: DataTableProps<TData>["hasNextPage"];
   handleColumnFiltersChange: OnChangeFn<ColumnFiltersState>;
   handleColumnOrderChange: OnChangeFn<ColumnOrderState>;
   handleColumnPinningChange: OnChangeFn<ColumnPinningState>;
@@ -109,6 +112,7 @@ export function useDataTableInstance<TData>({
   manualFiltering: boolean;
   manualPagination: boolean;
   manualSorting: boolean;
+  onActionError?: DataTableProps<TData>["onActionError"];
   onPageIndexChange: DataTableProps<TData>["onPageIndexChange"];
   onPageSizeChange: DataTableProps<TData>["onPageSizeChange"];
   pageCount: DataTableProps<TData>["pageCount"];
@@ -127,7 +131,11 @@ export function useDataTableInstance<TData>({
   tableGetRowId: DataTableProps<TData>["getRowId"];
   tableRef: React.RefObject<TanStackTable<TData> | null>;
   tableScrollElement: HTMLElement | null;
-  toolbarFilteredData: Array<TData>;
+  /**
+   * @deprecated Filtering now runs through TanStack Table. Retained so
+   * advanced 3.x hook callers remain source-compatible.
+   */
+  toolbarFilteredData?: Array<TData>;
   totalRowCount: DataTableProps<TData>["totalRowCount"];
   virtualization: DataTableProps<TData>["virtualization"];
   viewportHeight: number;
@@ -235,8 +243,12 @@ export function useDataTableInstance<TData>({
         }));
       }
 
-      onPageIndexChange?.(nextValue.pageIndex);
-      onPageSizeChange?.(nextValue.pageSize);
+      if (nextValue.pageIndex !== currentPagination.pageIndex) {
+        onPageIndexChange?.(nextValue.pageIndex);
+      }
+      if (nextValue.pageSize !== currentPagination.pageSize) {
+        onPageSizeChange?.(nextValue.pageSize);
+      }
     },
     [
       currentPagination,
@@ -274,7 +286,10 @@ export function useDataTableInstance<TData>({
     getRowCanExpand: renderExpandedRow
       ? (row) => getRowCanExpand?.(row.original) ?? true
       : undefined,
-    globalFilterFn,
+    globalFilterFn: globalFilterFn ?? dataTableGlobalFilterFn,
+    getColumnCanGlobalFilter: (column) =>
+      column.columnDef.enableGlobalFilter !== false &&
+      typeof column.accessorFn === "function",
     manualSorting,
     manualFiltering,
     manualPagination: manualPagination || Boolean(infiniteScroll?.enabled),
@@ -350,21 +365,25 @@ export function useDataTableInstance<TData>({
       )
     : 0;
 
-  const derivedTotalRowCount =
-    manualPagination || infiniteScroll?.enabled
-      ? toolbarFilteredData.length
-      : table.getFilteredRowModel().rows.length;
+  const usesManualRows = manualPagination || Boolean(infiniteScroll?.enabled);
+  const derivedTotalRowCount = usesManualRows
+    ? undefined
+    : table.getFilteredRowModel().rows.length;
   const effectiveTotalRowCount = totalRowCount ?? derivedTotalRowCount;
-  const footerTotalRowCount = totalRowCount ?? effectiveTotalRowCount;
+  const isPageCountKnown =
+    !usesManualRows || pageCount !== undefined || totalRowCount !== undefined;
+  const footerTotalRowCount = effectiveTotalRowCount;
   const effectivePageCount = shouldRenderInitialLoading
     ? 1
     : (pageCount ??
-      (manualPagination || infiniteScroll?.enabled
+      (effectiveTotalRowCount !== undefined
         ? Math.max(
             1,
             Math.ceil(effectiveTotalRowCount / currentPagination.pageSize),
           )
-        : table.getPageCount()));
+        : usesManualRows
+          ? currentPagination.pageIndex + (hasNextPage ? 2 : 1)
+          : table.getPageCount()));
   const maxPageIndex = Math.max(0, effectivePageCount - 1);
 
   const setLocalPageIndex = React.useCallback(
@@ -382,7 +401,10 @@ export function useDataTableInstance<TData>({
     [pageIndex, setLocalPagination],
   );
   useDataTablePaginationClamp({
-    enabled: !shouldRenderInitialLoading && !infiniteScroll?.enabled,
+    enabled:
+      !shouldRenderInitialLoading &&
+      !infiniteScroll?.enabled &&
+      isPageCountKnown,
     maxPageIndex,
     onPageIndexChange,
     pageIndex: currentPagination.pageIndex,
@@ -391,6 +413,10 @@ export function useDataTableInstance<TData>({
 
   const handleFooterPageIndexChange = React.useCallback(
     (nextPageIndex: number) => {
+      if (nextPageIndex === currentPagination.pageIndex) {
+        return;
+      }
+
       onPageIndexChange?.(nextPageIndex);
       if (pageIndex === undefined) {
         setLocalPagination((current) =>
@@ -400,12 +426,21 @@ export function useDataTableInstance<TData>({
         );
       }
     },
-    [onPageIndexChange, pageIndex, setLocalPagination],
+    [
+      currentPagination.pageIndex,
+      onPageIndexChange,
+      pageIndex,
+      setLocalPagination,
+    ],
   );
   const handleFooterPageSizeChange = React.useCallback(
     (nextPageSize: number) => {
-      onPageIndexChange?.(0);
-      onPageSizeChange?.(nextPageSize);
+      if (currentPagination.pageIndex !== 0) {
+        onPageIndexChange?.(0);
+      }
+      if (nextPageSize !== currentPagination.pageSize) {
+        onPageSizeChange?.(nextPageSize);
+      }
       if (pageSize === undefined) {
         setLocalPagination({
           pageIndex: 0,
@@ -413,15 +448,26 @@ export function useDataTableInstance<TData>({
         });
       }
     },
-    [onPageIndexChange, onPageSizeChange, pageSize, setLocalPagination],
+    [
+      currentPagination.pageIndex,
+      currentPagination.pageSize,
+      onPageIndexChange,
+      onPageSizeChange,
+      pageSize,
+      setLocalPagination,
+    ],
   );
 
   const sentinelRef = useDataTableInfiniteScroll({
     enabled: Boolean(infiniteScroll?.enabled),
     hasMore: Boolean(infiniteScroll?.hasMore),
     isLoadingMore: infiniteScroll?.isLoadingMore,
-    onLoadMore: () => {
-      void infiniteScroll?.onLoadMore();
+    onLoadMore: () => infiniteScroll?.onLoadMore(),
+    onError: (error) => {
+      onActionError?.({
+        error,
+        source: "infiniteScroll",
+      });
     },
   });
 
@@ -430,6 +476,7 @@ export function useDataTableInstance<TData>({
     footerTotalRowCount,
     handleFooterPageIndexChange,
     handleFooterPageSizeChange,
+    isPageCountKnown,
     renderedRows,
     reorderColumn,
     rowsToRender,

@@ -3,7 +3,10 @@ import { flushSync } from "react-dom";
 import type {
   Table as TanStackTable,
 } from "@tanstack/react-table";
-import type { DataTableProps } from "../types";
+import type {
+  DataTableActionErrorContext,
+  DataTableProps,
+} from "../types";
 import type { DataTableUiKit } from "../ui-kit";
 import { cn } from "../../lib/utils";
 import { createDataTableCardView } from "./create-data-table-card-view";
@@ -81,6 +84,7 @@ export function createDataTable(ui: DataTableUiKit) {
     compactToolbar,
     rowsPerPageOptions = [10, 20, 50, 100],
     totalRowCount,
+    hasNextPage,
     sorting,
     onSortingChange,
     manualSorting = false,
@@ -145,6 +149,7 @@ export function createDataTable(ui: DataTableUiKit) {
     tableContainerClassName,
     getRowClassName,
     onRowClick,
+    onActionError,
     dragAndDrop,
     fileUpload,
     virtualization,
@@ -158,6 +163,59 @@ export function createDataTable(ui: DataTableUiKit) {
     const resolvedLabels = React.useMemo(
       () => resolveDataTableLabels(labels),
       [labels],
+    );
+    const runAction = React.useCallback(
+      (
+        context: Omit<DataTableActionErrorContext<TData>, "error">,
+        action: () => void | Promise<void>,
+      ) => {
+        runDataTableAction(action, context, onActionError);
+      },
+      [onActionError],
+    );
+    const guardedRowActions = React.useMemo(
+      () =>
+        rowActions.map((action) => ({
+          ...action,
+          onClick: (row: TData) => {
+            runAction(
+              {
+                actionKey: action.key,
+                row,
+                source: "rowAction",
+              },
+              () => action.onClick(row),
+            );
+          },
+        })),
+      [rowActions, runAction],
+    );
+    const guardedOnRowClick = React.useMemo<
+      DataTableProps<TData>["onRowClick"]
+    >(
+      () =>
+        onRowClick
+          ? (context) => {
+              runAction(
+                {
+                  row: context.row,
+                  source: "rowClick",
+                },
+                () => onRowClick(context),
+              );
+            }
+          : undefined,
+      [onRowClick, runAction],
+    );
+    const handleEditError = React.useCallback(
+      (error: unknown, row: TData) => {
+        onActionError?.({
+          error,
+          row,
+          source: "edit",
+        });
+      },
+      [onActionError],
     );
     const {
       currentColumnFilters,
@@ -193,7 +251,6 @@ export function createDataTable(ui: DataTableUiKit) {
       shouldRenderInitialLoading,
       tableData,
       tableGetRowId,
-      toolbarFilteredData,
       visibleData,
     } = useDataTableState({
       columnFilters,
@@ -250,6 +307,7 @@ export function createDataTable(ui: DataTableUiKit) {
     } = useRowEditing({
       columns,
       editableRows,
+      onError: handleEditError,
     });
     const { viewportElement: tableScrollElement, viewportHeight } =
       useDataTableScrollViewport(tableScrollContainerRef, currentViewMode);
@@ -261,10 +319,15 @@ export function createDataTable(ui: DataTableUiKit) {
       fileInputRef.current?.click();
     }, [fileUpload?.disabled]);
     const handleSelectedFiles = React.useCallback(
-      async (files: FileList | Array<File>) => {
-        await fileUpload?.onFilesSelected(files);
+      (files: FileList | Array<File>) => {
+        runAction(
+          {
+            source: "fileUpload",
+          },
+          () => fileUpload?.onFilesSelected(files),
+        );
       },
-      [fileUpload],
+      [fileUpload, runAction],
     );
 
     const tableColumns = useDataTableColumns<TData>({
@@ -284,7 +347,7 @@ export function createDataTable(ui: DataTableUiKit) {
       labels: resolvedLabels,
       lastSelectedRowIdRef,
       renderExpandedRow,
-      rowActions,
+      rowActions: guardedRowActions,
       saveEdit,
       startEditingRow,
       tableRef,
@@ -295,6 +358,7 @@ export function createDataTable(ui: DataTableUiKit) {
       footerTotalRowCount,
       handleFooterPageIndexChange,
       handleFooterPageSizeChange,
+      isPageCountKnown,
       renderedRows,
       reorderColumn,
       rowsToRender,
@@ -322,6 +386,7 @@ export function createDataTable(ui: DataTableUiKit) {
       getRowCanExpand,
       globalFilterFn,
       globalFilterValue,
+      hasNextPage,
       handleColumnFiltersChange: setCurrentColumnFilters,
       handleColumnOrderChange: setCurrentColumnOrder,
       handleColumnPinningChange: setCurrentColumnPinning,
@@ -331,6 +396,7 @@ export function createDataTable(ui: DataTableUiKit) {
       manualFiltering,
       manualPagination,
       manualSorting,
+      onActionError,
       onPageIndexChange,
       onPageSizeChange,
       pageCount,
@@ -347,7 +413,6 @@ export function createDataTable(ui: DataTableUiKit) {
       tableGetRowId,
       tableRef,
       tableScrollElement,
-      toolbarFilteredData,
       totalRowCount,
       virtualization,
       viewportHeight,
@@ -464,6 +529,41 @@ export function createDataTable(ui: DataTableUiKit) {
       toolbarActions,
       visibleData,
     });
+    const guardedToolbarActions = React.useMemo(
+      () =>
+        effectiveToolbarActions.map((action) => ({
+          ...action,
+          onClick: (context: {
+            rows: Array<TData>;
+            openFileDialog?: () => void;
+          }) => {
+            runAction(
+              {
+                actionKey: action.key,
+                source: "toolbarAction",
+              },
+              () => action.onClick(context),
+            );
+          },
+        })),
+      [effectiveToolbarActions, runAction],
+    );
+    const guardedSelectionActions = React.useMemo(
+      () =>
+        selectionActions.map((action) => ({
+          ...action,
+          onClick: (context: Parameters<typeof action.onClick>[0]) => {
+            runAction(
+              {
+                actionKey: action.key,
+                source: "selectionAction",
+              },
+              () => action.onClick(context),
+            );
+          },
+        })),
+      [runAction, selectionActions],
+    );
 
     return (
       <TooltipProvider>
@@ -493,7 +593,7 @@ export function createDataTable(ui: DataTableUiKit) {
               onChange={(event) => {
                 const files = event.currentTarget.files;
                 if (files?.length) {
-                  void handleSelectedFiles(files);
+                  handleSelectedFiles(files);
                 }
                 event.currentTarget.value = "";
               }}
@@ -524,7 +624,7 @@ export function createDataTable(ui: DataTableUiKit) {
                   DataTableToolbar={DataTableToolbar}
                   density={currentDensity}
                   description={description}
-                  effectiveToolbarActions={effectiveToolbarActions}
+                  effectiveToolbarActions={guardedToolbarActions}
                   enableColumnPinning={enableColumnPinning}
                   enableDensityToggle={enableDensityToggle}
                   enableViewToggle={enableViewToggle && Boolean(cardRenderer)}
@@ -539,7 +639,7 @@ export function createDataTable(ui: DataTableUiKit) {
                   onViewModeChange={handleViewModeChange}
                   openFileDialog={fileUpload ? openFileDialog : undefined}
                   selectedRows={selectedRows}
-                  selectionActions={selectionActions}
+                  selectionActions={guardedSelectionActions}
                   showHiddenRows={currentShowHiddenRows}
                   table={table}
                   title={title}
@@ -573,12 +673,12 @@ export function createDataTable(ui: DataTableUiKit) {
                   hasCardTitle={hasCardTitle}
                   infiniteScroll={infiniteScroll}
                   localSearchValue={localSearchValue}
-                  onRowClick={onRowClick}
+                  onRowClick={guardedOnRowClick}
                   renderedRows={renderedRows}
                   renderExpandedRow={renderExpandedRow}
                   resolvedLabels={resolvedLabels}
                   resolvedLoadingRowCount={resolvedLoadingRowCount}
-                  rowActions={rowActions}
+                  rowActions={guardedRowActions}
                   ScrollArea={ScrollArea}
                   sentinelRef={sentinelRef}
                   setCurrentRowSelection={setCurrentRowSelection}
@@ -611,7 +711,7 @@ export function createDataTable(ui: DataTableUiKit) {
                   infiniteScroll={infiniteScroll}
                   layoutMode={layoutMode}
                   localSearchValue={localSearchValue}
-                  onRowClick={onRowClick}
+                  onRowClick={guardedOnRowClick}
                   primeColumnForResize={primeColumnForResize}
                   renderedRows={renderedRows}
                   renderExpandedRow={renderExpandedRow}
@@ -653,6 +753,7 @@ export function createDataTable(ui: DataTableUiKit) {
               handleFooterPageIndexChange={handleFooterPageIndexChange}
               handleFooterPageSizeChange={handleFooterPageSizeChange}
               labels={resolvedLabels}
+              pageCountKnown={isPageCountKnown}
               rowsPerPageOptions={rowsPerPageOptions}
               showFooter={showFooter && !infiniteScroll?.enabled}
             >
@@ -664,4 +765,22 @@ export function createDataTable(ui: DataTableUiKit) {
       </TooltipProvider>
     );
   };
+}
+
+function runDataTableAction<TData>(
+  action: () => void | Promise<void>,
+  context: Omit<DataTableActionErrorContext<TData>, "error">,
+  onActionError: DataTableProps<TData>["onActionError"],
+) {
+  let result: void | Promise<void>;
+  try {
+    result = action();
+  } catch (error) {
+    onActionError?.({ ...context, error });
+    return;
+  }
+
+  void Promise.resolve(result).catch((error: unknown) => {
+    onActionError?.({ ...context, error });
+  });
 }

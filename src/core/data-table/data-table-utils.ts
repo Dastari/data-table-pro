@@ -2,12 +2,14 @@ import type {
   Column,
   ColumnDef,
   ColumnPinningState,
+  Row,
   Table as TanStackTable,
 } from "@tanstack/react-table";
 import type {
   DataTableColumnDef,
   DataTableColumnFilterOption,
   DataTableCsvExportOptions,
+  DataTableCsvExportScope,
   DataTableDensity,
   DataTableLabels,
 } from "../types";
@@ -67,6 +69,17 @@ export function getConfiguredColumnMinWidth<TData>(
 export function decorateFilterableColumn<TData>(
   column: DataTableColumnDef<TData, unknown>,
 ): ColumnDef<TData, unknown> {
+  if ("columns" in column && Array.isArray(column.columns)) {
+    return {
+      ...column,
+      columns: column.columns.map((childColumn) =>
+        decorateFilterableColumn(
+          childColumn as DataTableColumnDef<TData, unknown>,
+        ),
+      ),
+    };
+  }
+
   const filter = column.meta?.filter;
   if (!filter || column.filterFn) {
     return column;
@@ -149,35 +162,22 @@ export function hasFilterValue(value: unknown) {
   return value !== undefined && value !== null && value !== "";
 }
 
-export function rowMatchesToolbarQuery<TData>(
-  row: TData,
-  columns: Array<DataTableColumnDef<TData, unknown>>,
-  query: string,
+export function dataTableGlobalFilterFn<TData>(
+  row: Row<TData>,
+  columnId: string,
+  filterValue: unknown,
 ) {
-  const normalizedQuery = query.trim().toLowerCase();
+  const normalizedQuery = normalizeFilterValue(filterValue)
+    .trim()
+    .toLowerCase();
+
   if (!normalizedQuery) {
     return true;
   }
 
-  return columns.some((column) => {
-    const value = getColumnSearchValue(row, column);
-    return normalizeFilterValue(value).toLowerCase().includes(normalizedQuery);
-  });
-}
-
-function getColumnSearchValue<TData>(
-  row: TData,
-  column: DataTableColumnDef<TData, unknown>,
-) {
-  if ("accessorKey" in column && typeof column.accessorKey === "string") {
-    return (row as Record<string, unknown>)[column.accessorKey];
-  }
-
-  if ("accessorFn" in column && typeof column.accessorFn === "function") {
-    return column.accessorFn(row, 0);
-  }
-
-  return undefined;
+  return normalizeFilterValue(row.getValue(columnId))
+    .toLowerCase()
+    .includes(normalizedQuery);
 }
 
 export async function exportDataTableCsv<TData>({
@@ -195,6 +195,7 @@ export async function exportDataTableCsv<TData>({
   const options: DataTableCsvExportOptions<TData> =
     csvExport === true ? {} : csvExport;
   const filename = options.filename ?? "data-table.csv";
+  const scope = options.scope ?? "filtered";
   const exportColumnIds = options.columns
     ? new Set(options.columns)
     : undefined;
@@ -206,7 +207,7 @@ export async function exportDataTableCsv<TData>({
         column.id !== "__spacer__" &&
         (!exportColumnIds || exportColumnIds.has(column.id)),
     );
-  const rows = table.getFilteredRowModel().rows;
+  const rows = getCsvExportRows(table, scope);
   const csvRows: Array<Array<unknown>> = [];
 
   if (options.includeHeaders ?? true) {
@@ -235,13 +236,22 @@ export async function exportDataTableCsv<TData>({
     );
   }
 
-  const csv = csvRows.map((row) => row.map(escapeCsvCell).join(",")).join("\n");
+  const lineEnding = options.lineEnding ?? "\r\n";
+  const escapeFormulaValues = options.escapeFormulaValues ?? true;
+  const csv = csvRows
+    .map((row) =>
+      row
+        .map((value) => escapeCsvCell(value, escapeFormulaValues))
+        .join(","),
+    )
+    .join(lineEnding);
 
   if (options.onExport) {
     await options.onExport({
       csv,
       filename,
       rows: rows.map((row) => row.original),
+      scope,
     });
     return;
   }
@@ -259,8 +269,33 @@ export async function exportDataTableCsv<TData>({
   window.URL.revokeObjectURL(url);
 }
 
-function escapeCsvCell(value: unknown) {
-  const text = normalizeFilterValue(value);
+function getCsvExportRows<TData>(
+  table: TanStackTable<TData>,
+  scope: DataTableCsvExportScope,
+) {
+  switch (scope) {
+    case "page":
+      return table.getRowModel().rows;
+    case "selected":
+      return table
+        .getPrePaginationRowModel()
+        .rows.filter((row) => row.getIsSelected());
+    case "all":
+      return table.getCoreRowModel().rows;
+    default:
+      return table.getPrePaginationRowModel().rows;
+  }
+}
+
+function escapeCsvCell(value: unknown, escapeFormulaValues: boolean) {
+  let text = normalizeFilterValue(value);
+  if (
+    escapeFormulaValues &&
+    typeof value === "string" &&
+    /^[\t\r ]*[=+\-@]/.test(value)
+  ) {
+    text = `'${text}`;
+  }
   if (/[",\n\r]/.test(text)) {
     return `"${text.replace(/"/g, '""')}"`;
   }

@@ -2,12 +2,60 @@
 
 ## Unreleased
 
+## 3.0.9
+
+### Fixes
+
+- Routed toolbar search through TanStack Table's global-filter pipeline so
+  custom `globalFilterFn` implementations are honored.
+- Added correct nested-leaf and index-aware accessor search behavior.
+- Reset client pagination when the effective toolbar or column filter changes,
+  including controlled pages that remain numerically valid.
+- Stopped unchanged pagination slices from emitting duplicate callbacks.
+- Stopped manual pagination without `totalRowCount` or `pageCount` from
+  presenting the currently loaded page as the complete dataset.
+- Added an in-flight lock to infinite loading and routed rejected loads through
+  the shared action-error callback.
+
+### Features
+
+- Added `hasNextPage` for manual pagination with an unknown total.
+- Added CSV export scopes for filtered/sorted rows, the current page, selected
+  rows, and all loaded rows.
+- Added CRLF line endings and spreadsheet-formula neutralization to CSV export
+  by default, with `lineEnding` and `escapeFormulaValues` overrides.
+- Added `onActionError` with typed source, action, and row context for toolbar,
+  selection, row, row-click, edit, upload, export, and infinite-load failures.
+- Completed the `DataTableLabels` catalog for selection, card selection, view
+  switching, filter options, records-per-page, and pagination controls.
+
 ### Documentation
 
 - Added a phased modernization roadmap covering audit fixes, performance and
   code splitting, TanStack feature parity, modern-grid quality-of-life work,
   delivery gates, and deferred optional capabilities.
 - Added the planned 4.0 breaking-change register and migration guarantees.
+- Documented the 3.0.9 behavior corrections, CSV safety controls,
+  unknown-total pagination, action errors, and compatibility expectations.
+
+### Compatibility
+
+- No public prop or entrypoint was removed.
+- Toolbar queries now invoke `globalFilterFn`; applications that intentionally
+  used a display-only query should continue to set
+  `enableToolbarQueryFiltering={false}` or `manualFiltering`.
+- CSV output now uses CRLF by default and neutralizes formula-like string
+  values. Set `lineEnding: "\n"` and/or `escapeFormulaValues: false` only when
+  the previous output contract is required and the data is trusted.
+
+### Validation
+
+- `pnpm lint`
+- `pnpm typecheck`
+- `pnpm demo:typecheck`
+- `pnpm test` (179 tests)
+- `pnpm build`
+- `pnpm demo:build`
 
 ## 3.0.8
 

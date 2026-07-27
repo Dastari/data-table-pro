@@ -1,8 +1,29 @@
 # Migration Guide
 
+## 3.0.9 behavior corrections
+
+Version 3.0.9 is source-compatible with 3.0.8: no prop, type, or entrypoint was
+removed. It intentionally corrects three runtime behaviors:
+
+1. Client toolbar queries now run through TanStack Table global filtering.
+   A supplied `globalFilterFn` is therefore invoked. Keep
+   `enableToolbarQueryFiltering={false}` for a display-only query, or
+   `manualFiltering` when the server owns filtering.
+2. CSV export now defaults to CRLF row endings and neutralizes string values
+   beginning with `=`, `+`, `-`, or `@`. Use `lineEnding: "\n"` only for an
+   LF-specific consumer. Use `escapeFormulaValues: false` only for trusted
+   data when exact legacy output is required.
+3. Manual pagination no longer treats the loaded page length as the total when
+   both `totalRowCount` and `pageCount` are absent. Supply `hasNextPage` for
+   cursor/unknown-total navigation, or supply a known total as before.
+
+New `onActionError` handling is additive. Built-in async callbacks no longer
+leave rejected promises unhandled; consumers can use the error context to show
+their preferred toast, retry, or inline error state.
+
 ## Planned 4.0 migration
 
-No 4.0 breaking change is active in 3.0.8. The modernization roadmap defines
+No 4.0 breaking change is active in 3.0.9. The modernization roadmap defines
 the following planned changes so consumers can adopt their 3.x replacements
 before anything is removed:
 

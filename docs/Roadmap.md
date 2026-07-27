@@ -98,6 +98,20 @@ typed server data are wrapper capabilities rather than TanStack core features.
 
 ### Phase 0: correctness and safety (3.0.9)
 
+Status: complete in 3.0.9.
+
+Delivered:
+
+- TanStack-owned global filtering with nested/index-aware accessor coverage.
+- Transactional filter/page reset behavior and explicit unknown-total manual
+  pagination.
+- Sorted CSV scopes, safe formula handling, configurable line endings, and
+  app-owned async export.
+- Shared error reporting for built-in async workflows and an infinite-load
+  request lock.
+- Complete visible label coverage and 179 regression tests across the three
+  adapters.
+
 Scope:
 
 - Resolve COR-01 through COR-05.

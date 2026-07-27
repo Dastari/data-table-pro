@@ -158,7 +158,7 @@ export function useDataTableToolbarFeatures<TData>({
       return;
     }
 
-    void exportDataTableCsv({
+    return exportDataTableCsv({
       csvExport,
       table,
       labels,
