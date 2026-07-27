@@ -20,6 +20,13 @@ import { DataTableCardPanel } from "./data-table-card-panel";
 import { DataTableFooterSection } from "./data-table-footer-section";
 import { DataTableTablePanel } from "./data-table-table-panel";
 import { DataTableToolbarSection } from "./data-table-toolbar-section";
+import {
+  clearDataTableSavedViews,
+  createDataTableSavedView,
+  deleteDataTableSavedView,
+  readDataTableSavedViews,
+  renameDataTableSavedView,
+} from "./data-table-saved-views";
 import { resolveDataTableLabels } from "./data-table-labels";
 import { useDataTableColumns } from "./use-data-table-columns";
 import { useDataTableInstance } from "./use-data-table-instance";
@@ -30,6 +37,7 @@ import {
   getInitialColumnPinning,
 } from "./data-table-utils";
 import { useDataTableState } from "./use-data-table-state";
+import { clearDataTableColumnPrefs } from "./use-data-table-column-prefs";
 import { useDataTableToolbarFeatures } from "./use-data-table-toolbar-features";
 import { useColumnLayout } from "./use-column-layout";
 import { useRowEditing } from "./use-row-editing";
@@ -120,6 +128,7 @@ export function createDataTable(ui: DataTableUiKit) {
     enableDensityToggle = false,
     columnPrefsKey,
     persistence,
+    savedViews,
     initialState,
     state: unifiedState,
     onStateChange,
@@ -790,36 +799,108 @@ export function createDataTable(ui: DataTableUiKit) {
         table,
       ],
     );
-    const resetColumnLayout = React.useCallback(() => {
-      restoreState({
-        columnVisibility: initialState?.columnVisibility ?? {},
-        columnOrder: initialState?.columnOrder ?? [],
-        columnPinning:
-          initialState?.columnPinning ?? getInitialColumnPinning(columns),
-        columnSizing: initialState?.columnSizing ?? {},
-      });
-    }, [columns, initialState, restoreState]);
-    const resetState = React.useCallback(() => {
-      restoreState({
-        sorting: initialState?.sorting ?? [],
-        pagination: initialState?.pagination ?? {
-          pageIndex: 0,
-          pageSize: rowsPerPageOptions[0] ?? 20,
-        },
-        rowSelection: initialState?.rowSelection ?? {},
-        columnVisibility: initialState?.columnVisibility ?? {},
-        columnFilters: initialState?.columnFilters ?? [],
-        expanded: initialState?.expanded ?? {},
-        columnOrder: initialState?.columnOrder ?? [],
-        columnPinning:
-          initialState?.columnPinning ?? getInitialColumnPinning(columns),
-        columnSizing: initialState?.columnSizing ?? {},
-        density: initialState?.density ?? "comfortable",
-        viewMode: initialState?.viewMode ?? "table",
-        showHiddenRows: initialState?.showHiddenRows ?? false,
-        globalFilter: initialState?.globalFilter ?? "",
-      });
-    }, [columns, initialState, restoreState, rowsPerPageOptions]);
+    const clearPersistedState = React.useCallback(
+      () => clearDataTableColumnPrefs(persistence ?? columnPrefsKey),
+      [columnPrefsKey, persistence],
+    );
+    const resetColumnLayout = React.useCallback<
+      DataTableApi<TData>["resetColumnLayout"]
+    >(
+      (options) => {
+        if (options?.clearPersistence) {
+          clearPersistedState();
+        }
+        restoreState({
+          columnVisibility: initialState?.columnVisibility ?? {},
+          columnOrder: initialState?.columnOrder ?? [],
+          columnPinning:
+            initialState?.columnPinning ?? getInitialColumnPinning(columns),
+          columnSizing: initialState?.columnSizing ?? {},
+        });
+      },
+      [
+        clearPersistedState,
+        columns,
+        initialState,
+        restoreState,
+      ],
+    );
+    const resetState = React.useCallback<DataTableApi<TData>["resetState"]>(
+      (options) => {
+        if (options?.clearPersistence) {
+          clearPersistedState();
+        }
+        restoreState({
+          sorting: initialState?.sorting ?? [],
+          pagination: initialState?.pagination ?? {
+            pageIndex: 0,
+            pageSize: rowsPerPageOptions[0] ?? 20,
+          },
+          rowSelection: initialState?.rowSelection ?? {},
+          columnVisibility: initialState?.columnVisibility ?? {},
+          columnFilters: initialState?.columnFilters ?? [],
+          expanded: initialState?.expanded ?? {},
+          columnOrder: initialState?.columnOrder ?? [],
+          columnPinning:
+            initialState?.columnPinning ?? getInitialColumnPinning(columns),
+          columnSizing: initialState?.columnSizing ?? {},
+          density: initialState?.density ?? "comfortable",
+          viewMode: initialState?.viewMode ?? "table",
+          showHiddenRows: initialState?.showHiddenRows ?? false,
+          globalFilter: initialState?.globalFilter ?? "",
+        });
+      },
+      [
+        clearPersistedState,
+        columns,
+        initialState,
+        restoreState,
+        rowsPerPageOptions,
+      ],
+    );
+    const getSavedViews = React.useCallback(
+      () => readDataTableSavedViews(savedViews),
+      [savedViews],
+    );
+    const createSavedView = React.useCallback<
+      DataTableApi<TData>["createSavedView"]
+    >(
+      (name) =>
+        createDataTableSavedView(savedViews, name, getCurrentState()),
+      [getCurrentState, savedViews],
+    );
+    const applySavedView = React.useCallback<
+      DataTableApi<TData>["applySavedView"]
+    >(
+      (id) => {
+        const view = readDataTableSavedViews(savedViews).find(
+          (candidate) => candidate.id === id,
+        );
+        if (!view) {
+          return false;
+        }
+        restoreState(view.state);
+        savedViews?.onApply?.(view);
+        return true;
+      },
+      [restoreState, savedViews],
+    );
+    const renameSavedView = React.useCallback<
+      DataTableApi<TData>["renameSavedView"]
+    >(
+      (id, name) => renameDataTableSavedView(savedViews, id, name),
+      [savedViews],
+    );
+    const deleteSavedView = React.useCallback<
+      DataTableApi<TData>["deleteSavedView"]
+    >(
+      (id) => deleteDataTableSavedView(savedViews, id),
+      [savedViews],
+    );
+    const clearSavedViews = React.useCallback(
+      () => clearDataTableSavedViews(savedViews),
+      [savedViews],
+    );
     const exportCsvFromApi = React.useCallback<
       DataTableApi<TData>["exportCsv"]
     >(
@@ -840,6 +921,13 @@ export function createDataTable(ui: DataTableUiKit) {
         restore: restoreState,
         resetColumnLayout,
         resetState,
+        clearPersistedState,
+        getSavedViews,
+        createSavedView,
+        applySavedView,
+        renameSavedView,
+        deleteSavedView,
+        clearSavedViews,
         focus: () => {
           containerRef.current?.focus();
         },
@@ -854,8 +942,15 @@ export function createDataTable(ui: DataTableUiKit) {
         exportCsv: exportCsvFromApi,
       }),
       [
+        applySavedView,
+        clearPersistedState,
+        clearSavedViews,
+        createSavedView,
+        deleteSavedView,
         exportCsvFromApi,
+        getSavedViews,
         getCurrentState,
+        renameSavedView,
         resetColumnLayout,
         resetState,
         restoreState,

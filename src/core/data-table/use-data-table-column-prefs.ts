@@ -84,6 +84,28 @@ export function readDataTableColumnPrefs(
   );
 }
 
+export function clearDataTableColumnPrefs(
+  input: string | DataTablePersistenceConfig | undefined,
+) {
+  const config = resolvePersistenceConfig(input);
+  if (!config) {
+    return false;
+  }
+
+  const storage = resolveStorage(config);
+  if (!storage) {
+    return false;
+  }
+
+  try {
+    storage.removeItem(getStorageKey(config.key));
+    return true;
+  } catch (error) {
+    config.onError?.({ error, operation: "remove" });
+    return false;
+  }
+}
+
 export function usePersistDataTableColumnPrefs({
   key,
   persistence,

@@ -149,6 +149,14 @@ Delivered on `main` after 3.0.9:
   transitions.
 - SSR coverage for all adapters plus CI gates for demo types, stale generated
   distribution output, and packed-package contents.
+- Versioned, opt-in URL state for filters, visibility, density, column order,
+  pinning, grouping, and selection, including mismatch migration or safe
+  invalidation.
+- Versioned named saved views with selected slices, validation, migration,
+  storage/error hooks, create/apply/rename/delete commands, and change/apply
+  callbacks.
+- Explicit persisted-state clearing plus reset commands that can clear stored
+  preferences before restoring initial defaults.
 
 State/API:
 

@@ -227,7 +227,7 @@ type DataTableColumnPrefs = {
 };
 type DataTablePersistenceSlice = keyof DataTableColumnPrefs;
 type DataTablePersistenceStorage = Pick<Storage, "getItem" | "setItem" | "removeItem">;
-type DataTablePersistenceOperation = "read" | "write" | "serialize" | "deserialize" | "migrate";
+type DataTablePersistenceOperation = "read" | "write" | "remove" | "serialize" | "deserialize" | "migrate";
 type DataTablePersistencePayload = {
     version: string | number;
     state: DataTableColumnPrefs;
@@ -265,13 +265,54 @@ type DataTableState = {
     globalFilter: string;
 };
 type DataTableInitialState = Partial<DataTableState>;
+type DataTableSavedViewSlice = keyof DataTableState;
+type DataTableSavedView = {
+    id: string;
+    name: string;
+    createdAt: string;
+    updatedAt: string;
+    state: Partial<DataTableState>;
+};
+type DataTableSavedViewsPayload = {
+    version: string | number;
+    views: Array<DataTableSavedView>;
+};
+type DataTableSavedViewsChangeOperation = "create" | "rename" | "delete" | "clear";
+type DataTableSavedViewsConfig = {
+    key: string;
+    version?: string | number;
+    slices?: Array<DataTableSavedViewSlice>;
+    storage?: DataTablePersistenceStorage;
+    serialize?: (payload: DataTableSavedViewsPayload) => string;
+    deserialize?: (value: string) => unknown;
+    migrate?: (payload: {
+        version: unknown;
+        views: unknown;
+    }, targetVersion: string | number) => Array<DataTableSavedView> | undefined;
+    onChange?: (views: Array<DataTableSavedView>, operation: DataTableSavedViewsChangeOperation) => void;
+    onApply?: (view: DataTableSavedView) => void;
+    onError?: (context: {
+        error: unknown;
+        operation: DataTablePersistenceOperation;
+    }) => void;
+};
+type DataTableResetOptions = {
+    clearPersistence?: boolean;
+};
 type DataTableApi<TData> = {
     getTable: () => Table<TData> | null;
     getState: () => DataTableState;
     snapshot: () => DataTableState;
     restore: (state: Partial<DataTableState>) => void;
-    resetColumnLayout: () => void;
-    resetState: () => void;
+    resetColumnLayout: (options?: DataTableResetOptions) => void;
+    resetState: (options?: DataTableResetOptions) => void;
+    clearPersistedState: () => boolean;
+    getSavedViews: () => Array<DataTableSavedView>;
+    createSavedView: (name: string) => DataTableSavedView | undefined;
+    applySavedView: (id: string) => boolean;
+    renameSavedView: (id: string, name: string) => DataTableSavedView | undefined;
+    deleteSavedView: (id: string) => boolean;
+    clearSavedViews: () => boolean;
     focus: () => void;
     scrollToRow: (rowId: string) => boolean;
     scrollToColumn: (columnId: string) => boolean;
@@ -386,6 +427,7 @@ type DataTableProps<TData> = {
     enableDensityToggle?: boolean;
     columnPrefsKey?: string;
     persistence?: DataTablePersistenceConfig;
+    savedViews?: DataTableSavedViewsConfig;
     initialState?: DataTableInitialState;
     state?: Partial<DataTableState>;
     onStateChange?: (updater: Updater<DataTableState>) => void;
@@ -446,4 +488,4 @@ declare function hideOnClassName(hideOn: DataTableContainerBreakpoint | Array<Da
 declare function isHiddenAtContainerWidth(hideOn: DataTableContainerBreakpoint | Array<DataTableContainerBreakpoint> | undefined, containerWidth: number): boolean;
 declare function rowSelectionStateFromRows<TData>(rows: Array<Row<TData>>): TData[];
 
-export { DATA_TABLE_CONTAINER_BREAKPOINT_WIDTHS, type DataTableActionErrorContext, type DataTableActionErrorSource, type DataTableAlign, type DataTableApi, type DataTableCardRendererProps, type DataTableCardSizing, type DataTableCardVirtualizationConfig, type DataTableCellEditRenderProps, type DataTableCellOverflow, type DataTableColumnDef, type DataTableColumnFilterConfig, type DataTableColumnFilterOption, type DataTableColumnFilterType, type DataTableColumnFixed, type DataTableColumnMeta, type DataTableColumnPrefs, type DataTableColumnType, type DataTableColumnVisibilityOption, type DataTableContainerBreakpoint, type DataTableCsvExportOptions, type DataTableCsvExportScope, type DataTableDensity, type DataTableDragAndDropConfig, type DataTableEditableRowsConfig, type DataTableEmptyStateContext, type DataTableExpandedRowProps, type DataTableFileUploadConfig, type DataTableHiddenRowsConfig, type DataTableInfiniteScroll, type DataTableInitialState, type DataTableLabels, type DataTableLoadingState, type DataTablePersistenceConfig, type DataTablePersistenceOperation, type DataTablePersistencePayload, type DataTablePersistenceSlice, type DataTablePersistenceStorage, type DataTableProps, type DataTableRowAction, type DataTableRowLoadingState, type DataTableSelectionAction, type DataTableState, type DataTableSummaryRow, type DataTableToolbarAction, type DataTableToolbarVisibility, type DataTableViewMode, type DataTableVirtualizationConfig, alignClassName, canEditRow, canUseRowAction, cellAlignClassName, headerAlignClassName, hideOnClassName, isHiddenAtContainerWidth, isRowVisible, resolveColumnAlign, resolveRowActionLabel, rowSelectionStateFromRows };
+export { DATA_TABLE_CONTAINER_BREAKPOINT_WIDTHS, type DataTableActionErrorContext, type DataTableActionErrorSource, type DataTableAlign, type DataTableApi, type DataTableCardRendererProps, type DataTableCardSizing, type DataTableCardVirtualizationConfig, type DataTableCellEditRenderProps, type DataTableCellOverflow, type DataTableColumnDef, type DataTableColumnFilterConfig, type DataTableColumnFilterOption, type DataTableColumnFilterType, type DataTableColumnFixed, type DataTableColumnMeta, type DataTableColumnPrefs, type DataTableColumnType, type DataTableColumnVisibilityOption, type DataTableContainerBreakpoint, type DataTableCsvExportOptions, type DataTableCsvExportScope, type DataTableDensity, type DataTableDragAndDropConfig, type DataTableEditableRowsConfig, type DataTableEmptyStateContext, type DataTableExpandedRowProps, type DataTableFileUploadConfig, type DataTableHiddenRowsConfig, type DataTableInfiniteScroll, type DataTableInitialState, type DataTableLabels, type DataTableLoadingState, type DataTablePersistenceConfig, type DataTablePersistenceOperation, type DataTablePersistencePayload, type DataTablePersistenceSlice, type DataTablePersistenceStorage, type DataTableProps, type DataTableResetOptions, type DataTableRowAction, type DataTableRowLoadingState, type DataTableSavedView, type DataTableSavedViewSlice, type DataTableSavedViewsChangeOperation, type DataTableSavedViewsConfig, type DataTableSavedViewsPayload, type DataTableSelectionAction, type DataTableState, type DataTableSummaryRow, type DataTableToolbarAction, type DataTableToolbarVisibility, type DataTableViewMode, type DataTableVirtualizationConfig, alignClassName, canEditRow, canUseRowAction, cellAlignClassName, headerAlignClassName, hideOnClassName, isHiddenAtContainerWidth, isRowVisible, resolveColumnAlign, resolveRowActionLabel, rowSelectionStateFromRows };

@@ -74,6 +74,64 @@ Column sizing can now be controlled with `columnSizing` and
 `onColumnSizingChange`. `apiRef` provides snapshot/restore and reset commands
 without requiring imports from `data-table-pro/advanced`.
 
+## Adopt expanded URL state during 3.x
+
+Existing query, page, page-size, sort, view, and hidden-row URL behavior is
+unchanged. New slices are opt-in and versioned:
+
+```tsx
+const url = useDataTableUrlState({
+  keyPrefix: "people-",
+  version: 2,
+  enabled: [
+    "columnFilters",
+    "columnVisibility",
+    "density",
+    "columnOrder",
+    "columnPinning",
+  ],
+  migrate: (payload, targetVersion) =>
+    migratePeopleUrlState(payload, targetVersion),
+});
+```
+
+A mismatched enhanced URL schema is ignored unless `migrate` returns valid
+replacement state. URLs created before enhanced slices existed continue to
+decode their original fields. Selection requires the explicit
+`"rowSelection"` opt-in so adopting the expanded hook does not place row IDs
+in shareable URLs accidentally.
+
+## Adopt named saved views and persistence resets
+
+Saved views are additive and do not add built-in controls:
+
+```tsx
+const apiRef = useRef<DataTableApi<Person>>(null);
+
+<DataTable
+  apiRef={apiRef}
+  savedViews={{
+    key: "people",
+    version: 1,
+    onChange: setSavedViews,
+  }}
+/>;
+
+const view = apiRef.current?.createSavedView("Operations");
+apiRef.current?.applySavedView(view?.id ?? "");
+apiRef.current?.renameSavedView(view?.id ?? "", "Ops");
+apiRef.current?.deleteSavedView(view?.id ?? "");
+```
+
+The default saved-view slices exclude pagination, selection, and expansion.
+Opt into them with `savedViews.slices` only when those transient values are
+meaningful to the application.
+
+Use `clearPersistedState()` to remove preferences without changing live state.
+Use `resetColumnLayout({ clearPersistence: true })` or
+`resetState({ clearPersistence: true })` to discard the old payload and restore
+initial/default values in one command.
+
 ## Planned 4.0 migration
 
 No 4.0 breaking change is active in 3.0.9. The modernization roadmap defines

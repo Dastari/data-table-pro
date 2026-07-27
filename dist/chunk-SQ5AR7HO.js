@@ -3789,6 +3789,23 @@ function readDataTableColumnPrefs(input) {
     config.slices
   );
 }
+function clearDataTableColumnPrefs(input) {
+  const config = resolvePersistenceConfig(input);
+  if (!config) {
+    return false;
+  }
+  const storage = resolveStorage(config);
+  if (!storage) {
+    return false;
+  }
+  try {
+    storage.removeItem(getStorageKey(config.key));
+    return true;
+  } catch (error) {
+    config.onError?.({ error, operation: "remove" });
+    return false;
+  }
+}
 function usePersistDataTableColumnPrefs({
   key,
   persistence,
@@ -5706,6 +5723,326 @@ function hasColumnFilterValue(value) {
   }
   return value !== void 0 && value !== null && value !== "";
 }
+
+// src/core/data-table/data-table-saved-views.ts
+var STORAGE_PREFIX2 = "data-table-pro:saved-views:";
+var DEFAULT_VERSION2 = 1;
+var DEFAULT_SLICES = [
+  "sorting",
+  "columnVisibility",
+  "columnFilters",
+  "columnOrder",
+  "columnPinning",
+  "columnSizing",
+  "density",
+  "viewMode",
+  "showHiddenRows",
+  "globalFilter"
+];
+var fallbackId = 0;
+function readDataTableSavedViews(config) {
+  const storage = resolveStorage2(config);
+  if (!config || !storage) {
+    return [];
+  }
+  let serialized;
+  try {
+    serialized = storage.getItem(getStorageKey2(config.key));
+  } catch (error) {
+    config.onError?.({ error, operation: "read" });
+    return [];
+  }
+  if (!serialized) {
+    return [];
+  }
+  let parsed;
+  try {
+    parsed = (config.deserialize ?? JSON.parse)(serialized);
+  } catch (error) {
+    config.onError?.({ error, operation: "deserialize" });
+    return [];
+  }
+  if (!isRecord2(parsed) || !("version" in parsed) || !("views" in parsed)) {
+    return [];
+  }
+  const targetVersion = config.version ?? DEFAULT_VERSION2;
+  let candidate = parsed.views;
+  if (parsed.version !== targetVersion) {
+    if (!config.migrate) {
+      return [];
+    }
+    try {
+      candidate = config.migrate(
+        { version: parsed.version, views: parsed.views },
+        targetVersion
+      );
+    } catch (error) {
+      config.onError?.({ error, operation: "migrate" });
+      return [];
+    }
+  }
+  if (!Array.isArray(candidate)) {
+    return [];
+  }
+  return candidate.map((view) => validateSavedView(view, config.slices)).filter((view) => Boolean(view));
+}
+function createDataTableSavedView(config, name, state) {
+  const normalizedName = name.trim();
+  if (!config || !normalizedName) {
+    return void 0;
+  }
+  const now = (/* @__PURE__ */ new Date()).toISOString();
+  const view = {
+    id: createSavedViewId(),
+    name: normalizedName,
+    createdAt: now,
+    updatedAt: now,
+    state: selectSavedViewSlices(state, config.slices)
+  };
+  const views = [...readDataTableSavedViews(config), view];
+  return writeViews(config, views, "create") ? cloneSavedView(view) : void 0;
+}
+function renameDataTableSavedView(config, id, name) {
+  const normalizedName = name.trim();
+  if (!config || !normalizedName) {
+    return void 0;
+  }
+  let renamed;
+  const views = readDataTableSavedViews(config).map((view) => {
+    if (view.id !== id) {
+      return view;
+    }
+    renamed = {
+      ...view,
+      name: normalizedName,
+      updatedAt: (/* @__PURE__ */ new Date()).toISOString()
+    };
+    return renamed;
+  });
+  if (!renamed) {
+    return void 0;
+  }
+  return writeViews(config, views, "rename") ? cloneSavedView(renamed) : void 0;
+}
+function deleteDataTableSavedView(config, id) {
+  if (!config) {
+    return false;
+  }
+  const current = readDataTableSavedViews(config);
+  const views = current.filter((view) => view.id !== id);
+  return views.length !== current.length && writeViews(config, views, "delete");
+}
+function clearDataTableSavedViews(config) {
+  const storage = resolveStorage2(config);
+  if (!config || !storage) {
+    return false;
+  }
+  try {
+    storage.removeItem(getStorageKey2(config.key));
+  } catch (error) {
+    config.onError?.({ error, operation: "remove" });
+    return false;
+  }
+  config.onChange?.([], "clear");
+  return true;
+}
+function writeViews(config, views, operation) {
+  const storage = resolveStorage2(config);
+  if (!storage) {
+    return false;
+  }
+  let serialized;
+  try {
+    const payload = {
+      version: config.version ?? DEFAULT_VERSION2,
+      views
+    };
+    serialized = (config.serialize ?? JSON.stringify)(payload);
+  } catch (error) {
+    config.onError?.({ error, operation: "serialize" });
+    return false;
+  }
+  try {
+    storage.setItem(getStorageKey2(config.key), serialized);
+  } catch (error) {
+    config.onError?.({ error, operation: "write" });
+    return false;
+  }
+  const snapshots = views.map(cloneSavedView);
+  config.onChange?.(snapshots, operation);
+  return true;
+}
+function selectSavedViewSlices(state, slices) {
+  const selected = new Set(slices ?? DEFAULT_SLICES);
+  const snapshot = {};
+  for (const slice of Object.keys(state)) {
+    if (selected.has(slice)) {
+      Object.assign(snapshot, {
+        [slice]: cloneStateSlice(slice, state[slice])
+      });
+    }
+  }
+  return snapshot;
+}
+function validateSavedView(value, slices) {
+  if (!isRecord2(value) || typeof value.id !== "string" || !value.id || typeof value.name !== "string" || !value.name.trim() || typeof value.createdAt !== "string" || typeof value.updatedAt !== "string") {
+    return void 0;
+  }
+  return {
+    id: value.id,
+    name: value.name.trim(),
+    createdAt: value.createdAt,
+    updatedAt: value.updatedAt,
+    state: validateState(value.state, slices)
+  };
+}
+function validateState(value, slices) {
+  if (!isRecord2(value)) {
+    return {};
+  }
+  const selected = new Set(slices ?? DEFAULT_SLICES);
+  const state = {};
+  const sorting = validateSorting(value.sorting);
+  if (selected.has("sorting") && sorting) state.sorting = sorting;
+  const pagination = validatePagination(value.pagination);
+  if (selected.has("pagination") && pagination) state.pagination = pagination;
+  const rowSelection = validateBooleanRecord2(value.rowSelection);
+  if (selected.has("rowSelection") && rowSelection) {
+    state.rowSelection = rowSelection;
+  }
+  const visibility = validateBooleanRecord2(value.columnVisibility);
+  if (selected.has("columnVisibility") && visibility) {
+    state.columnVisibility = visibility;
+  }
+  const filters = validateFilters(value.columnFilters);
+  if (selected.has("columnFilters") && filters) state.columnFilters = filters;
+  const expanded = value.expanded === true ? true : validateBooleanRecord2(value.expanded);
+  if (selected.has("expanded") && expanded !== void 0) {
+    state.expanded = expanded;
+  }
+  const order = validateStringArray2(value.columnOrder);
+  if (selected.has("columnOrder") && order) state.columnOrder = order;
+  const pinning = validatePinning(value.columnPinning);
+  if (selected.has("columnPinning") && pinning) {
+    state.columnPinning = pinning;
+  }
+  const sizing = validateSizingRecord2(value.columnSizing);
+  if (selected.has("columnSizing") && sizing) state.columnSizing = sizing;
+  if (selected.has("density") && (value.density === "compact" || value.density === "comfortable" || value.density === "spacious")) {
+    state.density = value.density;
+  }
+  if (selected.has("viewMode") && (value.viewMode === "table" || value.viewMode === "card")) {
+    state.viewMode = value.viewMode;
+  }
+  if (selected.has("showHiddenRows") && typeof value.showHiddenRows === "boolean") {
+    state.showHiddenRows = value.showHiddenRows;
+  }
+  if (selected.has("globalFilter") && typeof value.globalFilter === "string") {
+    state.globalFilter = value.globalFilter;
+  }
+  return state;
+}
+function cloneSavedView(view) {
+  return {
+    ...view,
+    state: validateState(view.state, Object.keys(view.state))
+  };
+}
+function cloneStateSlice(slice, value) {
+  if (Array.isArray(value)) {
+    return value.map(
+      (item) => isRecord2(item) ? { ...item } : item
+    );
+  }
+  if (isRecord2(value)) {
+    if (slice === "columnPinning") {
+      return {
+        left: Array.isArray(value.left) ? [...value.left] : void 0,
+        right: Array.isArray(value.right) ? [...value.right] : void 0
+      };
+    }
+    return { ...value };
+  }
+  return value;
+}
+function validateSorting(value) {
+  if (!Array.isArray(value)) return void 0;
+  return value.filter(
+    (item) => isRecord2(item) && typeof item.id === "string"
+  ).map((item) => ({ id: item.id, desc: Boolean(item.desc) }));
+}
+function validatePagination(value) {
+  if (!isRecord2(value) || !Number.isInteger(value.pageIndex) || value.pageIndex < 0 || !Number.isInteger(value.pageSize) || value.pageSize < 1) {
+    return void 0;
+  }
+  return {
+    pageIndex: value.pageIndex,
+    pageSize: value.pageSize
+  };
+}
+function validateFilters(value) {
+  if (!Array.isArray(value)) return void 0;
+  return value.filter(
+    (item) => isRecord2(item) && typeof item.id === "string" && Object.prototype.hasOwnProperty.call(item, "value")
+  ).map((item) => ({ id: item.id, value: item.value }));
+}
+function validatePinning(value) {
+  if (!isRecord2(value)) return void 0;
+  return {
+    left: validateStringArray2(value.left) ?? [],
+    right: validateStringArray2(value.right) ?? []
+  };
+}
+function validateBooleanRecord2(value) {
+  if (!isRecord2(value)) return void 0;
+  return Object.fromEntries(
+    Object.entries(value).filter(
+      (entry) => typeof entry[1] === "boolean"
+    )
+  );
+}
+function validateSizingRecord2(value) {
+  if (!isRecord2(value)) return void 0;
+  return Object.fromEntries(
+    Object.entries(value).filter(
+      (entry) => typeof entry[1] === "number" && Number.isFinite(entry[1]) && entry[1] >= 0
+    )
+  );
+}
+function validateStringArray2(value) {
+  if (!Array.isArray(value)) return void 0;
+  return value.filter((item) => typeof item === "string");
+}
+function resolveStorage2(config) {
+  if (!config) {
+    return void 0;
+  }
+  if (config.storage) {
+    return config.storage;
+  }
+  if (typeof window === "undefined") {
+    return void 0;
+  }
+  try {
+    return window.localStorage;
+  } catch (error) {
+    config.onError?.({ error, operation: "read" });
+    return void 0;
+  }
+}
+function createSavedViewId() {
+  if (typeof globalThis.crypto?.randomUUID === "function") {
+    return globalThis.crypto.randomUUID();
+  }
+  fallbackId += 1;
+  return `view-${Date.now().toString(36)}-${fallbackId.toString(36)}`;
+}
+function getStorageKey2(key) {
+  return `${STORAGE_PREFIX2}${key}`;
+}
+function isRecord2(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
 function useDataTableToolbarFeatures({
   columns,
   currentColumnFilters,
@@ -5911,6 +6248,7 @@ function createDataTable(ui) {
     enableDensityToggle = false,
     columnPrefsKey,
     persistence,
+    savedViews,
     initialState,
     state: unifiedState,
     onStateChange,
@@ -6536,34 +6874,95 @@ function createDataTable(ui) {
         table
       ]
     );
-    const resetColumnLayout = React37.useCallback(() => {
-      restoreState({
-        columnVisibility: initialState?.columnVisibility ?? {},
-        columnOrder: initialState?.columnOrder ?? [],
-        columnPinning: initialState?.columnPinning ?? getInitialColumnPinning(columns),
-        columnSizing: initialState?.columnSizing ?? {}
-      });
-    }, [columns, initialState, restoreState]);
-    const resetState = React37.useCallback(() => {
-      restoreState({
-        sorting: initialState?.sorting ?? [],
-        pagination: initialState?.pagination ?? {
-          pageIndex: 0,
-          pageSize: rowsPerPageOptions[0] ?? 20
-        },
-        rowSelection: initialState?.rowSelection ?? {},
-        columnVisibility: initialState?.columnVisibility ?? {},
-        columnFilters: initialState?.columnFilters ?? [],
-        expanded: initialState?.expanded ?? {},
-        columnOrder: initialState?.columnOrder ?? [],
-        columnPinning: initialState?.columnPinning ?? getInitialColumnPinning(columns),
-        columnSizing: initialState?.columnSizing ?? {},
-        density: initialState?.density ?? "comfortable",
-        viewMode: initialState?.viewMode ?? "table",
-        showHiddenRows: initialState?.showHiddenRows ?? false,
-        globalFilter: initialState?.globalFilter ?? ""
-      });
-    }, [columns, initialState, restoreState, rowsPerPageOptions]);
+    const clearPersistedState = React37.useCallback(
+      () => clearDataTableColumnPrefs(persistence ?? columnPrefsKey),
+      [columnPrefsKey, persistence]
+    );
+    const resetColumnLayout = React37.useCallback(
+      (options) => {
+        if (options?.clearPersistence) {
+          clearPersistedState();
+        }
+        restoreState({
+          columnVisibility: initialState?.columnVisibility ?? {},
+          columnOrder: initialState?.columnOrder ?? [],
+          columnPinning: initialState?.columnPinning ?? getInitialColumnPinning(columns),
+          columnSizing: initialState?.columnSizing ?? {}
+        });
+      },
+      [
+        clearPersistedState,
+        columns,
+        initialState,
+        restoreState
+      ]
+    );
+    const resetState = React37.useCallback(
+      (options) => {
+        if (options?.clearPersistence) {
+          clearPersistedState();
+        }
+        restoreState({
+          sorting: initialState?.sorting ?? [],
+          pagination: initialState?.pagination ?? {
+            pageIndex: 0,
+            pageSize: rowsPerPageOptions[0] ?? 20
+          },
+          rowSelection: initialState?.rowSelection ?? {},
+          columnVisibility: initialState?.columnVisibility ?? {},
+          columnFilters: initialState?.columnFilters ?? [],
+          expanded: initialState?.expanded ?? {},
+          columnOrder: initialState?.columnOrder ?? [],
+          columnPinning: initialState?.columnPinning ?? getInitialColumnPinning(columns),
+          columnSizing: initialState?.columnSizing ?? {},
+          density: initialState?.density ?? "comfortable",
+          viewMode: initialState?.viewMode ?? "table",
+          showHiddenRows: initialState?.showHiddenRows ?? false,
+          globalFilter: initialState?.globalFilter ?? ""
+        });
+      },
+      [
+        clearPersistedState,
+        columns,
+        initialState,
+        restoreState,
+        rowsPerPageOptions
+      ]
+    );
+    const getSavedViews = React37.useCallback(
+      () => readDataTableSavedViews(savedViews),
+      [savedViews]
+    );
+    const createSavedView = React37.useCallback(
+      (name) => createDataTableSavedView(savedViews, name, getCurrentState()),
+      [getCurrentState, savedViews]
+    );
+    const applySavedView = React37.useCallback(
+      (id) => {
+        const view = readDataTableSavedViews(savedViews).find(
+          (candidate) => candidate.id === id
+        );
+        if (!view) {
+          return false;
+        }
+        restoreState(view.state);
+        savedViews?.onApply?.(view);
+        return true;
+      },
+      [restoreState, savedViews]
+    );
+    const renameSavedView = React37.useCallback(
+      (id, name) => renameDataTableSavedView(savedViews, id, name),
+      [savedViews]
+    );
+    const deleteSavedView = React37.useCallback(
+      (id) => deleteDataTableSavedView(savedViews, id),
+      [savedViews]
+    );
+    const clearSavedViews = React37.useCallback(
+      () => clearDataTableSavedViews(savedViews),
+      [savedViews]
+    );
     const exportCsvFromApi = React37.useCallback(
       (options) => exportDataTableCsv({
         csvExport: options ?? (csvExport || true),
@@ -6580,6 +6979,13 @@ function createDataTable(ui) {
         restore: restoreState,
         resetColumnLayout,
         resetState,
+        clearPersistedState,
+        getSavedViews,
+        createSavedView,
+        applySavedView,
+        renameSavedView,
+        deleteSavedView,
+        clearSavedViews,
         focus: () => {
           containerRef.current?.focus();
         },
@@ -6592,8 +6998,15 @@ function createDataTable(ui) {
         exportCsv: exportCsvFromApi
       }),
       [
+        applySavedView,
+        clearPersistedState,
+        clearSavedViews,
+        createSavedView,
+        deleteSavedView,
         exportCsvFromApi,
+        getSavedViews,
         getCurrentState,
+        renameSavedView,
         resetColumnLayout,
         resetState,
         restoreState
@@ -6896,5 +7309,5 @@ function scrollDataTableElementIntoView(container, kind, value) {
 }
 
 export { Button, Card, CardContent, CardDescription, CardFooter, CardHeader, Checkbox, DataTableBodyRow, DataTableCardPanel, DataTableFooterSection, DataTableHeaderCell, DataTableTablePanel, DataTableToolbarSection, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuSubContent, DropdownMenuSubTrigger, Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle, Input, InputGroup, InputGroupAddon, InputGroupInput, Pagination, PaginationFirst, PaginationLast, PaginationLink, PaginationNext, PaginationPrevious, ScrollArea, ScrollBar, SelectContent, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, Separator, Skeleton, Table, TableBody, TableCaption, TableCell, TableFooter, TableHead, TableHeader, TableRow, TooltipContent, cn, createDataTable, primitiveUiKit, useColumnLayout, useControllableState, useDataTableColumns, useDataTableInstance, useDataTableState, useRowEditing };
-//# sourceMappingURL=chunk-LFYUSXWQ.js.map
-//# sourceMappingURL=chunk-LFYUSXWQ.js.map
+//# sourceMappingURL=chunk-SQ5AR7HO.js.map
+//# sourceMappingURL=chunk-SQ5AR7HO.js.map

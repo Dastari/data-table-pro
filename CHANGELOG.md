@@ -15,6 +15,14 @@
 - Added controlled `columnSizing` and `onColumnSizingChange`.
 - Added a typed `apiRef` for table inspection, state snapshots/restoration,
   reset commands, focus, row/column scrolling, and programmatic CSV export.
+- Expanded `useDataTableUrlState` with opt-in column filters, visibility,
+  density, column order, pinning, grouping, and row selection. Enhanced URL
+  slices carry a schema version and can be migrated or safely discarded.
+- Added versioned named saved views with selected state slices, validation,
+  custom storage/codecs, migration/error callbacks, and create, apply, rename,
+  delete, list, and clear commands through `apiRef`.
+- Added `clearPersistedState()` and optional
+  `{ clearPersistence: true }` handling to state/layout reset commands.
 
 ### Fixes
 
@@ -25,6 +33,9 @@
 - Made consecutive controlled/uncontrolled updater functions resolve
   transactionally from the latest reported value instead of a stale render
   closure.
+- Kept row selection out of URLs unless its slice is explicitly enabled and
+  kept transient pagination, selection, and expansion out of saved views
+  unless consumers opt into those slices.
 
 ### Quality
 

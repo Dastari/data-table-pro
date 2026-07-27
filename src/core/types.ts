@@ -307,6 +307,7 @@ export type DataTablePersistenceStorage = Pick<
 export type DataTablePersistenceOperation =
   | "read"
   | "write"
+  | "remove"
   | "serialize"
   | "deserialize"
   | "migrate";
@@ -352,13 +353,70 @@ export type DataTableState = {
 
 export type DataTableInitialState = Partial<DataTableState>;
 
+export type DataTableSavedViewSlice = keyof DataTableState;
+
+export type DataTableSavedView = {
+  id: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+  state: Partial<DataTableState>;
+};
+
+export type DataTableSavedViewsPayload = {
+  version: string | number;
+  views: Array<DataTableSavedView>;
+};
+
+export type DataTableSavedViewsChangeOperation =
+  | "create"
+  | "rename"
+  | "delete"
+  | "clear";
+
+export type DataTableSavedViewsConfig = {
+  key: string;
+  version?: string | number;
+  slices?: Array<DataTableSavedViewSlice>;
+  storage?: DataTablePersistenceStorage;
+  serialize?: (payload: DataTableSavedViewsPayload) => string;
+  deserialize?: (value: string) => unknown;
+  migrate?: (
+    payload: { version: unknown; views: unknown },
+    targetVersion: string | number,
+  ) => Array<DataTableSavedView> | undefined;
+  onChange?: (
+    views: Array<DataTableSavedView>,
+    operation: DataTableSavedViewsChangeOperation,
+  ) => void;
+  onApply?: (view: DataTableSavedView) => void;
+  onError?: (context: {
+    error: unknown;
+    operation: DataTablePersistenceOperation;
+  }) => void;
+};
+
+export type DataTableResetOptions = {
+  clearPersistence?: boolean;
+};
+
 export type DataTableApi<TData> = {
   getTable: () => TanStackTable<TData> | null;
   getState: () => DataTableState;
   snapshot: () => DataTableState;
   restore: (state: Partial<DataTableState>) => void;
-  resetColumnLayout: () => void;
-  resetState: () => void;
+  resetColumnLayout: (options?: DataTableResetOptions) => void;
+  resetState: (options?: DataTableResetOptions) => void;
+  clearPersistedState: () => boolean;
+  getSavedViews: () => Array<DataTableSavedView>;
+  createSavedView: (name: string) => DataTableSavedView | undefined;
+  applySavedView: (id: string) => boolean;
+  renameSavedView: (
+    id: string,
+    name: string,
+  ) => DataTableSavedView | undefined;
+  deleteSavedView: (id: string) => boolean;
+  clearSavedViews: () => boolean;
   focus: () => void;
   scrollToRow: (rowId: string) => boolean;
   scrollToColumn: (columnId: string) => boolean;
@@ -480,6 +538,7 @@ export type DataTableProps<TData> = {
   enableDensityToggle?: boolean;
   columnPrefsKey?: string;
   persistence?: DataTablePersistenceConfig;
+  savedViews?: DataTableSavedViewsConfig;
   initialState?: DataTableInitialState;
   state?: Partial<DataTableState>;
   onStateChange?: (updater: Updater<DataTableState>) => void;

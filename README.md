@@ -329,6 +329,47 @@ const snapshot = apiRef.current?.snapshot();
 Legacy controlled props remain supported and take precedence over the matching
 unified slice during 3.x. A development warning identifies conflicting inputs.
 
+Enhanced URL state remains opt-in and isolated from the base bundle:
+
+```tsx
+const url = useDataTableUrlState({
+  keyPrefix: "people-",
+  version: 2,
+  enabled: [
+    "columnFilters",
+    "columnVisibility",
+    "density",
+    "columnOrder",
+    "columnPinning",
+  ],
+  migrate: (payload, targetVersion) =>
+    migratePeopleUrlState(payload, targetVersion),
+});
+```
+
+Grouping and row selection are also available as URL slices, but selection is
+never written unless `"rowSelection"` is explicitly enabled.
+
+Named saved views use versioned storage without imposing toolbar UI:
+
+```tsx
+<DataTable
+  apiRef={apiRef}
+  columns={columns}
+  data={rows}
+  getRowId={(row) => row.id}
+  savedViews={{
+    key: "people-table",
+    version: 1,
+    onChange: (views) => setSavedViews(views),
+  }}
+/>;
+
+const saved = apiRef.current?.createSavedView("My view");
+apiRef.current?.applySavedView(saved?.id ?? "");
+apiRef.current?.resetState({ clearPersistence: true });
+```
+
 ### Column filters
 
 Declare toolbar filters on column meta:

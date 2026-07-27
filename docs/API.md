@@ -119,6 +119,10 @@ The Gridcn consumers must also import a host-managed The Gridcn theme or token s
 - `DataTable`
 - `data-table-pro/url-state` exports `useDataTableUrlState`
 
+The URL-state subpath also exports the
+`UseDataTableUrlStateOptions`, `DataTableUrlStateSlice`,
+`DataTableUrlEnhancedState`, and `DataTableUrlStateMigrationPayload` types.
+
 ## Type Exports
 
 These are exported from the adapter entrypoints and from `data-table-pro/types`.
@@ -158,6 +162,12 @@ These are exported from the adapter entrypoints and from `data-table-pro/types`.
 - `DataTablePersistencePayload`
 - `DataTablePersistenceSlice`
 - `DataTablePersistenceStorage`
+- `DataTableResetOptions`
+- `DataTableSavedView`
+- `DataTableSavedViewSlice`
+- `DataTableSavedViewsChangeOperation`
+- `DataTableSavedViewsConfig`
+- `DataTableSavedViewsPayload`
 - `DataTableProps`
 - `DataTableRowAction`
 - `DataTableRowLoadingState`
@@ -201,12 +211,93 @@ Legacy controlled props remain supported. If a legacy prop and its matching
 
 - `getTable()` for the TanStack table instance
 - `getState()` and `snapshot()` for cloned wrapper state
-- `restore(partialState)`, `resetColumnLayout()`, and `resetState()`
+- `restore(partialState)`, `resetColumnLayout(options?)`, and
+  `resetState(options?)`
+- `clearPersistedState()`
+- `getSavedViews()`, `createSavedView(name)`, `applySavedView(id)`,
+  `renameSavedView(id, name)`, `deleteSavedView(id)`, and
+  `clearSavedViews()`
 - `focus()`, `scrollToRow(rowId)`, and `scrollToColumn(columnId)`
 - `exportCsv(options?)`
 
 Scroll commands return `false` when the requested rendered element is not
 currently available, including a virtual row outside the active window.
+
+`resetColumnLayout({ clearPersistence: true })` and
+`resetState({ clearPersistence: true })` remove the previous persisted
+preference payload before restoring initial/default state. If that transition
+changes a persisted slice, the new defaults become the next persisted value.
+`clearPersistedState()` removes the payload without changing table state.
+
+### URL state
+
+`useDataTableUrlState` remains isolated in `data-table-pro/url-state`, so
+applications that do not use URL synchronization do not need the optional
+`nuqs` peer:
+
+```tsx
+const url = useDataTableUrlState({
+  keyPrefix: "people-",
+  version: 2,
+  enabled: [
+    "columnFilters",
+    "columnVisibility",
+    "density",
+    "columnOrder",
+    "columnPinning",
+  ],
+  migrate: ({ version, state }, targetVersion) =>
+    migratePeopleUrlState(version, state, targetVersion),
+});
+
+<DataTable
+  toolbarQueryValue={url.toolbarQueryValue}
+  onToolbarQueryValueChange={url.setToolbarQueryValue}
+  pageIndex={url.pageIndex}
+  pageSize={url.pageSize}
+  onPageIndexChange={url.setPageIndex}
+  onPageSizeChange={url.setPageSize}
+  sorting={url.sorting}
+  onSortingChange={url.setSorting}
+  columnFilters={url.columnFilters}
+  onColumnFiltersChange={url.setColumnFilters}
+  columnVisibility={url.columnVisibility}
+  onColumnVisibilityChange={url.setColumnVisibility}
+  density={url.density}
+  onDensityChange={url.setDensity}
+  columnOrder={url.columnOrder}
+  onColumnOrderChange={url.setColumnOrder}
+  columnPinning={url.columnPinning}
+  onColumnPinningChange={url.setColumnPinning}
+/>;
+```
+
+Query, pagination, sorting, view mode, and hidden-row visibility retain their
+existing URL keys and behavior. Enhanced slices are disabled by default and
+use these keys:
+
+| Slice | Query-key suffix |
+| --- | --- |
+| schema version | `v` |
+| `columnFilters` | `filters` |
+| `columnVisibility` | `visibility` |
+| `density` | `density` |
+| `columnOrder` | `columns` |
+| `columnPinning` | `pinning` |
+| `grouping` | `grouping` |
+| `rowSelection` | `selection` |
+
+Every suffix is prefixed by `keyPrefix`. Enhanced parameters whose schema
+version does not match are discarded unless `migrate(payload, targetVersion)`
+returns validated replacement state. Invalid JSON or invalid slice fields are
+also ignored. `rowSelection` is never read or written without the explicit
+`"rowSelection"` opt-in.
+
+The hook returns direct values and TanStack-compatible setters for every
+enhanced slice, a `tableState` object for slices currently supported by
+`DataTableState`, and `clearEnhancedState()`. Grouping is returned separately
+for server-owned state and forward compatibility; first-class table grouping
+is scheduled for Phase 2.
 
 ### Basic content props
 
@@ -427,6 +518,7 @@ Column meta can customize editing with `renderEditCell`, `parseEditValue`, and `
 | `enableColumnPinning` | `boolean` | `false` | Adds pin/unpin controls to the table options menu. |
 | `columnPrefsKey` | `string` | `undefined` | Compatibility shorthand for versioned persistence of uncontrolled visibility, sizing, order, pinning, and density in `localStorage`. |
 | `persistence` | `DataTablePersistenceConfig` | `undefined` | Versioned persistence configuration. Takes precedence over `columnPrefsKey` and supports selected slices, custom storage/serialization, migration, debouncing, and error reporting. |
+| `savedViews` | `DataTableSavedViewsConfig` | `undefined` | Versioned storage and lifecycle callbacks for named state snapshots managed through `apiRef`. |
 | `enableColumnResizing` | `boolean` | `false` | Enables resize handles on resizable columns. |
 | `columnResizeMode` | `"onChange" \| "onEnd"` | `"onChange"` | TanStack Table resize mode. |
 | `columnSizing` | `ColumnSizingState` | internal state | Controlled column sizing state. |
@@ -451,7 +543,21 @@ pre-versioned data, validated, and upgraded on the next write.
 
 Persistence errors are best-effort and do not break rendering.
 `onError({ error, operation })` reports `"read"`, `"write"`, `"serialize"`,
-`"deserialize"`, or `"migrate"`.
+`"deserialize"`, `"migrate"`, or `"remove"`.
+
+Named saved views use a separate
+`data-table-pro:saved-views:${savedViews.key}` payload. By default a saved view
+captures sorting, filtering, column visibility/order/pinning/sizing, density,
+view mode, hidden-row visibility, and the global query. Pagination, row
+selection, and expansion are intentionally transient unless included in
+`savedViews.slices`.
+
+`savedViews` supports `version`, `slices`, `storage`, `serialize`,
+`deserialize`, `migrate`, and `onError` equivalents. `onChange(views,
+operation)` receives `"create"`, `"rename"`, `"delete"`, or `"clear"`;
+`onApply(view)` runs after the selected snapshot is restored. No saved-view UI
+is imposed, so host projects can present these commands in their own toolbar,
+menu, or command palette.
 
 ### Export, density, labels, and summary props
 

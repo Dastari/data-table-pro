@@ -20,6 +20,7 @@ import {
   DataTable,
   type DataTableApi,
   type DataTableColumnDef,
+  type DataTablePersistenceStorage,
   type DataTableState,
 } from "../../index";
 
@@ -52,6 +53,17 @@ class IntersectionObserverMock {
   takeRecords() {
     return [];
   }
+}
+
+class MemoryStorage implements DataTablePersistenceStorage {
+  values = new Map<string, string>();
+  getItem = vi.fn((key: string) => this.values.get(key) ?? null);
+  setItem = vi.fn((key: string, value: string) => {
+    this.values.set(key, value);
+  });
+  removeItem = vi.fn((key: string) => {
+    this.values.delete(key);
+  });
 }
 
 beforeAll(() => {
@@ -263,6 +275,133 @@ describe("DataTable unified state API", () => {
       apiRef.current?.resetState();
     });
     expect(apiRef.current?.getState().sorting).toEqual([]);
+  });
+
+  it("creates, applies, renames, deletes, and clears validated saved views", () => {
+    const apiRef = React.createRef<DataTableApi<TestRow>>();
+    const storage = new MemoryStorage();
+    const onChange = vi.fn();
+    const onApply = vi.fn();
+    render(
+      <DataTable
+        apiRef={apiRef}
+        columns={columns}
+        data={rows}
+        getRowId={(row) => row.id}
+        savedViews={{
+          key: "people",
+          version: 2,
+          storage,
+          onChange,
+          onApply,
+        }}
+      />,
+    );
+
+    act(() => {
+      apiRef.current?.restore({
+        sorting: [{ id: "name", desc: true }],
+        columnVisibility: { name: false },
+        pagination: { pageIndex: 1, pageSize: 1 },
+        rowSelection: { "1": true },
+      });
+    });
+    let savedView: ReturnType<
+      NonNullable<typeof apiRef.current>["createSavedView"]
+    >;
+    act(() => {
+      savedView = apiRef.current?.createSavedView("  My view  ");
+    });
+
+    expect(savedView?.name).toBe("My view");
+    expect(savedView?.state.sorting).toEqual([{ id: "name", desc: true }]);
+    expect(savedView?.state.columnVisibility).toEqual({ name: false });
+    expect(savedView?.state.pagination).toBeUndefined();
+    expect(savedView?.state.rowSelection).toBeUndefined();
+    expect(onChange).toHaveBeenLastCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({ id: savedView?.id, name: "My view" }),
+      ]),
+      "create",
+    );
+
+    act(() => {
+      apiRef.current?.restore({
+        sorting: [],
+        columnVisibility: {},
+      });
+    });
+    act(() => {
+      expect(apiRef.current?.applySavedView(savedView?.id ?? "")).toBe(true);
+    });
+    expect(apiRef.current?.getState().sorting).toEqual([
+      { id: "name", desc: true },
+    ]);
+    expect(onApply).toHaveBeenCalledWith(
+      expect.objectContaining({ id: savedView?.id }),
+    );
+
+    let renamedView: typeof savedView;
+    act(() => {
+      renamedView = apiRef.current?.renameSavedView(
+        savedView?.id ?? "",
+        "Renamed",
+      );
+    });
+    expect(renamedView?.name).toBe("Renamed");
+    expect(apiRef.current?.getSavedViews()).toHaveLength(1);
+
+    act(() => {
+      expect(apiRef.current?.deleteSavedView(savedView?.id ?? "")).toBe(true);
+    });
+    expect(apiRef.current?.getSavedViews()).toEqual([]);
+
+    act(() => {
+      apiRef.current?.createSavedView("One");
+      apiRef.current?.createSavedView("Two");
+    });
+    expect(apiRef.current?.getSavedViews()).toHaveLength(2);
+    act(() => {
+      expect(apiRef.current?.clearSavedViews()).toBe(true);
+    });
+    expect(apiRef.current?.getSavedViews()).toEqual([]);
+  });
+
+  it("clears persisted preferences directly and during reset commands", () => {
+    const apiRef = React.createRef<DataTableApi<TestRow>>();
+    const storage = new MemoryStorage();
+    render(
+      <DataTable
+        apiRef={apiRef}
+        columns={columns}
+        data={rows}
+        getRowId={(row) => row.id}
+        persistence={{
+          key: "people",
+          storage,
+          debounceMs: 0,
+        }}
+      />,
+    );
+    const key = "data-table-pro:column-prefs:people";
+    expect(storage.values.has(key)).toBe(true);
+
+    act(() => {
+      expect(apiRef.current?.clearPersistedState()).toBe(true);
+    });
+    expect(storage.values.has(key)).toBe(false);
+
+    act(() => {
+      apiRef.current?.restore({ density: "compact" });
+    });
+    expect(storage.values.has(key)).toBe(true);
+    act(() => {
+      apiRef.current?.resetState({ clearPersistence: true });
+    });
+    const persisted = JSON.parse(storage.values.get(key) ?? "") as {
+      state: { density?: string };
+    };
+    expect(persisted.state.density).toBe("comfortable");
   });
 });
 
