@@ -147,8 +147,8 @@ Delivered on `main` after 3.0.9:
   for inspection, state commands, focus, scrolling, and export.
 - Transactional controlled-state updater handling for consecutive same-tick
   transitions.
-- SSR coverage for all adapters plus CI gates for demo types, stale generated
-  distribution output, and packed-package contents.
+- CI gates for demo types, stale generated distribution output, and
+  packed-package contents.
 - Versioned, opt-in URL state for filters, visibility, density, column order,
   pinning, grouping, and selection, including mismatch migration or safe
   invalidation.
@@ -157,6 +157,14 @@ Delivered on `main` after 3.0.9:
   callbacks.
 - Explicit persisted-state clearing plus reset commands that can clear stored
   preferences before restoring initial defaults.
+- Real-browser layout and screenshot coverage for all three adapters in light
+  and dark themes, with scoped axe audits and checkbox-clearance assertions.
+- SSR render and hydration coverage for every adapter.
+- Packed-tarball consumer validation across every adapter and supported
+  subpath, enforced V8 coverage thresholds, and a reviewable public API/type
+  snapshot in CI.
+- Native row semantics for clickable table rows while retaining focus and
+  Enter/Space activation.
 
 State/API:
 
@@ -185,11 +193,14 @@ Quality:
 
 - Split the monolithic test suite into adapter, state, filtering, pagination,
   selection, editing, virtualization, export, and accessibility suites.
+  Remaining.
 - Add browser layout/visual tests for all three adapters and light/dark themes.
+  Delivered.
 - Add axe checks, SSR render/hydration checks, and a packed-package consumer
-  fixture.
+  fixture. Delivered.
 - Add `build && git diff --exit-code -- dist`, coverage thresholds, and public
-  type/API snapshots to CI.
+  type/API snapshots to CI. Delivered; a numeric bundle-size budget remains
+  part of the performance/code-splitting slice.
 
 ### Phase 2: TanStack feature parity (3.2)
 

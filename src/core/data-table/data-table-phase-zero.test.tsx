@@ -426,7 +426,7 @@ describe("DataTable phase-zero contracts", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /Ada/ }));
+    fireEvent.click(screen.getByRole("row", { name: /Ada/ }));
     fireEvent.pointerDown(screen.getByRole("button", { name: "Row actions" }));
     fireEvent.click(screen.getByText("Delete"));
 

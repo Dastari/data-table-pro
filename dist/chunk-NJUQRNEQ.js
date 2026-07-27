@@ -2412,7 +2412,6 @@ function DataTableBodyRowInner({
         draggable: isInitialLoadingRow ? false : isDraggable,
         "data-loading": loadingState?.isLoading || void 0,
         "data-state": isInitialLoadingRow ? void 0 : isSelected ? "selected" : void 0,
-        role: onRowClick && !isInitialLoadingRow ? "button" : void 0,
         tabIndex: onRowClick && !isInitialLoadingRow ? 0 : void 0,
         className: cn(
           !isInitialLoadingRow && getRowClassName?.(originalRow),
@@ -7309,5 +7308,5 @@ function scrollDataTableElementIntoView(container, kind, value) {
 }
 
 export { Button, Card, CardContent, CardDescription, CardFooter, CardHeader, Checkbox, DataTableBodyRow, DataTableCardPanel, DataTableFooterSection, DataTableHeaderCell, DataTableTablePanel, DataTableToolbarSection, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuSubContent, DropdownMenuSubTrigger, Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle, Input, InputGroup, InputGroupAddon, InputGroupInput, Pagination, PaginationFirst, PaginationLast, PaginationLink, PaginationNext, PaginationPrevious, ScrollArea, ScrollBar, SelectContent, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, Separator, Skeleton, Table, TableBody, TableCaption, TableCell, TableFooter, TableHead, TableHeader, TableRow, TooltipContent, cn, createDataTable, primitiveUiKit, useColumnLayout, useControllableState, useDataTableColumns, useDataTableInstance, useDataTableState, useRowEditing };
-//# sourceMappingURL=chunk-SQ5AR7HO.js.map
-//# sourceMappingURL=chunk-SQ5AR7HO.js.map
+//# sourceMappingURL=chunk-NJUQRNEQ.js.map
+//# sourceMappingURL=chunk-NJUQRNEQ.js.map

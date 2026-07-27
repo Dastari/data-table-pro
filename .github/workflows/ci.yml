@@ -26,6 +26,9 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
       - name: Lint
         run: pnpm lint
 
@@ -35,8 +38,8 @@ jobs:
       - name: Demo typecheck
         run: pnpm demo:typecheck
 
-      - name: Test
-        run: pnpm test
+      - name: Unit tests with coverage
+        run: pnpm test:coverage
 
       - name: Build
         run: pnpm build
@@ -44,8 +47,17 @@ jobs:
       - name: Verify generated distribution
         run: git diff --exit-code -- dist
 
+      - name: Verify public API snapshot
+        run: pnpm api:check
+
       - name: Verify package contents
         run: npm pack --dry-run
 
+      - name: Verify packed consumer
+        run: pnpm test:consumer
+
       - name: Demo build
         run: pnpm demo:build
+
+      - name: Browser accessibility and layout tests
+        run: pnpm test:browser

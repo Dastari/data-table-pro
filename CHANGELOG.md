@@ -36,12 +36,32 @@
 - Kept row selection out of URLs unless its slice is explicitly enabled and
   kept transient pagination, selection, and expansion out of saved views
   unless consumers opt into those slices.
+- Preserved native table-row semantics for clickable rows instead of assigning
+  `role="button"` to rows that can contain checkboxes, links, or action
+  controls. Enter and Space activation remains supported on the focusable row.
+- Corrected low-contrast demo status and priority badges across light and dark
+  adapter themes.
 
 ### Quality
 
-- Added SSR rendering coverage for all three adapters.
+- Added Playwright layout and screenshot coverage for shadcn, HeroUI, and The
+  Gridcn in light and dark themes, including checkbox-clearance assertions.
+- Added scoped axe accessibility audits for every adapter/theme browser case.
+- Added SSR rendering and hydration coverage for all three adapters.
+- Added a packed-tarball consumer fixture that typechecks and builds imports
+  from every adapter plus the URL-state, types, and stylesheet entrypoints.
+- Added enforced V8 coverage thresholds and a reviewable public declaration/API
+  snapshot.
 - Added demo typechecking, generated-`dist` drift detection, and package-content
-  verification to CI.
+  verification to CI. CI now runs the coverage, API, packed-consumer, and
+  browser quality gates as well.
+
+### Compatibility
+
+- No public prop, type, or package entrypoint was removed.
+- Clickable table rows no longer render as `tr[role="button"]`. Consumers that
+  used this undocumented DOM selector should target their own row class from
+  `getRowClassName` or the table row associated with their rendered content.
 
 ## 3.0.9
 

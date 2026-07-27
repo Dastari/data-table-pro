@@ -42,7 +42,7 @@
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
+  --muted-foreground: oklch(0.48 0 0);
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
@@ -54,6 +54,32 @@
   --content1: var(--card);
   --danger: var(--destructive);
   color-scheme: light;
+}
+
+.dark[data-demo-adapter="shadcn"],
+[data-demo-adapter="shadcn"][data-theme="dark"] {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.371 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: var(--card);
+  --ring: oklch(0.556 0 0);
+  --default: var(--secondary);
+  --default-foreground: var(--secondary-foreground);
+  --content1: var(--card);
+  color-scheme: dark;
 }
 
 [data-demo-adapter="heroui"] {
@@ -71,6 +97,10 @@
   --input: var(--field-background, var(--default));
   --ring: var(--focus);
   --content1: var(--surface);
+}
+
+[data-demo-adapter="heroui"][data-theme="light"] {
+  --muted: oklch(0.45 0.014 285.94);
 }
 
 * {
@@ -201,6 +231,36 @@ select {
   color-scheme: dark;
 }
 
+[data-demo-adapter="thegridcn"][data-theme="light"] {
+  --background: oklch(0.965 0.015 205);
+  --foreground: oklch(0.18 0.035 220);
+  --card: oklch(0.99 0.008 205 / 0.94);
+  --card-foreground: var(--foreground);
+  --popover: oklch(0.99 0.008 205);
+  --popover-foreground: var(--foreground);
+  --primary: oklch(0.5 0.13 205);
+  --primary-foreground: oklch(0.99 0.01 205);
+  --secondary: oklch(0.9 0.035 205);
+  --secondary-foreground: var(--foreground);
+  --muted: oklch(0.92 0.025 205);
+  --muted-foreground: oklch(0.43 0.045 210);
+  --accent: oklch(0.52 0.14 195);
+  --accent-foreground: oklch(0.99 0.01 205);
+  --border: oklch(0.55 0.1 205 / 0.45);
+  --input: oklch(0.985 0.01 205);
+  --ring: oklch(0.48 0.14 195);
+  --default: var(--secondary);
+  --default-foreground: var(--foreground);
+  --default-50: oklch(0.96 0.015 205);
+  --default-100: oklch(0.92 0.025 205);
+  --default-200: oklch(0.85 0.04 205);
+  --default-300: oklch(0.75 0.055 205);
+  --default-500: oklch(0.52 0.09 200);
+  --default-700: oklch(0.36 0.08 210);
+  --content1: var(--card);
+  color-scheme: light;
+}
+
 [data-demo-adapter="thegridcn"].demo-shell {
   color: var(--foreground);
   background-color: #020506;
@@ -224,6 +284,24 @@ select {
     auto,
     11rem 11rem,
     14rem 14rem;
+}
+
+[data-demo-adapter="thegridcn"][data-theme="light"].demo-shell {
+  background-color: oklch(0.965 0.015 205);
+  background-image:
+    linear-gradient(180deg, rgba(0, 125, 145, 0.1), transparent 32rem),
+    radial-gradient(circle at 12% 18%, rgba(0, 125, 145, 0.16), transparent 0.08rem),
+    radial-gradient(circle at 72% 24%, rgba(0, 125, 145, 0.12), transparent 0.07rem),
+    repeating-linear-gradient(
+      153deg,
+      rgba(0, 125, 145, 0.12) 0 1px,
+      transparent 1px 5.4rem
+    ),
+    repeating-linear-gradient(
+      27deg,
+      rgba(0, 125, 145, 0.06) 0 1px,
+      transparent 1px 7rem
+    );
 }
 
 [data-demo-adapter="thegridcn"] .demo-panel {

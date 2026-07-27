@@ -672,13 +672,15 @@ for (const suite of suites) {
     it("activates clickable table rows with the keyboard", () => {
       const onRowClick = vi.fn();
       renderTable({ onRowClick });
+      const row = screen.getByText("Ada").closest("tr");
+      if (!row) {
+        throw new Error("Expected a clickable table row");
+      }
 
-      fireEvent.keyDown(screen.getByRole("button", { name: "Ada" }), {
-        key: "Enter",
-      });
-      fireEvent.keyDown(screen.getByRole("button", { name: "Ada" }), {
-        key: " ",
-      });
+      expect(row.getAttribute("role")).toBeNull();
+      expect(row.getAttribute("tabindex")).toBe("0");
+      fireEvent.keyDown(row, { key: "Enter" });
+      fireEvent.keyDown(row, { key: " " });
 
       expect(onRowClick).toHaveBeenCalledTimes(2);
     });

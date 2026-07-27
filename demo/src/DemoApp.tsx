@@ -26,6 +26,7 @@ import type {
 import type { SortingState, VisibilityState } from "@tanstack/react-table";
 
 type AdapterKey = "shadcn" | "heroui" | "thegridcn";
+type ThemeKey = "light" | "dark";
 type DemoDataTable = <TData>(
   props: DataTableProps<TData>,
 ) => React.ReactElement;
@@ -119,6 +120,7 @@ const priorities: Array<Employee["priority"]> = ["low", "medium", "high"];
 
 export function DemoApp() {
   const [adapter, setAdapter] = React.useState<AdapterKey>("shadcn");
+  const [theme, setTheme] = React.useState<ThemeKey>("light");
   const [rows, setRows] = React.useState(() => generateEmployees(96));
   const [searchValue, setSearchValue] = React.useState("");
   const [viewMode, setViewMode] = React.useState<DataTableViewMode>("table");
@@ -147,16 +149,17 @@ export function DemoApp() {
     const root = document.documentElement;
 
     root.dataset.demoAdapter = adapter;
-    root.dataset.theme = adapter === "thegridcn" ? "dark" : "light";
-    root.classList.toggle("dark", adapter === "thegridcn");
+    root.dataset.theme = theme;
+    root.classList.toggle("dark", theme === "dark");
+    root.classList.toggle("light", theme === "light");
     root.classList.toggle("heroui", adapter === "heroui");
 
     return () => {
       delete root.dataset.demoAdapter;
       delete root.dataset.theme;
-      root.classList.remove("dark", "heroui");
+      root.classList.remove("dark", "light", "heroui");
     };
-  }, [adapter]);
+  }, [adapter, theme]);
 
   const columns = React.useMemo<Array<DataTableColumnDef<Employee>>>(() => {
     return [
@@ -335,9 +338,9 @@ export function DemoApp() {
 
   return (
     <main
-      className={demoShellClass(adapter)}
+      className={demoShellClass(adapter, theme)}
       data-demo-adapter={adapter}
-      data-theme={adapter === "thegridcn" ? "dark" : "light"}
+      data-theme={theme}
     >
       <div className="mx-auto flex min-h-0 w-full max-w-[1500px] flex-1 flex-col gap-4">
         <header className="demo-panel shrink-0 flex flex-col gap-3 rounded-xl border border-border bg-card px-4 py-3 shadow-sm md:flex-row md:items-center md:justify-between">
@@ -353,9 +356,30 @@ export function DemoApp() {
                 key={key}
                 type="button"
                 className={buttonClass(adapter === key)}
-                onClick={() => setAdapter(key as AdapterKey)}
+                aria-pressed={adapter === key}
+                onClick={() => {
+                  const nextAdapter = key as AdapterKey;
+                  setAdapter(nextAdapter);
+                  setTheme(nextAdapter === "thegridcn" ? "dark" : "light");
+                }}
               >
                 {value.label}
+              </button>
+            ))}
+            <span
+              aria-hidden="true"
+              className="mx-1 h-6 w-px bg-border"
+            />
+            {(["light", "dark"] as const).map((value) => (
+              <button
+                key={value}
+                type="button"
+                className={buttonClass(theme === value)}
+                aria-label={`${startCase(value)} theme`}
+                aria-pressed={theme === value}
+                onClick={() => setTheme(value)}
+              >
+                {startCase(value)}
               </button>
             ))}
           </div>
@@ -801,12 +825,12 @@ function Metric({ label, value }: { label: string; value: string }) {
 function StatusBadge({ status }: { status: Employee["status"] }) {
   const className =
     status === "active"
-      ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-700"
+      ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300"
       : status === "review"
-        ? "border-amber-500/25 bg-amber-500/10 text-amber-700"
+        ? "border-amber-500/25 bg-amber-500/10 text-amber-800 dark:text-amber-300"
         : status === "paused"
-          ? "border-sky-500/25 bg-sky-500/10 text-sky-700"
-          : "border-slate-500/25 bg-slate-500/10 text-slate-600";
+          ? "border-sky-500/25 bg-sky-500/10 text-sky-800 dark:text-sky-300"
+          : "border-slate-500/25 bg-slate-500/10 text-slate-700 dark:text-slate-300";
 
   return (
     <span
@@ -820,10 +844,10 @@ function StatusBadge({ status }: { status: Employee["status"] }) {
 function PriorityBadge({ priority }: { priority: Employee["priority"] }) {
   const className =
     priority === "high"
-      ? "bg-rose-500/10 text-rose-700"
+      ? "bg-rose-500/10 text-rose-950 dark:text-rose-300"
       : priority === "medium"
-        ? "bg-amber-500/10 text-amber-700"
-        : "bg-emerald-500/10 text-emerald-700";
+        ? "bg-amber-500/10 text-amber-800 dark:text-amber-300"
+        : "bg-emerald-500/10 text-emerald-800 dark:text-emerald-300";
 
   return (
     <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${className}`}>
@@ -841,10 +865,11 @@ function buttonClass(active: boolean) {
   ].join(" ");
 }
 
-function demoShellClass(adapter: AdapterKey) {
+function demoShellClass(adapter: AdapterKey, theme: ThemeKey) {
   return [
     "demo-shell flex h-dvh min-h-0 p-4 md:p-6",
-    adapter === "thegridcn" ? "dark font-mono" : undefined,
+    theme,
+    adapter === "thegridcn" ? "font-mono" : undefined,
     adapter === "heroui" ? "heroui" : undefined,
   ]
     .filter(Boolean)

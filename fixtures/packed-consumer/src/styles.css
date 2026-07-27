@@ -1,0 +1,32 @@
+@import "@heroui/styles/themes/default";
+
+:root {
+  --background: white;
+  --foreground: #18181b;
+  --card: white;
+  --card-foreground: #18181b;
+  --popover: white;
+  --popover-foreground: #18181b;
+  --primary: #18181b;
+  --primary-foreground: white;
+  --secondary: #f4f4f5;
+  --secondary-foreground: #18181b;
+  --muted: #f4f4f5;
+  --muted-foreground: #71717a;
+  --accent: #f4f4f5;
+  --accent-foreground: #18181b;
+  --destructive: #dc2626;
+  --border: #e4e4e7;
+  --input: white;
+  --ring: #a1a1aa;
+}
+
+body {
+  margin: 0;
+}
+
+main {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+}

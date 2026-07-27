@@ -1,5 +1,18 @@
 # Migration Guide
 
+## Unreleased clickable-row semantic correction
+
+Clickable table rows now preserve their native row semantics instead of
+rendering `role="button"` on a `<tr>` that may contain checkboxes, links, and
+row-action buttons. The row remains focusable and continues to invoke
+`onRowClick` with pointer input, Enter, or Space.
+
+This does not remove or change a public TypeScript API. It is a DOM-semantic
+compatibility change: applications or tests that queried
+`tr[role="button"]` must stop relying on that undocumented selector. Prefer a
+class returned by `getRowClassName`, the row containing known cell content, or
+an application-owned wrapper/test identifier.
+
 ## 3.0.9 behavior corrections
 
 Version 3.0.9 is source-compatible with 3.0.8: no prop, type, or entrypoint was

@@ -1,0 +1,121 @@
+import AxeBuilder from "@axe-core/playwright";
+import { expect, test } from "@playwright/test";
+
+const adapters = [
+  { key: "shadcn", label: "shadcn" },
+  { key: "heroui", label: "HeroUI" },
+  { key: "thegridcn", label: "The Gridcn" },
+] as const;
+const themes = ["light", "dark"] as const;
+
+for (const adapter of adapters) {
+  for (const theme of themes) {
+    test(`${adapter.label} renders an accessible ${theme} layout`, async ({
+      page,
+    }) => {
+      await page.goto("/");
+      await page
+        .getByRole("button", { name: adapter.label, exact: true })
+        .click();
+      await page
+        .getByRole("button", {
+          name: `${theme === "light" ? "Light" : "Dark"} theme`,
+        })
+        .click();
+      await page
+        .getByRole("heading", { name: "Content-sized cards" })
+        .evaluate((heading) => {
+          const section = heading.closest("section");
+          if (section) {
+            section.hidden = true;
+          }
+        });
+
+      const shell = page.locator("main.demo-shell");
+      const table = page
+        .locator('[data-dtp-slot="data-table-root"]')
+        .first();
+      await expect(shell).toHaveAttribute("data-demo-adapter", adapter.key);
+      await expect(shell).toHaveAttribute("data-theme", theme);
+      await expect(table).toBeVisible();
+      await expect(
+        page.getByRole("heading", {
+          name: `${adapter.label} employees`,
+        }),
+      ).toBeVisible();
+
+      const layout = await table.evaluate((element) => {
+        const root = element.getBoundingClientRect();
+        const toolbar = element
+          .querySelector('[data-dtp-slot="data-table-toolbar"]')
+          ?.getBoundingClientRect();
+        const content = element
+          .querySelector('[data-dtp-slot="data-table-content"]')
+          ?.getBoundingClientRect();
+        const footer = element
+          .querySelector('[data-dtp-slot="data-table-footer"]')
+          ?.getBoundingClientRect();
+        const checkbox = element
+          .querySelector<HTMLElement>(
+            'thead [role="checkbox"], thead input[type="checkbox"]',
+          )
+          ?.getBoundingClientRect();
+        const checkboxCell = element
+          .querySelector('thead [role="checkbox"], thead input[type="checkbox"]')
+          ?.closest("th")
+          ?.getBoundingClientRect();
+
+        return {
+          root: {
+            width: root.width,
+            scrollWidth: element.scrollWidth,
+            clientWidth: element.clientWidth,
+          },
+          toolbarWidth: toolbar?.width,
+          contentWidth: content?.width,
+          footerWidth: footer?.width,
+          checkboxClearance:
+            checkbox && checkboxCell
+              ? {
+                  top: checkbox.top - checkboxCell.top,
+                  bottom: checkboxCell.bottom - checkbox.bottom,
+                }
+              : undefined,
+        };
+      });
+
+      expect(layout.root.width).toBeGreaterThan(900);
+      expect(layout.root.scrollWidth).toBeLessThanOrEqual(
+        layout.root.clientWidth + 1,
+      );
+      expect(layout.toolbarWidth).toBeCloseTo(layout.root.width, 0);
+      expect(layout.contentWidth).toBeCloseTo(layout.root.width, 0);
+      expect(layout.footerWidth).toBeCloseTo(layout.root.width, 0);
+      expect(layout.checkboxClearance?.top).toBeGreaterThanOrEqual(2);
+      expect(layout.checkboxClearance?.bottom).toBeGreaterThanOrEqual(2);
+
+      await table.evaluate((element) => {
+        element.setAttribute("data-browser-test-root", "true");
+      });
+      const accessibility = await new AxeBuilder({ page })
+        .include('[data-browser-test-root="true"]')
+        .analyze();
+      expect(
+        accessibility.violations.map((violation) => ({
+          id: violation.id,
+          impact: violation.impact,
+          targets: violation.nodes.map((node) => node.target),
+        })),
+      ).toEqual([]);
+
+      await expect(table).toHaveScreenshot(
+        `${adapter.key}-${theme}-table.png`,
+        {
+          animations: "disabled",
+          caret: "hide",
+          scale: "css",
+        },
+      );
+    });
+  }
+}

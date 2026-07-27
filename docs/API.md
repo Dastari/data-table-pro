@@ -450,6 +450,13 @@ Removed in `2.0.1`:
 | `onActionError` | `(context: DataTableActionErrorContext<TData>) => void` | `undefined` | Receives rejected or thrown built-in action callbacks with their source, optional action key, and optional row. |
 | `getRowClassName` | `(row: TData) => string \| undefined` | `undefined` | Row-level styling hook. |
 
+When `onRowClick` is present, table rows are focusable and activate on Enter or
+Space. They retain native `<tr>`/row semantics rather than using
+`role="button"`, because a row can also contain checkboxes, links, and action
+buttons. Activation originating from those interactive descendants does not
+also invoke the row callback. Card mode uses its corresponding card
+interaction semantics.
+
 ### Expansion, view, and card props
 
 | Prop | Type | Default | Description |

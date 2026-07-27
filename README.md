@@ -397,7 +397,37 @@ Run the bundled demo workbench:
 pnpm demo
 ```
 
-The demo uses generated employee data and can switch between the shadcn, HeroUI, and The Gridcn adapters. It exercises selection, sorting, local automatic pagination, optional table/card virtualization, column resizing, search, custom filter rows inside the table toolbar, custom toolbar controls, row actions, selection actions, inline editing, card view, hidden rows, infinite scroll, file upload hooks, drag hooks, and loading states.
+The demo uses generated employee data and can switch between the shadcn,
+HeroUI, and The Gridcn adapters in light or dark themes. It exercises
+selection, sorting, local automatic pagination, optional table/card
+virtualization, column resizing, search, custom filter rows inside the table
+toolbar, custom toolbar controls, row actions, selection actions, inline
+editing, card view, hidden rows, infinite scroll, file upload hooks, drag
+hooks, and loading states.
+
+## Quality Gates
+
+Run the same focused checks used by CI:
+
+```bash
+pnpm lint
+pnpm typecheck
+pnpm demo:typecheck
+pnpm test:coverage
+pnpm build
+pnpm api:check
+pnpm test:consumer
+pnpm demo:build
+pnpm test:browser
+```
+
+`test:browser` covers shadcn, HeroUI, and The Gridcn in light and dark themes
+with layout assertions, axe audits, and screenshot baselines.
+`test:consumer` packs the repository and builds a clean consumer fixture
+against the resulting tarball. When a reviewed public declaration change is
+intentional, regenerate `api-snapshots/public-api.md` with
+`pnpm api:update`. Install the browser once with
+`pnpm exec playwright install chromium` before running browser tests locally.
 
 Toolbar query note:
 

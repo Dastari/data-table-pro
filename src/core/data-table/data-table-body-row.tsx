@@ -79,7 +79,6 @@ function DataTableBodyRowInner<TData>({
         data-state={
           isInitialLoadingRow ? undefined : isSelected ? "selected" : undefined
         }
-        role={onRowClick && !isInitialLoadingRow ? "button" : undefined}
         tabIndex={onRowClick && !isInitialLoadingRow ? 0 : undefined}
         className={cn(
           !isInitialLoadingRow && getRowClassName?.(originalRow),
