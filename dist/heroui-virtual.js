@@ -1,2 +1,2 @@
-import {a as a$2}from'./chunk-GTOBHZ7L.js';import {a as a$1}from'./chunk-2YE4EBJS.js';import'./chunk-EAV5MZCW.js';import'./chunk-Y5JNRFE4.js';import'./chunk-2V6RVOWX.js';import'./chunk-6U7JV62A.js';import'./chunk-ACKI7LST.js';import'./chunk-HOUWU4KF.js';import'./chunk-ZF4EP4WP.js';var a=a$1(a$2);export{a as DataTable};//# sourceMappingURL=heroui-virtual.js.map
+import {a as a$2}from'./chunk-GTOBHZ7L.js';import {a as a$1}from'./chunk-RJOEF7NA.js';import'./chunk-EAV5MZCW.js';import'./chunk-Y5JNRFE4.js';import'./chunk-2V6RVOWX.js';import'./chunk-3CYYXB7K.js';import'./chunk-ACKI7LST.js';import'./chunk-HOUWU4KF.js';import'./chunk-ZF4EP4WP.js';var a=a$1(a$2);export{a as DataTable};//# sourceMappingURL=heroui-virtual.js.map
 //# sourceMappingURL=heroui-virtual.js.map

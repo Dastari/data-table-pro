@@ -4,6 +4,18 @@
 
 No changes yet.
 
+## 4.1.0 - 2026-07-29
+
+### Fixes
+
+- Restored far-right alignment for the toolbar's options, view, selection, and
+  trailing action controls at desktop container widths.
+
+### Validation
+
+- Real-browser layout coverage now asserts that the toolbar's end controls
+  remain aligned to the right edge across every adapter and theme.
+
 ## 4.0.0 - 2026-07-27
 
 Version 4.0.0 is a compatibility-first major release. It packages the

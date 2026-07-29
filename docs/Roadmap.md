@@ -16,7 +16,7 @@ Audit baseline:
 
 Current implementation baseline:
 
-- package version: 4.0.0
+- package version: 4.1.0
 - React/React DOM peers: 19.2.8
 - TanStack Table: 8.21.3
 - TanStack Virtual: 3.14.8

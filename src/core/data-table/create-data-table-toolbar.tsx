@@ -316,9 +316,12 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
               </div>
             ) : null}
 
-            <div className="block grow @md/data-table:hidden" />
+            <div className="grow" aria-hidden="true" />
 
-            <div className="flex shrink-0 items-center gap-2">
+            <div
+              data-dtp-slot="data-table-toolbar-end-controls"
+              className="flex shrink-0 items-center gap-2"
+            >
               {selectedRows.length ? (
                 <div
                   className={`hidden text-sm @md/data-table:block ${uiClassNames.mutedText ?? "opacity-70"}`}

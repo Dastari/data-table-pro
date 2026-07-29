@@ -49,6 +49,12 @@ for (const adapter of adapters) {
         const toolbar = element
           .querySelector('[data-dtp-slot="data-table-toolbar"]')
           ?.getBoundingClientRect();
+        const toolbarControls = element
+          .querySelector('[data-dtp-slot="data-table-toolbar-controls"]')
+          ?.getBoundingClientRect();
+        const toolbarEndControls = element
+          .querySelector('[data-dtp-slot="data-table-toolbar-end-controls"]')
+          ?.getBoundingClientRect();
         const content = element
           .querySelector('[data-dtp-slot="data-table-content"]')
           ?.getBoundingClientRect();
@@ -72,6 +78,10 @@ for (const adapter of adapters) {
             clientWidth: element.clientWidth,
           },
           toolbarWidth: toolbar?.width,
+          toolbarEndClearance:
+            toolbarControls && toolbarEndControls
+              ? toolbarControls.right - toolbarEndControls.right
+              : undefined,
           contentWidth: content?.width,
           footerWidth: footer?.width,
           checkboxClearance:
@@ -89,6 +99,8 @@ for (const adapter of adapters) {
         layout.root.clientWidth + 1,
       );
       expect(layout.toolbarWidth).toBeCloseTo(layout.root.width, 0);
+      expect(layout.toolbarEndClearance).toBeGreaterThanOrEqual(0);
+      expect(layout.toolbarEndClearance).toBeLessThanOrEqual(5);
       expect(layout.contentWidth).toBeCloseTo(layout.root.width, 0);
       expect(layout.footerWidth).toBeCloseTo(layout.root.width, 0);
       expect(layout.checkboxClearance?.top).toBeGreaterThanOrEqual(2);
