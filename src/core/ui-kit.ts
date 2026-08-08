@@ -12,6 +12,7 @@ export type DataTableUiClassNames = {
   cardUnselected?: string;
   cardViewport?: string;
   cellBorder?: string;
+  columnGroupHeader?: string;
   dragActive?: string;
   emptyState?: string;
   footer?: string;

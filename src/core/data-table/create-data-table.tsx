@@ -34,6 +34,7 @@ import { useDataTableScrollViewport } from "./use-data-table-scroll-viewport";
 import {
   exportDataTableCsv,
   getColumnId,
+  getDataTableLeafColumns,
   getInitialColumnPinning,
 } from "./data-table-utils";
 import { useDataTableState } from "./use-data-table-state";
@@ -599,7 +600,7 @@ export function createDataTableWithPanels(
       columnLayout;
     const explicitCustomCellColumnIds = React.useMemo(() => {
       return new Set(
-        columns.flatMap((column, index) => {
+        getDataTableLeafColumns(columns).flatMap(({ column, index }) => {
           return Object.prototype.hasOwnProperty.call(column, "cell") &&
             typeof column.cell === "function"
             ? [getColumnId(column, index)]
@@ -619,7 +620,10 @@ export function createDataTableWithPanels(
       [],
     );
     const hasCardTitle = React.useMemo(
-      () => columns.some((column) => column.meta?.cardTitle),
+      () =>
+        getDataTableLeafColumns(columns).some(
+          ({ column }) => column.meta?.cardTitle,
+        ),
       [columns],
     );
     const primeColumnForResize = React.useCallback(

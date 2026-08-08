@@ -25,7 +25,11 @@ import { DataTable as HeroDataTable } from "../../entries/heroui";
 import * as GridEntry from "../../entries/thegridcn";
 import { DataTable as GridDataTable } from "../../entries/thegridcn";
 import { useDataTableUrlState as useDataTableUrlStateEntry } from "../../entries/url-state";
-import type { DataTableColumnDef, DataTableProps } from "../../index";
+import type {
+  DataTableColumnDef,
+  DataTableColumnGroupDef,
+  DataTableProps,
+} from "../../index";
 import type {
   DataTableEmptyStateContext,
   DataTableProps as DataTablePropsFromEntry,
@@ -743,6 +747,119 @@ for (const suite of suites) {
 
       expect(renderCounts.get("1")).toBeGreaterThan(0);
       expect(renderCounts.get("2")).toBe(0);
+    });
+
+    it("renders nested column groups and keeps leaf-column features working", () => {
+      type GroupedRow = TestRow & { email: string; status: string };
+      const identityGroup: DataTableColumnGroupDef<GroupedRow> = {
+        id: "identity",
+        header: "Identity",
+        meta: {
+          align: "center",
+          headerClassName: "custom-group-heading",
+          headerStyle: { backgroundColor: "rgb(1, 2, 3)" },
+        },
+        columns: [
+          {
+            accessorKey: "name",
+            header: "Name",
+          },
+          {
+            accessorKey: "email",
+            header: "Email",
+          },
+        ],
+      };
+      const groupedColumns: Array<
+        DataTableColumnDef<GroupedRow, unknown>
+      > = [
+        {
+          id: "person",
+          header: () => <span>Person</span>,
+          columns: [
+            identityGroup,
+            {
+              accessorKey: "status",
+              header: "Status",
+              meta: {
+                filter: { type: "text" },
+              },
+            },
+          ],
+        },
+      ];
+
+      render(
+        <TooltipProvider>
+          <DataTable
+            columns={groupedColumns}
+            data={[
+              {
+                id: "1",
+                name: "Ada",
+                email: "ada@example.com",
+                status: "active",
+              },
+              {
+                id: "2",
+                name: "Grace",
+                email: "grace@example.com",
+                status: "paused",
+              },
+            ]}
+            getRowId={(row) => row.id}
+            columnVisibility={{ email: false }}
+            enableColumnReordering
+            enableColumnResizing
+            toolbarQueryDebounceMs={100}
+          />
+        </TooltipProvider>,
+      );
+
+      const personHeader = screen.getByRole("columnheader", {
+        name: "Person",
+      });
+      const identityHeader = screen.getByRole("columnheader", {
+        name: "Identity",
+      });
+      const nameHeader = screen.getByRole("columnheader", { name: "Name" });
+
+      expect(personHeader.getAttribute("colspan")).toBe("2");
+      expect(personHeader.getAttribute("scope")).toBe("colgroup");
+      expect(identityHeader.getAttribute("colspan")).toBe("1");
+      expect(identityHeader.getAttribute("scope")).toBe("colgroup");
+      expect(identityHeader.className).toContain("custom-group-heading");
+      expect(identityHeader.style.backgroundColor).toBe("rgb(1, 2, 3)");
+      expect(identityHeader.getAttribute("tabindex")).toBeNull();
+      expect(nameHeader.getAttribute("scope")).toBe("col");
+      expect(screen.queryByRole("columnheader", { name: "Email" })).toBeNull();
+
+      fireEvent.change(screen.getByLabelText("Filters: Status"), {
+        target: { value: "paused" },
+      });
+
+      expect(screen.queryByText("Ada")).toBeNull();
+      expect(screen.getByText("Grace")).not.toBeNull();
+
+      fireEvent.pointerDown(
+        screen.getByRole("button", { name: "Show table options" }),
+      );
+
+      expect(
+        screen.queryByRole("menuitemcheckbox", { name: "Person" }),
+      ).toBeNull();
+      expect(
+        screen.queryByRole("menuitemcheckbox", { name: "Identity" }),
+      ).toBeNull();
+      expect(
+        screen.getByRole("menuitemcheckbox", { name: "Name" }),
+      ).not.toBeNull();
+      expect(
+        screen.getByRole("menuitemcheckbox", { name: "Email" }),
+      ).not.toBeNull();
+      expect(
+        screen.getByRole("menuitemcheckbox", { name: "Status" }),
+      ).not.toBeNull();
     });
 
     it("supports keyboard column reordering", () => {

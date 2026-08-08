@@ -28,10 +28,11 @@ Dedicated subpath exports are also available:
 
 The current 4.0 feature set includes client/manual filtering, sorting and
 pagination, unknown-total pagination, selection, detail panels, table/card
-views, row/card virtualization, column sizing/order/pinning/visibility,
-versioned persistence, named saved views, versioned URL state, CSV export,
-inline row editing, density controls, loading/empty states, summary rows,
-infinite loading, and host-owned drag/upload integrations. See
+views, row/card virtualization, nested column groups, column
+sizing/order/pinning/visibility, versioned persistence, named saved views,
+versioned URL state, CSV export, inline row editing, density controls,
+loading/empty states, summary rows, infinite loading, and host-owned
+drag/upload integrations. See
 [`docs/API.md`](./docs/API.md) for the complete contract.
 
 ## Breaking Changes In 3.0.0
@@ -52,11 +53,11 @@ The previously planned API cleanup is deferred to a future 5.0 release.
 ## Installation
 
 ```bash
-pnpm add github:Dastari/data-table-pro#v4.0.0
+pnpm add github:Dastari/data-table-pro#v4.2.0
 ```
 
 This package is installed from GitHub refs. It is not published to npm.
-Release tags such as `v4.0.0` include committed `dist/` output, so consumers
+Release tags such as `v4.2.0` include committed `dist/` output, so consumers
 do not need to allow package build scripts during install.
 
 Peer dependencies:
@@ -279,6 +280,44 @@ export function PeopleTable({ rows }: { rows: Array<Person> }) {
   );
 }
 ```
+
+### Grouped column headers
+
+Define a group with an `id`, a `header`, and nested `columns`. Groups can be
+nested to any depth and use the same TanStack-compatible definition shape as
+leaf columns:
+
+```tsx
+import type {
+  DataTableColumnDef,
+  DataTableColumnGroupDef,
+} from "data-table-pro";
+
+const contactGroup: DataTableColumnGroupDef<Person> = {
+  id: "contact",
+  header: "Contact",
+  meta: {
+    align: "center",
+    headerClassName: "bg-muted/50 font-semibold",
+  },
+  columns: [
+    { accessorKey: "name", header: "Name" },
+    { accessorKey: "email", header: "Email" },
+  ],
+};
+
+const columns: Array<DataTableColumnDef<Person>> = [contactGroup];
+```
+
+The table creates one header row per nesting level and gives every group
+header the span of its visible leaf columns. `header` may be a string or a
+TanStack header render function. Use `meta.headerClassName`,
+`meta.headerStyle`, and `meta.align` for group styling. Visibility, filters,
+ordering, pinning, sizing, editing, responsive hiding, and CSV export continue
+to operate on leaf columns. Drag/keyboard reordering applies to leaves; moving
+a leaf away from its siblings visually splits the group, matching the usual
+grid behavior. A group resize handle resizes its visible descendants
+proportionally.
 
 ### Controlled toolbar query
 

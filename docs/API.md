@@ -180,6 +180,7 @@ These are exported from the adapter entrypoints and from `data-table-pro/types`.
 - `DataTableCellEditRenderProps`
 - `DataTableCardRendererProps`
 - `DataTableColumnDef`
+- `DataTableColumnGroupDef`
 - `DataTableColumnFilterConfig`
 - `DataTableColumnFilterOption`
 - `DataTableColumnFilterType`
@@ -241,6 +242,45 @@ function DataTable<TData>(props: DataTableProps<TData>): React.ReactElement;
 | `columns` | `Array<DataTableColumnDef<TData, any>>` | Column definitions passed to TanStack Table. |
 | `data` | `Array<TData>` | Row data. |
 | `getRowId` | `(row: TData, index: number) => string` | Stable row identifier used for selection, editing, and row actions. |
+
+### Grouped column headers
+
+Column groups use nested `DataTableColumnDef` objects. A group requires a
+stable `id`, a shared `header`, and a non-empty `columns` array:
+
+```tsx
+const columns: Array<DataTableColumnDef<Person>> = [
+  {
+    id: "contact",
+    header: "Contact",
+    meta: {
+      align: "center",
+      headerClassName: "bg-muted/50 font-semibold",
+      headerStyle: { letterSpacing: "0.025em" },
+    },
+    columns: [
+      { accessorKey: "name", header: "Name" },
+      { accessorKey: "email", header: "Email" },
+    ],
+  },
+];
+```
+
+Groups may be nested to any depth. Every nesting level renders as another
+header row; group cells receive `colSpan` for their visible descendants and
+`scope="colgroup"`, while leaf headers receive `scope="col"`. A group header
+supports string or render-function content plus `meta.headerClassName`,
+`meta.headerStyle`, and `meta.align` styling. The DOM also exposes
+`data-dtp-slot="data-table-column-group-header"` and `data-header-depth`.
+
+Visibility, toolbar filters, ordering, pinning, sizing, responsive hiding,
+editing defaults, card-title detection, and CSV export resolve nested leaf
+columns. Leaf columns remain independently reorderable and pinnable. If leaf
+ordering separates siblings, the shared heading is rendered as separate
+spans. Resizing a group distributes the size change proportionally across its
+visible descendants; setting `enableResizing: false` on the group removes its
+resize handle. Group definitions themselves do not appear in the leaf-column
+visibility, filter, or pinning controls.
 
 ### Unified state and API ref
 

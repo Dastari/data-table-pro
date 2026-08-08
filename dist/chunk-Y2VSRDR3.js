@@ -1,0 +1,2 @@
+import {a as a$1}from'./chunk-U5TIDLB3.js';import {a}from'./chunk-JYNJ2FDX.js';import {j}from'./chunk-54H6DRO6.js';function b(r){return j(r,{CardPanel:a$1,TablePanel:a})}export{b as a};//# sourceMappingURL=chunk-Y2VSRDR3.js.map
+//# sourceMappingURL=chunk-Y2VSRDR3.js.map

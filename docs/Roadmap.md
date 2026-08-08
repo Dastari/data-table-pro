@@ -16,7 +16,7 @@ Audit baseline:
 
 Current implementation baseline:
 
-- package version: 4.1.0
+- package version: 4.2.0
 - React/React DOM peers: 19.2.8
 - TanStack Table: 8.21.3
 - TanStack Virtual: 3.14.8
@@ -83,7 +83,7 @@ exposed by the wrapper.
 | Column filtering | Text/select/multi | Add boolean, numeric/date range, faceted autocomplete, filter operators, and server facets. |
 | Column faceting | Missing | Support unique values, counts, min/max values, and async server-provided facets. |
 | Column visibility/order/pinning/sizing | Supported | Add controlled sizing, keyboard-safe controls, presets, reset, and stronger grouped-column behavior. |
-| Header/column groups | Incidental TanStack rendering | Make nested definitions first-class across search, sizing, visibility, export, and tests. |
+| Header/column groups | Supported | Keep nested definitions first-class across search, sizing, visibility, export, editing, pinning, and tests. |
 | Row selection | Multi-row and shift range | Add single/multi/sub-row policies, selectability predicates, cross-page selection, and select-all scope. |
 | Detail panels | Supported through expansion state | Move to an explicit detail-panel contract so tree expansion is independent. |
 | Tree/sub-row expansion | Missing | Add `getSubRows`, manual expansion, leaf-first filtering, depth controls, and expanded-row pagination policy. |

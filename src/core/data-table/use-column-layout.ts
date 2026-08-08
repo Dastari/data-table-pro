@@ -6,6 +6,7 @@ import {
   UTILITY_COLUMN_SIZE,
   getColumnId,
   getConfiguredColumnMinWidth,
+  getDataTableLeafColumns,
   getFixedSide,
   getPinnedColumnClassName,
   isUtilityColumnId,
@@ -65,7 +66,7 @@ export function useColumnLayout<TData>({
   const explicitlySizedColumnIds = React.useMemo(() => {
     const ids = new Set<string>();
 
-    for (const [index, column] of columns.entries()) {
+    for (const { column, index } of getDataTableLeafColumns(columns)) {
       if (Object.prototype.hasOwnProperty.call(column, "size")) {
         ids.add(getColumnId(column, index));
       }
@@ -95,7 +96,7 @@ export function useColumnLayout<TData>({
   const minimumColumnWidths = React.useMemo(() => {
     const widths = new Map<string, number>();
 
-    for (const [index, column] of columns.entries()) {
+    for (const { column, index } of getDataTableLeafColumns(columns)) {
       const configuredMinWidth = getConfiguredColumnMinWidth(column);
 
       if (configuredMinWidth !== undefined) {

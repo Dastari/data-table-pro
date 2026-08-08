@@ -4,6 +4,23 @@
 
 No changes yet.
 
+## 4.2.0 - 2026-08-08
+
+### Features
+
+- Added first-class nested column groups with multi-row shared headings,
+  visible-leaf spans, nested custom renderers, group class/inline-style hooks,
+  proportional group resizing, and semantic `colgroup`/`col` header scopes.
+
+### Fixes
+
+- Made visibility controls, column filters, responsive hiding, ordering,
+  pinning, sizing, editing defaults, card-title detection, and custom-cell
+  handling resolve nested leaf definitions instead of assuming every
+  top-level definition is a data column.
+- Prevented placeholder and group headings from being individually reordered,
+  while retaining leaf reordering and group splitting behavior.
+
 ## 4.1.0 - 2026-07-29
 
 ### Fixes

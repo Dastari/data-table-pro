@@ -6,6 +6,7 @@ import type {
   DataTableEditableRowsConfig,
 } from "../types";
 import type { DataTableUiKit } from "../ui-kit";
+import { getDataTableLeafColumns } from "./data-table-utils";
 
 export function useRowEditing<TData>({
   columns,
@@ -78,14 +79,17 @@ function defaultDraftValues<TData>(
   row: TData,
   columns: Array<DataTableColumnDef<TData, unknown>>,
 ) {
-  return columns.reduce<Record<string, unknown>>((draft, column) => {
-    if ("accessorKey" in column && typeof column.accessorKey === "string") {
-      draft[column.accessorKey] = (row as Record<string, unknown>)[
-        column.accessorKey
-      ];
-    }
-    return draft;
-  }, {});
+  return getDataTableLeafColumns(columns).reduce<Record<string, unknown>>(
+    (draft, { column }) => {
+      if ("accessorKey" in column && typeof column.accessorKey === "string") {
+        draft[column.accessorKey] = (row as Record<string, unknown>)[
+          column.accessorKey
+        ];
+      }
+      return draft;
+    },
+    {},
+  );
 }
 
 export function renderEditableCell<TData>(

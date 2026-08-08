@@ -114,6 +114,31 @@ export function decorateFilterableColumn<TData>(
   };
 }
 
+export type DataTableLeafColumn<TData> = {
+  column: DataTableColumnDef<TData, unknown>;
+  index: number;
+};
+
+export function getDataTableLeafColumns<TData>(
+  columns: Array<DataTableColumnDef<TData, unknown>>,
+) {
+  const leaves: Array<DataTableLeafColumn<TData>> = [];
+
+  const visit = (currentColumns: Array<DataTableColumnDef<TData, unknown>>) => {
+    currentColumns.forEach((column, index) => {
+      if ("columns" in column && column.columns?.length) {
+        visit(column.columns);
+        return;
+      }
+
+      leaves.push({ column, index });
+    });
+  };
+
+  visit(columns);
+  return leaves;
+}
+
 export function normalizeColumnFilterOptions(
   options: Array<DataTableColumnFilterOption | string>,
 ) {
@@ -308,7 +333,7 @@ export function getInitialColumnPinning<TData>(
   const left: Array<string> = [];
   const right: Array<string> = [];
 
-  for (const [index, column] of columns.entries()) {
+  for (const { column, index } of getDataTableLeafColumns(columns)) {
     const columnId = getColumnId(column, index);
     if (column.meta?.fixed === "left") {
       left.push(columnId);

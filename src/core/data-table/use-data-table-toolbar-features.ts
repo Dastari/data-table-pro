@@ -16,6 +16,7 @@ import {
   exportDataTableCsv,
   getAccessorKey,
   getColumnId,
+  getDataTableLeafColumns,
   hasFilterValue,
   normalizeColumnFilterOptions,
   startCase,
@@ -49,7 +50,7 @@ export function useDataTableToolbarFeatures<TData>({
   csvExport: DataTableProps<TData>["csvExport"];
 }) {
   const columnVisibilityOptions = React.useMemo(() => {
-    return columns.map((column, index) => {
+    return getDataTableLeafColumns(columns).map(({ column, index }) => {
       const id = getColumnId(column, index);
       const header = column.header;
       const accessorKey = getAccessorKey(column);
@@ -82,7 +83,7 @@ export function useDataTableToolbarFeatures<TData>({
       return [];
     }
 
-    return columns.flatMap((column, index) => {
+    return getDataTableLeafColumns(columns).flatMap(({ column, index }) => {
       const filter = column.meta?.filter;
       if (!filter) {
         return [];

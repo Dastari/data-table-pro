@@ -17,6 +17,7 @@ import type {
 import {
   createDataTableLoadingRows,
   getColumnId,
+  getDataTableLeafColumns,
   getDataTableLoadingRowId,
   getInitialColumnPinning,
   isDataTableLoadingRow,
@@ -350,13 +351,16 @@ export function useDataTableState<TData>({
     },
   });
   const responsiveColumnVisibility = React.useMemo<VisibilityState>(() => {
-    return columns.reduce<VisibilityState>((visibility, column, index) => {
-      const columnId = getColumnId(column, index);
-      if (isHiddenAtContainerWidth(column.meta?.hideOn, containerWidth)) {
-        visibility[columnId] = false;
-      }
-      return visibility;
-    }, {});
+    return getDataTableLeafColumns(columns).reduce<VisibilityState>(
+      (visibility, { column, index }) => {
+        const columnId = getColumnId(column, index);
+        if (isHiddenAtContainerWidth(column.meta?.hideOn, containerWidth)) {
+          visibility[columnId] = false;
+        }
+        return visibility;
+      },
+      {},
+    );
   }, [columns, containerWidth]);
   const effectiveColumnVisibility = React.useMemo<VisibilityState>(() => {
     return {

@@ -103,6 +103,7 @@ export type DataTableColumnMeta<TData, TValue> = {
         value: TValue | undefined;
       }) => DataTableCellOverflow | undefined);
   headerClassName?: string;
+  headerStyle?: React.CSSProperties;
   cellClassName?:
     | string
     | ((args: { row: TData; value: TValue | undefined }) => string | undefined);
@@ -124,6 +125,15 @@ export type DataTableColumnDef<TData, TValue = unknown> = ColumnDef<
   TValue
 > & {
   meta?: DataTableColumnMeta<TData, TValue>;
+  columns?: Array<DataTableColumnDef<TData, unknown>>;
+};
+
+export type DataTableColumnGroupDef<TData> = DataTableColumnDef<
+  TData,
+  unknown
+> & {
+  id: string;
+  columns: Array<DataTableColumnDef<TData, unknown>>;
 };
 
 export type DataTableToolbarAction<TData> = {

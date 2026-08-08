@@ -26,6 +26,7 @@ import type { DataTableProps } from "../types";
 import {
   dataTableGlobalFilterFn,
   getColumnId,
+  getDataTableLeafColumns,
   isUtilityColumnId,
   moveColumnInOrder,
 } from "./data-table-utils";
@@ -133,9 +134,9 @@ export function useDataTableInstance<TData>({
   viewportHeight: number;
 }) {
   const generatedColumnIds = React.useMemo(() => {
-    return tableColumns.map((column, index) =>
-      getColumnId(column as DataTableProps<TData>["columns"][number], index),
-    );
+    return getDataTableLeafColumns(
+      tableColumns as DataTableProps<TData>["columns"],
+    ).map(({ column, index }) => getColumnId(column, index));
   }, [tableColumns]);
 
   const effectiveColumnOrder = React.useMemo<ColumnOrderState>(() => {

@@ -217,6 +217,7 @@ export const heroUiKit: DataTableUiKit = {
     cardUnselected: "border-separator",
     cardViewport: "bg-transparent",
     cellBorder: "border-separator/70",
+    columnGroupHeader: "bg-default/50 font-semibold",
     dragActive: "rounded-2xl border-dashed border-accent",
     emptyState: "border-separator bg-surface",
     footer: "border-separator bg-surface text-surface-foreground",

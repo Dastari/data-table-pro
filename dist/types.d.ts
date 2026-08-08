@@ -53,6 +53,7 @@ type DataTableColumnMeta<TData, TValue> = {
         value: TValue | undefined;
     }) => DataTableCellOverflow | undefined);
     headerClassName?: string;
+    headerStyle?: React.CSSProperties;
     cellClassName?: string | ((args: {
         row: TData;
         value: TValue | undefined;
@@ -66,6 +67,11 @@ type DataTableColumnMeta<TData, TValue> = {
 };
 type DataTableColumnDef<TData, TValue = unknown> = ColumnDef<TData, TValue> & {
     meta?: DataTableColumnMeta<TData, TValue>;
+    columns?: Array<DataTableColumnDef<TData, unknown>>;
+};
+type DataTableColumnGroupDef<TData> = DataTableColumnDef<TData, unknown> & {
+    id: string;
+    columns: Array<DataTableColumnDef<TData, unknown>>;
 };
 type DataTableToolbarAction<TData> = {
     key: string;
@@ -488,4 +494,4 @@ declare function hideOnClassName(hideOn: DataTableContainerBreakpoint | Array<Da
 declare function isHiddenAtContainerWidth(hideOn: DataTableContainerBreakpoint | Array<DataTableContainerBreakpoint> | undefined, containerWidth: number): boolean;
 declare function rowSelectionStateFromRows<TData>(rows: Array<Row<TData>>): TData[];
 
-export { DATA_TABLE_CONTAINER_BREAKPOINT_WIDTHS, type DataTableActionErrorContext, type DataTableActionErrorSource, type DataTableAlign, type DataTableApi, type DataTableCardRendererProps, type DataTableCardSizing, type DataTableCardVirtualizationConfig, type DataTableCellEditRenderProps, type DataTableCellOverflow, type DataTableColumnDef, type DataTableColumnFilterConfig, type DataTableColumnFilterOption, type DataTableColumnFilterType, type DataTableColumnFixed, type DataTableColumnMeta, type DataTableColumnPrefs, type DataTableColumnType, type DataTableColumnVisibilityOption, type DataTableContainerBreakpoint, type DataTableCsvExportOptions, type DataTableCsvExportScope, type DataTableDensity, type DataTableDragAndDropConfig, type DataTableEditableRowsConfig, type DataTableEmptyStateContext, type DataTableExpandedRowProps, type DataTableFileUploadConfig, type DataTableHiddenRowsConfig, type DataTableInfiniteScroll, type DataTableInitialState, type DataTableLabels, type DataTableLoadingState, type DataTablePersistenceConfig, type DataTablePersistenceOperation, type DataTablePersistencePayload, type DataTablePersistenceSlice, type DataTablePersistenceStorage, type DataTableProps, type DataTableResetOptions, type DataTableRowAction, type DataTableRowLoadingState, type DataTableSavedView, type DataTableSavedViewSlice, type DataTableSavedViewsChangeOperation, type DataTableSavedViewsConfig, type DataTableSavedViewsPayload, type DataTableSelectionAction, type DataTableState, type DataTableSummaryRow, type DataTableToolbarAction, type DataTableToolbarVisibility, type DataTableViewMode, type DataTableVirtualizationConfig, alignClassName, canEditRow, canUseRowAction, cellAlignClassName, headerAlignClassName, hideOnClassName, isHiddenAtContainerWidth, isRowVisible, resolveColumnAlign, resolveRowActionLabel, rowSelectionStateFromRows };
+export { DATA_TABLE_CONTAINER_BREAKPOINT_WIDTHS, type DataTableActionErrorContext, type DataTableActionErrorSource, type DataTableAlign, type DataTableApi, type DataTableCardRendererProps, type DataTableCardSizing, type DataTableCardVirtualizationConfig, type DataTableCellEditRenderProps, type DataTableCellOverflow, type DataTableColumnDef, type DataTableColumnFilterConfig, type DataTableColumnFilterOption, type DataTableColumnFilterType, type DataTableColumnFixed, type DataTableColumnGroupDef, type DataTableColumnMeta, type DataTableColumnPrefs, type DataTableColumnType, type DataTableColumnVisibilityOption, type DataTableContainerBreakpoint, type DataTableCsvExportOptions, type DataTableCsvExportScope, type DataTableDensity, type DataTableDragAndDropConfig, type DataTableEditableRowsConfig, type DataTableEmptyStateContext, type DataTableExpandedRowProps, type DataTableFileUploadConfig, type DataTableHiddenRowsConfig, type DataTableInfiniteScroll, type DataTableInitialState, type DataTableLabels, type DataTableLoadingState, type DataTablePersistenceConfig, type DataTablePersistenceOperation, type DataTablePersistencePayload, type DataTablePersistenceSlice, type DataTablePersistenceStorage, type DataTableProps, type DataTableResetOptions, type DataTableRowAction, type DataTableRowLoadingState, type DataTableSavedView, type DataTableSavedViewSlice, type DataTableSavedViewsChangeOperation, type DataTableSavedViewsConfig, type DataTableSavedViewsPayload, type DataTableSelectionAction, type DataTableState, type DataTableSummaryRow, type DataTableToolbarAction, type DataTableToolbarVisibility, type DataTableViewMode, type DataTableVirtualizationConfig, alignClassName, canEditRow, canUseRowAction, cellAlignClassName, headerAlignClassName, hideOnClassName, isHiddenAtContainerWidth, isRowVisible, resolveColumnAlign, resolveRowActionLabel, rowSelectionStateFromRows };

@@ -182,6 +182,7 @@ export const shadcnUiKit: DataTableUiKit = {
     cardUnselected: "border-border",
     cardViewport: "bg-transparent",
     cellBorder: "border-border/40",
+    columnGroupHeader: "bg-muted/50 font-semibold",
     dragActive: "rounded-md border-dashed border-primary",
     emptyState: "border-border/60 bg-background/70",
     footer: "border-border bg-card",

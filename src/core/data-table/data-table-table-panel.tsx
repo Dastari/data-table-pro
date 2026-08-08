@@ -1,6 +1,7 @@
 import * as React from "react";
 import type {
   Column,
+  Header,
   Row,
   Table as TanStackTable,
 } from "@tanstack/react-table";
@@ -199,7 +200,7 @@ export function DataTableTablePanel<TData>({
                         enableColumnResizing={enableColumnResizing}
                         header={header}
                         headerGroupHeaders={headerGroup.headers}
-                        layout={getColumnLayout(header.column.id)}
+                        layout={getHeaderLayout(header, getColumnLayout)}
                         primeColumnForResize={primeColumnForResize}
                         reorderColumn={reorderColumn}
                         resetColumnSize={resetColumnSize}
@@ -352,4 +353,42 @@ export function DataTableTablePanel<TData>({
       </div>
     </div>
   );
+}
+
+function getHeaderLayout<TData>(
+  header: Header<TData, unknown>,
+  getColumnLayout: (columnId: string) => DataTableColumnLayout,
+) {
+  const columnLayout = getColumnLayout(header.column.id);
+  if (header.isPlaceholder || !header.subHeaders.length) {
+    return columnLayout;
+  }
+
+  const leafLayouts = header
+    .getLeafHeaders()
+    .filter((leafHeader) => !leafHeader.subHeaders.length)
+    .map((leafHeader) => getColumnLayout(leafHeader.column.id));
+  const fixedSide = leafLayouts[0]?.fixedSide;
+
+  if (
+    !fixedSide ||
+    !leafLayouts.every((layout) => layout.fixedSide === fixedSide)
+  ) {
+    return columnLayout;
+  }
+
+  const edgeLayout =
+    fixedSide === "left" ? leafLayouts[0] : leafLayouts.at(-1);
+
+  return {
+    ...columnLayout,
+    fixedSide,
+    headerStyle: edgeLayout?.headerStyle
+      ? {
+          insetInlineStart: edgeLayout.headerStyle.insetInlineStart,
+          insetInlineEnd: edgeLayout.headerStyle.insetInlineEnd,
+        }
+      : undefined,
+    pinnedClassName: edgeLayout?.pinnedClassName,
+  };
 }

@@ -51,6 +51,8 @@ function DataTableHeaderCellInner<TData>({
 }: DataTableHeaderCellProps<TData>) {
   const meta = (header.column.columnDef as DataTableColumnDef<TData, unknown>)
     .meta;
+  const isColumnGroup =
+    !header.isPlaceholder && header.subHeaders.length > 0;
   const canSort = header.column.getCanSort();
   const sortingState = header.column.getIsSorted();
   const sortingIndex = currentSorting.findIndex(
@@ -58,6 +60,8 @@ function DataTableHeaderCellInner<TData>({
   );
   const canReorderColumn =
     enableColumnReordering &&
+    !header.isPlaceholder &&
+    !isColumnGroup &&
     !layout.isUtilityColumn &&
     !layout.isSpacerColumn;
   const hideClassName = hideOnClassName(meta?.hideOn);
@@ -66,10 +70,21 @@ function DataTableHeaderCellInner<TData>({
     <TableHead
       key={header.id}
       colSpan={header.colSpan}
+      scope={
+        header.isPlaceholder ? undefined : isColumnGroup ? "colgroup" : "col"
+      }
+      aria-hidden={header.isPlaceholder || undefined}
       data-column-id={header.column.id}
+      data-header-depth={header.depth}
+      data-dtp-slot={
+        isColumnGroup
+          ? "data-table-column-group-header"
+          : "data-table-column-header"
+      }
       className={cn(
         "relative border-b",
         getDensityHeaderClassName(currentDensity),
+        isColumnGroup && uiClassNames.columnGroupHeader,
         layout.utilityClassName,
         layout.isSpacerColumn && "border-b-1 bg-transparent p-0",
         layout.pinnedClassName,
@@ -78,7 +93,7 @@ function DataTableHeaderCellInner<TData>({
         meta?.headerClassName,
         meta?.responsiveClassName,
       )}
-      style={layout.headerStyle}
+      style={{ ...meta?.headerStyle, ...layout.headerStyle }}
       aria-sort={
         sortingState === "asc"
           ? "ascending"
@@ -189,17 +204,31 @@ function DataTableHeaderCellInner<TData>({
         flexRender(header.column.columnDef.header, header.getContext())
       )}
 
-      {enableColumnResizing && header.column.getCanResize() ? (
+      {enableColumnResizing &&
+      !header.isPlaceholder &&
+      header.column.getCanResize() ? (
         <div
           onDoubleClick={() => {
-            resetColumnSize(header.column.id);
+            for (const leafHeader of getResizableLeafHeaders(header)) {
+              resetColumnSize(leafHeader.column.id);
+            }
           }}
           onMouseDown={(event) => {
-            primeColumnForResize(header.column.id, header.getSize());
+            for (const leafHeader of getResizableLeafHeaders(header)) {
+              primeColumnForResize(
+                leafHeader.column.id,
+                leafHeader.getSize(),
+              );
+            }
             header.getResizeHandler()(event);
           }}
           onTouchStart={(event) => {
-            primeColumnForResize(header.column.id, header.getSize());
+            for (const leafHeader of getResizableLeafHeaders(header)) {
+              primeColumnForResize(
+                leafHeader.column.id,
+                leafHeader.getSize(),
+              );
+            }
             header.getResizeHandler()(event);
           }}
           className={cn(
@@ -222,6 +251,10 @@ function areDataTableHeaderCellsEqual<TData>(
   return (
     previous.header.id === next.header.id &&
     previous.header.column.id === next.header.column.id &&
+    previous.header.column.columnDef === next.header.column.columnDef &&
+    previous.header.colSpan === next.header.colSpan &&
+    previous.header.isPlaceholder === next.header.isPlaceholder &&
+    sameSubHeaders(previous.header, next.header) &&
     previous.currentDensity === next.currentDensity &&
     previous.enableColumnReordering === next.enableColumnReordering &&
     previous.enableColumnResizing === next.enableColumnResizing &&
@@ -238,6 +271,28 @@ function areDataTableHeaderCellsEqual<TData>(
       next.headerGroupHeaders,
     ) &&
     sameHeaderLayout(previous.layout, next.layout)
+  );
+}
+
+function getResizableLeafHeaders<TData>(header: Header<TData, unknown>) {
+  if (!header.subHeaders.length) {
+    return [header];
+  }
+
+  return header
+    .getLeafHeaders()
+    .filter((leafHeader) => !leafHeader.subHeaders.length);
+}
+
+function sameSubHeaders<TData>(
+  previous: Header<TData, unknown>,
+  next: Header<TData, unknown>,
+) {
+  return (
+    previous.subHeaders.length === next.subHeaders.length &&
+    previous.subHeaders.every(
+      (header, index) => next.subHeaders[index]?.id === header.id,
+    )
   );
 }
 
