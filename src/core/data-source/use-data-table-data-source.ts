@@ -402,7 +402,7 @@ export function useDataTableDataSource<
       columnFilters,
       data: state.data,
       hasNextPage,
-      isLoading: state.status === "loading",
+      isLoading: enabled && state.status === "loading",
       manualFiltering: true,
       manualPagination: true,
       manualSorting: true,
@@ -417,6 +417,7 @@ export function useDataTableDataSource<
     }),
     [
       columnFilters,
+      enabled,
       hasNextPage,
       options.onColumnFiltersChange,
       options.onPageIndexChange,
@@ -437,8 +438,8 @@ export function useDataTableDataSource<
     facets: state.facets,
     invalidate,
     isError: state.status === "error",
-    isFetching: state.isFetching,
-    isLoading: state.status === "loading",
+    isFetching: enabled && state.isFetching,
+    isLoading: enabled && state.status === "loading",
     isSuccess: state.status === "success",
     nextCursor: state.nextCursor,
     refresh,
@@ -528,12 +529,12 @@ function resolveRetrySettings(retry: DataTableDataSourceRetryOptions | undefined
 
 function waitForRetry(delay: number, signal: AbortSignal) {
   return new Promise<void>((resolve, reject) => {
-    const timeout = window.setTimeout(() => {
+    const timeout = globalThis.setTimeout(() => {
       signal.removeEventListener("abort", onAbort);
       resolve();
     }, delay);
     const onAbort = () => {
-      window.clearTimeout(timeout);
+      globalThis.clearTimeout(timeout);
       reject(new DOMException("Request aborted", "AbortError"));
     };
     signal.addEventListener("abort", onAbort, { once: true });

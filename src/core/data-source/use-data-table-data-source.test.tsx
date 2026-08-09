@@ -100,6 +100,34 @@ describe("useDataTableDataSource", () => {
     expect(result?.data).toEqual([{ id: "second" }]);
   });
 
+  it("clears the fetching state when disabled during an active request", async () => {
+    const pending = deferred<DataTableDataSourceResponse<User>>();
+    const source = vi.fn((_request: { signal: AbortSignal }) => pending.promise);
+    let result: UseDataTableDataSourceResult<User> | undefined;
+
+    function Harness({ enabled }: { enabled: boolean }) {
+      result = useDataTableDataSource({
+        columnFilters: [],
+        enabled,
+        mode: "offset",
+        pagination: { pageIndex: 0, pageSize: 10 },
+        sorting: [],
+        source,
+      });
+      return null;
+    }
+
+    const view = render(<Harness enabled />);
+    await waitFor(() => expect(result?.isFetching).toBe(true));
+    const request = source.mock.calls[0]?.[0] as { signal: AbortSignal };
+
+    view.rerender(<Harness enabled={false} />);
+
+    await waitFor(() => expect(result?.isFetching).toBe(false));
+    expect(result?.isLoading).toBe(false);
+    expect(request.signal.aborted).toBe(true);
+  });
+
   it("deduplicates an in-flight refresh and serves a fresh cached request", async () => {
     const pending = deferred<DataTableDataSourceResponse<User>>();
     const source = vi
