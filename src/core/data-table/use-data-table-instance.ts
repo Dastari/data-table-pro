@@ -53,6 +53,7 @@ export function useDataTableInstance<TData>({
   enableColumnResizing,
   enableRowSelection,
   getRowCanExpand,
+  getSubRows,
   globalFilterFn,
   globalFilterValue,
   hasNextPage,
@@ -63,6 +64,7 @@ export function useDataTableInstance<TData>({
   handleExpandedChange,
   infiniteScroll,
   manualFiltering,
+  manualExpanding,
   manualPagination,
   manualSorting,
   onActionError,
@@ -71,7 +73,9 @@ export function useDataTableInstance<TData>({
   pageCount,
   pageIndex,
   pageSize,
-  renderExpandedRow,
+  paginateExpandedRows,
+  filterFromLeafRows,
+  maxLeafRowFilterDepth,
   setCurrentRowSelection,
   setCurrentSorting,
   setLocalColumnSizing,
@@ -102,6 +106,7 @@ export function useDataTableInstance<TData>({
   enableColumnResizing: boolean;
   enableRowSelection: boolean;
   getRowCanExpand: DataTableProps<TData>["getRowCanExpand"];
+  getSubRows: DataTableProps<TData>["getSubRows"];
   globalFilterFn: FilterFnOption<TData> | undefined;
   globalFilterValue: string;
   hasNextPage?: DataTableProps<TData>["hasNextPage"];
@@ -112,6 +117,7 @@ export function useDataTableInstance<TData>({
   handleExpandedChange: OnChangeFn<ExpandedState>;
   infiniteScroll: DataTableProps<TData>["infiniteScroll"];
   manualFiltering: boolean;
+  manualExpanding: boolean;
   manualPagination: boolean;
   manualSorting: boolean;
   onActionError?: DataTableProps<TData>["onActionError"];
@@ -120,7 +126,9 @@ export function useDataTableInstance<TData>({
   pageCount: DataTableProps<TData>["pageCount"];
   pageIndex: DataTableProps<TData>["pageIndex"];
   pageSize: DataTableProps<TData>["pageSize"];
-  renderExpandedRow: DataTableProps<TData>["renderExpandedRow"];
+  paginateExpandedRows: DataTableProps<TData>["paginateExpandedRows"];
+  filterFromLeafRows: DataTableProps<TData>["filterFromLeafRows"];
+  maxLeafRowFilterDepth: DataTableProps<TData>["maxLeafRowFilterDepth"];
   setCurrentRowSelection: OnChangeFn<Record<string, boolean>>;
   setCurrentSorting: OnChangeFn<SortingState>;
   setLocalColumnSizing: OnChangeFn<ColumnSizingState>;
@@ -276,7 +284,8 @@ export function useDataTableInstance<TData>({
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: manualFiltering ? undefined : getFilteredRowModel(),
     getSortedRowModel: manualSorting ? undefined : getSortedRowModel(),
-    getExpandedRowModel: renderExpandedRow ? getExpandedRowModel() : undefined,
+    getExpandedRowModel:
+      getSubRows && !manualExpanding ? getExpandedRowModel() : undefined,
     getPaginationRowModel:
       manualPagination || infiniteScroll?.enabled
         ? undefined
@@ -287,8 +296,9 @@ export function useDataTableInstance<TData>({
     columnResizeMode,
     columnResizeDirection: dir,
     getRowId: tableGetRowId,
-    getRowCanExpand: renderExpandedRow
-      ? (row) => getRowCanExpand?.(row.original) ?? true
+    getSubRows,
+    getRowCanExpand: getSubRows
+      ? (row) => getRowCanExpand?.(row.original) ?? row.subRows.length > 0
       : undefined,
     globalFilterFn: globalFilterFn ?? dataTableGlobalFilterFn,
     getColumnCanGlobalFilter: (column) =>
@@ -296,7 +306,11 @@ export function useDataTableInstance<TData>({
       typeof column.accessorFn === "function",
     manualSorting,
     manualFiltering,
+    manualExpanding,
     manualPagination: manualPagination || Boolean(infiniteScroll?.enabled),
+    paginateExpandedRows,
+    filterFromLeafRows,
+    maxLeafRowFilterDepth,
     defaultColumn,
     autoResetPageIndex,
     state: tableState,

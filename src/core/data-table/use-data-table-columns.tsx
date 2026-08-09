@@ -1,8 +1,9 @@
 import * as React from "react";
-import type { ColumnDef, Table as TanStackTable } from "@tanstack/react-table";
+import type { ColumnDef, ExpandedState, OnChangeFn, Table as TanStackTable } from "@tanstack/react-table";
 import { IconChevronDown } from "../icons";
 import type {
   DataTableEditableRowsConfig,
+  DataTableDetailPanel,
   DataTableLabels,
   DataTableProps,
   DataTableRowAction,
@@ -38,11 +39,13 @@ export function useDataTableColumns<TData>({
   editableRows,
   editingRowId,
   enableRowSelection,
-  getRowCanExpand,
+  hasTreeExpansion,
   isSavingEdit,
   labels,
   lastSelectedRowIdRef,
-  renderExpandedRow,
+  detailPanel,
+  detailExpanded,
+  onDetailExpandedChange,
   rowActions,
   saveEdit,
   startEditingRow,
@@ -61,11 +64,13 @@ export function useDataTableColumns<TData>({
   editableRows: DataTableProps<TData>["editableRows"];
   editingRowId: string | null;
   enableRowSelection: boolean;
-  getRowCanExpand: DataTableProps<TData>["getRowCanExpand"];
+  hasTreeExpansion: boolean;
   isSavingEdit: boolean;
   labels: DataTableLabels;
   lastSelectedRowIdRef: React.MutableRefObject<string | null>;
-  renderExpandedRow: DataTableProps<TData>["renderExpandedRow"];
+  detailPanel: DataTableDetailPanel<TData> | undefined;
+  detailExpanded: ExpandedState;
+  onDetailExpandedChange: OnChangeFn<ExpandedState>;
   rowActions: Array<DataTableRowAction<TData>>;
   saveEdit: (row: TData) => Promise<void>;
   startEditingRow: (row: TData, rowId: string) => void;
@@ -110,7 +115,7 @@ export function useDataTableColumns<TData>({
   return React.useMemo<Array<ColumnDef<TData, unknown>>>(() => {
     const defs: Array<ColumnDef<TData, unknown>> = [];
 
-    if (renderExpandedRow) {
+    if (hasTreeExpansion || detailPanel) {
       defs.push({
         id: "__expand__",
         enableResizing: false,
@@ -121,32 +126,60 @@ export function useDataTableColumns<TData>({
         maxSize: UTILITY_COLUMN_SIZE,
         header: () => <span className="sr-only">{labels.expandRow}</span>,
         cell: ({ row }) => {
-          const canExpand =
-            getRowCanExpand?.(row.original) ?? Boolean(renderExpandedRow);
-          if (!canExpand) {
+          const canExpandTree = hasTreeExpansion && row.getCanExpand();
+          const canExpandDetail = Boolean(
+            detailPanel && (detailPanel.getRowCanExpand?.(row.original) ?? true),
+          );
+          if (!canExpandTree && !canExpandDetail) {
             return null;
           }
 
-          const isExpanded = row.getIsExpanded();
+          const isTreeExpanded = row.getIsExpanded();
+          const isDetailExpanded =
+            detailExpanded === true || Boolean(detailExpanded[row.id]);
           return (
-            <div className="flex items-center justify-center">
-              <Button
+            <div className="flex items-center justify-center gap-1">
+              {canExpandTree ? <Button
                 type="button"
                 variant="ghost"
                 size="icon-sm"
                 aria-label={
-                  isExpanded ? labels.collapseRow : labels.expandRow
+                  isTreeExpanded ? labels.collapseRow : labels.expandRow
                 }
-                aria-expanded={isExpanded}
+                aria-expanded={isTreeExpanded}
+                data-tree-toggle="true"
                 onClick={() => row.toggleExpanded()}
               >
                 <IconChevronDown
                   className={cn(
                     "transition-transform",
-                    isExpanded ? "rotate-0" : "-rotate-90",
+                    isTreeExpanded ? "rotate-0" : "-rotate-90",
                   )}
                 />
-              </Button>
+              </Button> : null}
+              {canExpandDetail ? <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                aria-label={
+                  isDetailExpanded ? labels.collapseRow : labels.expandRow
+                }
+                aria-expanded={isDetailExpanded}
+                data-detail-toggle="true"
+                onClick={() => {
+                  onDetailExpandedChange((current) => ({
+                    ...(current === true ? {} : current),
+                    [row.id]: !(current === true || current[row.id]),
+                  }));
+                }}
+              >
+                <IconChevronDown
+                  className={cn(
+                    "transition-transform",
+                    isDetailExpanded ? "rotate-0" : "-rotate-90",
+                  )}
+                />
+              </Button> : null}
             </div>
           );
         },
@@ -283,13 +316,15 @@ export function useDataTableColumns<TData>({
     cancelEditing,
     columns,
     editableRows,
+    detailExpanded,
+    detailPanel,
     editingRowId,
     enableRowSelection,
-    getRowCanExpand,
+    hasTreeExpansion,
     isSavingEdit,
     labels,
     lastSelectedRowIdRef,
-    renderExpandedRow,
+    onDetailExpandedChange,
     rowActions,
     saveEdit,
     selectRowRange,

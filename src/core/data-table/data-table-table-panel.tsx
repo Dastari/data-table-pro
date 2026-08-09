@@ -1,6 +1,7 @@
 import * as React from "react";
 import type {
   Column,
+  ExpandedState,
   Header,
   Row,
   Table as TanStackTable,
@@ -28,6 +29,7 @@ export type DataTableTablePanelProps<TData> = {
   columnLayouts: ReadonlyMap<string, DataTableColumnLayout>;
   columnGroupHeaderHeight: DataTableProps<TData>["columnGroupHeaderHeight"];
   currentDensity: DataTableDensity;
+  currentDetailExpanded: ExpandedState;
   currentSorting: DataTableProps<TData>["sorting"];
   dir: NonNullable<DataTableProps<TData>["dir"]>;
   DataTableEmptyState: React.ElementType;
@@ -50,7 +52,7 @@ export type DataTableTablePanelProps<TData> = {
   onRowClick: DataTableProps<TData>["onRowClick"];
   primeColumnForResize: (columnId: string, currentSize: number) => void;
   renderedRows: Array<Row<TData>>;
-  renderExpandedRow: DataTableProps<TData>["renderExpandedRow"];
+  detailPanel: DataTableProps<TData>["detailPanel"];
   reorderColumn: (sourceColumnId: string, targetColumnId: string) => void;
   resetColumnSize: (columnId: string) => void;
   resolvedLabels: DataTableLabels;
@@ -91,6 +93,7 @@ export function DataTableTablePanel<TData>({
   columnLayouts,
   columnGroupHeaderHeight,
   currentDensity,
+  currentDetailExpanded,
   currentSorting = [],
   dir,
   DataTableEmptyState,
@@ -113,7 +116,7 @@ export function DataTableTablePanel<TData>({
   onRowClick,
   primeColumnForResize,
   renderedRows,
-  renderExpandedRow,
+  detailPanel,
   reorderColumn,
   resetColumnSize,
   resolvedLabels,
@@ -281,6 +284,10 @@ export function DataTableTablePanel<TData>({
                           explicitCustomCellColumnIds={explicitCustomCellColumnIds}
                           getRowClassName={getRowClassName}
                           isDraggable={isDraggable}
+                          isDetailExpanded={
+                            currentDetailExpanded === true ||
+                            Boolean(currentDetailExpanded[row.id])
+                          }
                           isEditing={editingRowId === row.id}
                           isExpanded={row.getIsExpanded()}
                           isInitialLoadingRow={isInitialLoadingRow}
@@ -288,7 +295,7 @@ export function DataTableTablePanel<TData>({
                           loadingState={resolvedLoadingState}
                           onRowClick={onRowClick}
                           originalRow={originalRow}
-                          renderExpandedRow={renderExpandedRow}
+                          detailPanel={detailPanel}
                           row={row}
                           rowIndex={rowIndex}
                           setDraftValues={setDraftValues}

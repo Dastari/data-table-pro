@@ -9,6 +9,7 @@ export function DataTableBaseCardPanel<TData>({
   cardSizing,
   cardRenderer,
   currentRowSelection,
+  currentDetailExpanded,
   DataTableCardView,
   DataTableEmptyState,
   dragAndDrop,
@@ -23,7 +24,7 @@ export function DataTableBaseCardPanel<TData>({
   localSearchValue,
   onRowClick,
   renderedRows,
-  renderExpandedRow,
+  detailPanel,
   resolvedLabels,
   resolvedLoadingRowCount,
   rowActions = [],
@@ -54,7 +55,8 @@ export function DataTableBaseCardPanel<TData>({
       cardSizing={cardSizing}
       rowActions={rowActions}
       editableRows={editableRows}
-      renderExpandedRow={renderExpandedRow}
+      detailPanel={detailPanel}
+      detailExpanded={currentDetailExpanded}
       hasCardTitle={hasCardTitle}
       rowSelection={currentRowSelection}
       onRowSelectionChange={setCurrentRowSelection}

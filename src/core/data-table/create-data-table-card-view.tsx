@@ -1,10 +1,11 @@
 import * as React from "react";
-import type { Row } from "@tanstack/react-table";
+import type { ExpandedState, Row } from "@tanstack/react-table";
+import { IconChevronDown } from "../icons";
 import type {
   DataTableCardRendererProps,
   DataTableCardSizing,
   DataTableEditableRowsConfig,
-  DataTableExpandedRowProps,
+  DataTableDetailPanel,
   DataTableLabels,
   DataTableProps,
   DataTableRowAction,
@@ -22,9 +23,8 @@ type DataTableCardViewProps<TData> = {
   cardClassName?: string;
   rowActions: Array<DataTableRowAction<TData>>;
   editableRows?: DataTableEditableRowsConfig<TData>;
-  renderExpandedRow?: (
-    props: DataTableExpandedRowProps<TData>,
-  ) => React.ReactNode;
+  detailPanel?: DataTableDetailPanel<TData>;
+  detailExpanded: ExpandedState;
   hasCardTitle: boolean;
   rowSelection: Record<string, boolean>;
   onRowSelectionChange: (rowSelection: Record<string, boolean>) => void;
@@ -64,7 +64,7 @@ export function createDataTableCardView(
   DataTableRowActions: DataTableRowActionsComponent,
 ) {
   const uiClassNames = ui.classNames ?? {};
-  const { Card, CardContent, CardHeader, Checkbox, Skeleton } = ui;
+  const { Button, Card, CardContent, CardHeader, Checkbox, Skeleton } = ui;
 
   return function DataTableCardView<TData>({
     rows,
@@ -74,7 +74,8 @@ export function createDataTableCardView(
     cardClassName,
     rowActions,
     editableRows,
-    renderExpandedRow,
+    detailPanel,
+    detailExpanded,
     hasCardTitle,
     rowSelection,
     onRowSelectionChange,
@@ -158,7 +159,8 @@ export function createDataTableCardView(
           const hasCardActions = rowActions.length > 0 || Boolean(editableRows);
           const showCardGradient =
             enableRowSelection || hasCardActions || hasCardTitle;
-          const showCardOverlayControls = enableRowSelection || hasCardActions;
+          const showCardOverlayControls =
+            enableRowSelection || hasCardActions || row.getCanExpand();
           const handleCardActivate = () => {
             if (!onRowClick) {
               return;
@@ -269,9 +271,11 @@ export function createDataTableCardView(
                     onEditingRowIdChange(null);
                   },
                 })}
-                {isEditing || !renderExpandedRow || !row.getIsExpanded()
+                {isEditing ||
+                !detailPanel ||
+                !(detailExpanded === true || Boolean(detailExpanded[row.id]))
                   ? null
-                  : renderExpandedRow({
+                  : detailPanel.render({
                       row: originalRow,
                       rowId,
                       tableRow: row,
@@ -300,6 +304,29 @@ export function createDataTableCardView(
                           );
                         }}
                       />
+                    </div>
+                  ) : null}
+                  {row.getCanExpand() ? (
+                    <div data-row-click-ignore="true" className="pointer-events-auto">
+                      <Button
+                        type="button"
+                        size="icon-sm"
+                        variant="ghost"
+                        aria-label={
+                          row.getIsExpanded()
+                            ? labels.collapseRow
+                            : labels.expandRow
+                        }
+                        aria-expanded={row.getIsExpanded()}
+                        onClick={() => row.toggleExpanded()}
+                      >
+                        <IconChevronDown
+                          className={cn(
+                            "transition-transform",
+                            row.getIsExpanded() ? "rotate-0" : "-rotate-90",
+                          )}
+                        />
+                      </Button>
                     </div>
                   ) : null}
                   <div className="pointer-events-none min-w-0 flex-1" />

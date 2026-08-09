@@ -30,6 +30,7 @@ type DataTableBodyRowProps<TData> = {
   explicitCustomCellColumnIds: ReadonlySet<string>;
   getRowClassName: DataTableProps<TData>["getRowClassName"];
   isDraggable: boolean;
+  isDetailExpanded: boolean;
   isEditing: boolean;
   isExpanded: boolean;
   isInitialLoadingRow: boolean;
@@ -37,7 +38,7 @@ type DataTableBodyRowProps<TData> = {
   loadingState: DataTableRowLoadingState | undefined;
   onRowClick: DataTableProps<TData>["onRowClick"];
   originalRow: TData;
-  renderExpandedRow: DataTableProps<TData>["renderExpandedRow"];
+  detailPanel: DataTableProps<TData>["detailPanel"];
   row: Row<TData>;
   rowIndex: number;
   setDraftValues: React.Dispatch<React.SetStateAction<Record<string, unknown>>>;
@@ -56,6 +57,7 @@ function DataTableBodyRowInner<TData>({
   explicitCustomCellColumnIds,
   getRowClassName,
   isDraggable,
+  isDetailExpanded,
   isEditing,
   isExpanded,
   isInitialLoadingRow,
@@ -63,7 +65,7 @@ function DataTableBodyRowInner<TData>({
   loadingState,
   onRowClick,
   originalRow,
-  renderExpandedRow,
+  detailPanel,
   row,
   rowIndex,
   setDraftValues,
@@ -78,6 +80,7 @@ function DataTableBodyRowInner<TData>({
     <React.Fragment>
       <TableRow
         data-row-id={row.id}
+        data-tree-depth={isInitialLoadingRow ? undefined : row.depth}
         draggable={isInitialLoadingRow ? false : isDraggable}
         data-loading={loadingState?.isLoading || undefined}
         data-row-index={isInitialLoadingRow ? undefined : rowIndex}
@@ -209,6 +212,7 @@ function DataTableBodyRowInner<TData>({
                     : undefined
                 }
                 className="min-w-0 max-w-full"
+                style={row.depth > 0 && !isSelectionColumn && !isExpansionColumn && !isActionsColumn ? { paddingInlineStart: `${row.depth}rem` } : undefined}
               >
                 {loadingState?.isLoading ? (
                   (meta?.skeleton?.(cellContext) ??
@@ -253,7 +257,7 @@ function DataTableBodyRowInner<TData>({
           );
         })}
       </TableRow>
-      {!isInitialLoadingRow && renderExpandedRow && isExpanded ? (
+      {!isInitialLoadingRow && detailPanel && isDetailExpanded ? (
         <TableRow>
           <TableCell
             colSpan={Math.max(1, visibleLeafColumnCount)}
@@ -263,7 +267,7 @@ function DataTableBodyRowInner<TData>({
               uiClassNames.cellBorder,
             )}
           >
-            {renderExpandedRow({
+            {detailPanel.render({
               row: originalRow,
               rowId: row.id,
               tableRow: row,
@@ -297,7 +301,8 @@ function areDataTableBodyRowsEqual<TData>(
       next.visibleCells,
     ) &&
     previous.currentDensity === next.currentDensity &&
-    previous.renderExpandedRow === next.renderExpandedRow &&
+    previous.detailPanel === next.detailPanel &&
+    previous.isDetailExpanded === next.isDetailExpanded &&
     previous.onRowClick === next.onRowClick &&
     previous.dragAndDrop === next.dragAndDrop &&
     previous.getRowClassName === next.getRowClassName &&

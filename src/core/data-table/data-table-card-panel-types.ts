@@ -10,6 +10,7 @@ export type DataTableCardPanelProps<TData> = {
   cardRenderer: NonNullable<DataTableProps<TData>["cardRenderer"]>;
   containerWidth: number;
   currentRowSelection: Record<string, boolean>;
+  currentDetailExpanded: DataTableProps<TData>["expanded"];
   DataTableCardView: React.ElementType;
   DataTableEmptyState: React.ElementType;
   dragAndDrop: DataTableProps<TData>["dragAndDrop"];
@@ -24,7 +25,7 @@ export type DataTableCardPanelProps<TData> = {
   localSearchValue: string;
   onRowClick: DataTableProps<TData>["onRowClick"];
   renderedRows: Array<Row<TData>>;
-  renderExpandedRow: DataTableProps<TData>["renderExpandedRow"];
+  detailPanel: DataTableProps<TData>["detailPanel"];
   resolvedLabels: DataTableLabels;
   resolvedLoadingRowCount: number;
   rowActions: DataTableProps<TData>["rowActions"];

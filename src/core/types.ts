@@ -311,6 +311,14 @@ export type DataTableExpandedRowProps<TData> = {
   tableRow: Row<TData>;
 };
 
+/** A separately controlled application detail panel rendered beneath a row. */
+export type DataTableDetailPanel<TData> = {
+  expanded?: ExpandedState;
+  onExpandedChange?: (expanded: ExpandedState) => void;
+  getRowCanExpand?: (row: TData) => boolean;
+  render: (props: DataTableExpandedRowProps<TData>) => React.ReactNode;
+};
+
 export type DataTableCsvExportOptions<TData> = {
   filename?: string;
   includeHeaders?: boolean;
@@ -584,7 +592,20 @@ export type DataTableProps<TData> = {
   enableRowSelection?: boolean;
   expanded?: ExpandedState;
   onExpandedChange?: (expanded: ExpandedState) => void;
+  /** Resolve nested records for tree expansion. */
+  getSubRows?: (row: TData, index: number) => Array<TData> | undefined;
+  /** Keep expansion state controlled by the host; useful for server-loaded children. */
+  manualExpanding?: boolean;
+  /** Keep child rows with their parent when paginating. Defaults to TanStack's behavior. */
+  paginateExpandedRows?: boolean;
+  /** Include parents when a descendant matches a filter. */
+  filterFromLeafRows?: boolean;
+  /** Limit descendant traversal while filtering. */
+  maxLeafRowFilterDepth?: number;
+  /** New, independently controlled detail-panel contract. */
+  detailPanel?: DataTableDetailPanel<TData>;
   getRowCanExpand?: (row: TData) => boolean;
+  /** @deprecated Use `detailPanel={{ render }}`. Kept as a detail-panel bridge. */
   renderExpandedRow?: (
     props: DataTableExpandedRowProps<TData>,
   ) => React.ReactNode;
