@@ -21,6 +21,7 @@ All adapter entrypoints export the same table runtime API:
 Dedicated subpath exports are also available:
 
 - `data-table-pro/url-state`: `useDataTableUrlState`
+- `data-table-pro/data-source`: typed server data source hook with manual table props
 - `data-table-pro/adapter`: stable non-virtual adapter-authoring factory
 - `data-table-pro/adapter/virtual`: virtual adapter-authoring factory
 - `data-table-pro/advanced`: advanced composition hooks, panels, and adapter helpers
@@ -32,7 +33,7 @@ views, row/card virtualization, nested column groups, column
 sizing/order/pinning/visibility, versioned persistence, named saved views,
 versioned URL state, CSV export, inline row editing, density controls,
 loading/empty states, summary rows, alternate row shading, infinite loading,
-and host-owned
+typed server data sources, and host-owned
 drag/upload integrations. See
 [`docs/API.md`](./docs/API.md) for the complete contract.
 

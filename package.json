@@ -55,6 +55,10 @@
       "types": "./dist/url-state.d.ts",
       "import": "./dist/url-state.js"
     },
+    "./data-source": {
+      "types": "./dist/data-source.d.ts",
+      "import": "./dist/data-source.js"
+    },
     "./advanced": {
       "types": "./dist/advanced.d.ts",
       "import": "./dist/advanced.js"
