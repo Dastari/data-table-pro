@@ -25,6 +25,7 @@ type DataTableToolbarSectionProps<TData> = {
   onToolbarQueryValueChange: (value: string) => void;
   onViewModeChange: (viewMode: "table" | "card") => void;
   openFileDialog: (() => void) | undefined;
+  selectedRowIds: Array<string>;
   selectedRows: Array<TData>;
   selectionActions: DataTableProps<TData>["selectionActions"];
   showHiddenRows: boolean;
@@ -61,6 +62,7 @@ export function DataTableToolbarSection<TData>({
   onToolbarQueryValueChange,
   onViewModeChange,
   openFileDialog,
+  selectedRowIds,
   selectedRows,
   selectionActions,
   showHiddenRows,
@@ -90,6 +92,7 @@ export function DataTableToolbarSection<TData>({
         enableViewToggle={enableViewToggle}
         toolbarActions={effectiveToolbarActions}
         selectionActions={selectionActions}
+        selectedRowIds={selectedRowIds}
         selectedRows={selectedRows}
         showHiddenRows={showHiddenRows}
         hiddenRowsLabel={hiddenRowsLabel}

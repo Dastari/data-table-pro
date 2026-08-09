@@ -51,7 +51,10 @@ export function useDataTableInstance<TData>({
   defaultColumn,
   effectiveColumnVisibility,
   enableColumnResizing,
+  enableMultiRowSelection,
   enableRowSelection,
+  enableSubRowSelection,
+  getRowCanSelect,
   getRowCanExpand,
   globalFilterFn,
   globalFilterValue,
@@ -100,7 +103,14 @@ export function useDataTableInstance<TData>({
   defaultColumn: Partial<ColumnDef<TData, unknown>>;
   effectiveColumnVisibility: VisibilityState;
   enableColumnResizing: boolean;
+  enableMultiRowSelection: NonNullable<
+    DataTableProps<TData>["enableMultiRowSelection"]
+  >;
   enableRowSelection: boolean;
+  enableSubRowSelection: NonNullable<
+    DataTableProps<TData>["enableSubRowSelection"]
+  >;
+  getRowCanSelect: DataTableProps<TData>["getRowCanSelect"];
   getRowCanExpand: DataTableProps<TData>["getRowCanExpand"];
   globalFilterFn: FilterFnOption<TData> | undefined;
   globalFilterValue: string;
@@ -281,8 +291,17 @@ export function useDataTableInstance<TData>({
       manualPagination || infiniteScroll?.enabled
         ? undefined
         : getPaginationRowModel(),
-    enableRowSelection,
-    enableMultiRowSelection: enableRowSelection,
+    enableRowSelection: getRowCanSelect
+      ? (row) => enableRowSelection && getRowCanSelect(row.original)
+      : enableRowSelection,
+    enableMultiRowSelection:
+      typeof enableMultiRowSelection === "function"
+        ? (row) => enableMultiRowSelection(row.original)
+        : enableMultiRowSelection,
+    enableSubRowSelection:
+      typeof enableSubRowSelection === "function"
+        ? (row) => enableSubRowSelection(row.original)
+        : enableSubRowSelection,
     enableColumnResizing,
     columnResizeMode,
     columnResizeDirection: dir,

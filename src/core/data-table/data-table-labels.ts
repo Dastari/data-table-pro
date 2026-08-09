@@ -32,6 +32,7 @@ export const DATA_TABLE_DEFAULT_LABELS: ResolvedDataTableLabels = {
   nextPage: "Next page",
   lastPage: "Last page",
   selectAllVisibleRows: "Select all visible rows",
+  selectAllFilteredRows: "Select all filtered rows",
   selectRow: "Select row",
   selectCardRow: (rowId) => `Select row ${rowId}`,
   switchToTableView: "Switch to table view",

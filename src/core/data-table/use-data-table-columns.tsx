@@ -43,6 +43,7 @@ export function useDataTableColumns<TData>({
   labels,
   lastSelectedRowIdRef,
   renderExpandedRow,
+  rowSelectionSelectAllScope,
   rowActions,
   saveEdit,
   startEditingRow,
@@ -66,6 +67,9 @@ export function useDataTableColumns<TData>({
   labels: DataTableLabels;
   lastSelectedRowIdRef: React.MutableRefObject<string | null>;
   renderExpandedRow: DataTableProps<TData>["renderExpandedRow"];
+  rowSelectionSelectAllScope: NonNullable<
+    DataTableProps<TData>["rowSelectionSelectAllScope"]
+  >;
   rowActions: Array<DataTableRowAction<TData>>;
   saveEdit: (row: TData) => Promise<void>;
   startEditingRow: (row: TData, rowId: string) => void;
@@ -94,7 +98,9 @@ export function useDataTableColumns<TData>({
       const to = Math.max(startIndex, endIndex);
       tableInstance.setRowSelection((current) => {
         const next = { ...current };
-        for (const row of rows.slice(from, to + 1)) {
+        for (const row of rows.slice(from, to + 1).filter((item) =>
+          item.getCanSelect() && item.getCanMultiSelect()
+        )) {
           if (selected) {
             next[row.id] = true;
           } else {
@@ -162,28 +168,61 @@ export function useDataTableColumns<TData>({
         size: UTILITY_COLUMN_SIZE,
         minSize: UTILITY_COLUMN_SIZE,
         maxSize: UTILITY_COLUMN_SIZE,
-        header: ({ table }) => (
-          <div className="flex items-center justify-center">
-            <Checkbox
-              className="my-0.5"
-              checked={table.getIsAllPageRowsSelected()}
-              onCheckedChange={(checked: boolean | "indeterminate") => {
-                table.toggleAllPageRowsSelected(checked === true);
-              }}
-              aria-label={
-                labels.selectAllVisibleRows ??
-                DATA_TABLE_DEFAULT_LABELS.selectAllVisibleRows
-              }
-            />
-          </div>
-        ),
+        header: ({ table }) => {
+          const selectsFilteredRows = rowSelectionSelectAllScope === "filtered";
+          const selectableRows = (selectsFilteredRows
+            ? table.getFilteredRowModel().flatRows
+            : table.getRowModel().flatRows
+          ).filter((row) => row.getCanSelect() && row.getCanMultiSelect());
+          const allSelected =
+            selectableRows.length > 0 &&
+            selectableRows.every((row) => row.getIsSelected());
+          const someSelected = selectableRows.some((row) => row.getIsSelected());
+          const label = selectsFilteredRows
+            ? (labels.selectAllFilteredRows ??
+              DATA_TABLE_DEFAULT_LABELS.selectAllFilteredRows)
+            : (labels.selectAllVisibleRows ??
+              DATA_TABLE_DEFAULT_LABELS.selectAllVisibleRows);
+
+          if (selectableRows.length === 0) {
+            return <span className="sr-only">{label}</span>;
+          }
+
+          return (
+            <div className="flex items-center justify-center">
+              <Checkbox
+                className="my-0.5"
+                checked={allSelected ? true : someSelected ? "indeterminate" : false}
+                onCheckedChange={(checked: boolean | "indeterminate") => {
+                  table.setRowSelection((current) => {
+                    const next = { ...current };
+                    for (const row of selectableRows) {
+                      if (checked === true) {
+                        next[row.id] = true;
+                      } else {
+                        delete next[row.id];
+                      }
+                    }
+                    return next;
+                  });
+                }}
+                aria-label={label}
+              />
+            </div>
+          );
+        },
         cell: ({ row }) => (
           <div className="flex items-center justify-center">
             <Checkbox
               className="my-0.5"
               checked={row.getIsSelected()}
+              disabled={!row.getCanSelect()}
               onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
-                if (!event.shiftKey || !lastSelectedRowIdRef.current) {
+                if (
+                  !event.shiftKey ||
+                  !lastSelectedRowIdRef.current ||
+                  !row.getCanMultiSelect()
+                ) {
                   lastSelectedRowIdRef.current = row.id;
                   return;
                 }
@@ -290,6 +329,7 @@ export function useDataTableColumns<TData>({
     labels,
     lastSelectedRowIdRef,
     renderExpandedRow,
+    rowSelectionSelectAllScope,
     rowActions,
     saveEdit,
     selectRowRange,

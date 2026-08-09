@@ -50,6 +50,7 @@ type DataTableToolbarProps<TData> = {
   toolbarActions: Array<DataTableToolbarAction<TData>>;
   selectionActions: Array<DataTableSelectionAction<TData>>;
   selectedRows: Array<TData>;
+  selectedRowIds: Array<string>;
   showHiddenRows: boolean;
   hiddenRowsLabel?: string;
   onShowHiddenRowsChange?: (showHiddenRows: boolean) => void;
@@ -106,6 +107,7 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
     toolbarActions,
     selectionActions,
     selectedRows,
+    selectedRowIds,
     showHiddenRows,
     hiddenRowsLabel,
     onShowHiddenRowsChange,
@@ -146,7 +148,7 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
     const hasVisibleSearch = showSearch;
     const hasVisiblePrimaryActions = showActions && primaryActions.length > 0;
     const hasVisibleSelectionActions =
-      selectedRows.length > 0 && selectionActions.length > 0;
+      selectedRowIds.length > 0 && selectionActions.length > 0;
     const hasVisibleOptions =
       showOptions &&
       (columnVisibilityOptions.some((column) => column.canHide) ||
@@ -160,7 +162,7 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
     const hasVisibleCustomToolbar = showCustomToolbar && Boolean(customToolbar);
     const hasVisibleCompactToolbar =
       showCustomToolbar && Boolean(compactToolbar ?? customToolbar);
-    const selectedRowCountLabel = labels.selectedRows(selectedRows.length);
+    const selectedRowCountLabel = labels.selectedRows(selectedRowIds.length);
 
     React.useEffect(() => {
       if (!isCompactSearchVisible) {
@@ -337,19 +339,23 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
               data-dtp-slot="data-table-toolbar-end-controls"
               className="flex shrink-0 items-center gap-2"
             >
-              {selectedRows.length ? (
+              {selectedRowIds.length ? (
                 <div
                   className={`hidden text-sm @min-[768px]/data-table:block ${uiClassNames.mutedText ?? "opacity-70"}`}
                 >
                   {selectedRowCountLabel}
                 </div>
               ) : null}
-              {selectedRows.length
+              {selectedRowIds.length
                 ? selectionActions.map((action) => {
                     const Icon = action.icon;
+                    const context = {
+                      rows: selectedRows,
+                      rowIds: selectedRowIds,
+                    };
                     const disabled =
                       typeof action.disabled === "function"
-                        ? action.disabled(selectedRows)
+                        ? action.disabled(selectedRows, context)
                         : action.disabled;
 
                     return (
@@ -362,7 +368,7 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
                             className={compactToolbarIconButtonClassName}
                             disabled={disabled}
                             onClick={() => {
-                              void action.onClick({ rows: selectedRows });
+                              void action.onClick(context);
                             }}
                             aria-label={action.label}
                           >

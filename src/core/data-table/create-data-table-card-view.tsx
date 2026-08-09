@@ -257,7 +257,13 @@ export function createDataTableCardView(
                   isSelected,
                   onSelectedChange: (nextValue) => {
                     onRowSelectionChange(
-                      updateRowSelection(rowSelection, rowId, nextValue),
+                      updateRowSelection(
+                        rowSelection,
+                        rowId,
+                        nextValue,
+                        row.getCanSelect(),
+                        row.getCanMultiSelect(),
+                      ),
                     );
                   },
                   actions: rowActions,
@@ -286,6 +292,7 @@ export function createDataTableCardView(
                     >
                       <Checkbox
                         checked={isSelected}
+                        disabled={!row.getCanSelect()}
                         aria-label={(
                           labels.selectCardRow ??
                           DATA_TABLE_DEFAULT_LABELS.selectCardRow
@@ -296,6 +303,8 @@ export function createDataTableCardView(
                               rowSelection,
                               rowId,
                               checked === true,
+                              row.getCanSelect(),
+                              row.getCanMultiSelect(),
                             ),
                           );
                         }}
@@ -373,12 +382,20 @@ function updateRowSelection(
   rowSelection: Record<string, boolean>,
   rowId: string,
   isSelected: boolean,
+  canSelect: boolean,
+  canMultiSelect: boolean,
 ) {
+  if (!canSelect) {
+    return rowSelection;
+  }
+
   if (isSelected) {
-    return {
-      ...rowSelection,
-      [rowId]: true,
-    };
+    return canMultiSelect
+      ? {
+          ...rowSelection,
+          [rowId]: true,
+        }
+      : { [rowId]: true };
   }
 
   if (!rowSelection[rowId]) {

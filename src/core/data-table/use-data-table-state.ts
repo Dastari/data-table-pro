@@ -423,6 +423,13 @@ export function useDataTableState<TData>({
       .map(([rowId]) => rowById.get(rowId))
       .filter((row): row is TData => Boolean(row));
   }, [currentRowSelection, rowById, shouldResolveSelectedRows]);
+  const selectedRowIds = React.useMemo(
+    () =>
+      Object.entries(currentRowSelection).flatMap(([rowId, selected]) =>
+        selected ? [rowId] : [],
+      ),
+    [currentRowSelection],
+  );
 
   return {
     containerWidth,
@@ -446,6 +453,7 @@ export function useDataTableState<TData>({
     localSearchValue,
     resolvedLoadingRowCount,
     resolvedToolbarQueryPlaceholder,
+    selectedRowIds,
     selectedRows,
     setCurrentColumnFilters,
     setCurrentColumnOrder,

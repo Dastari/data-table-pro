@@ -128,6 +128,10 @@ export function createDataTableWithPanels(
     rowSelection,
     onRowSelectionChange,
     enableRowSelection = false,
+    enableMultiRowSelection = true,
+    enableSubRowSelection = true,
+    getRowCanSelect,
+    rowSelectionSelectAllScope = "page",
     expanded,
     onExpandedChange,
     getRowCanExpand,
@@ -414,6 +418,7 @@ export function createDataTableWithPanels(
       localSearchValue,
       resolvedLoadingRowCount,
       resolvedToolbarQueryPlaceholder,
+      selectedRowIds,
       selectedRows,
       setCurrentColumnFilters,
       setCurrentColumnOrder,
@@ -528,6 +533,7 @@ export function createDataTableWithPanels(
       labels: resolvedLabels,
       lastSelectedRowIdRef,
       renderExpandedRow,
+      rowSelectionSelectAllScope,
       rowActions: guardedRowActions,
       saveEdit,
       startEditingRow,
@@ -570,6 +576,9 @@ export function createDataTableWithPanels(
       effectiveColumnVisibility,
       enableColumnResizing,
       enableRowSelection,
+      enableMultiRowSelection,
+      enableSubRowSelection,
+      getRowCanSelect,
       getRowCanExpand,
       globalFilterFn,
       globalFilterValue,
@@ -1073,6 +1082,7 @@ export function createDataTableWithPanels(
                   onToolbarQueryValueChange={setLocalSearchValue}
                   onViewModeChange={handleViewModeChange}
                   openFileDialog={fileUpload ? openFileDialog : undefined}
+                  selectedRowIds={selectedRowIds}
                   selectedRows={selectedRows}
                   selectionActions={guardedSelectionActions}
                   showHiddenRows={currentShowHiddenRows}

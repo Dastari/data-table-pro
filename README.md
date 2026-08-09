@@ -43,7 +43,7 @@ drag/upload integrations. See
 - React peers are now `react@^19.2.0` and `react-dom@^19.2.0`
 - `nuqs` is an optional peer used only by `data-table-pro/url-state`
 - toolbar search now filters client-side tables by default; disable with `manualFiltering` or `enableToolbarQueryFiltering={false}`
-- column filters, CSV export, row expansion, density, column pinning/reordering, labels, and column preference persistence were added
+- column filters, CSV export, row expansion, density, column pinning/reordering, selection policies, labels, and column preference persistence were added
 
 ## 4.0.0 Compatibility
 

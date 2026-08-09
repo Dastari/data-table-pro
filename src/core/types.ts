@@ -188,14 +188,26 @@ export type DataTableToolbarAction<TData> = {
   disabled?: boolean;
 };
 
+export type DataTableSelectionActionContext<TData> = {
+  /** Selected row objects that are present in the currently loaded data. */
+  rows: Array<TData>;
+  /** Every selected row id, including ids retained across server pages. */
+  rowIds: Array<string>;
+};
+
 export type DataTableSelectionAction<TData> = {
   key: string;
   label: string;
   icon?: React.ComponentType<{ className?: string }>;
   iconOnly?: boolean;
-  onClick: (context: { rows: Array<TData> }) => void | Promise<void>;
+  onClick: (context: DataTableSelectionActionContext<TData>) => void | Promise<void>;
   variant?: "default" | "secondary" | "outline" | "ghost" | "destructive";
-  disabled?: boolean | ((rows: Array<TData>) => boolean);
+  disabled?:
+    | boolean
+    | ((
+        rows: Array<TData>,
+        context: DataTableSelectionActionContext<TData>,
+      ) => boolean);
 };
 
 export type DataTableRowAction<TData> = {
@@ -504,6 +516,7 @@ export type DataTableLabels = {
   nextPage: string;
   lastPage: string;
   selectAllVisibleRows?: string;
+  selectAllFilteredRows?: string;
   selectRow?: string;
   selectCardRow?: (rowId: string) => string;
   switchToTableView?: string;
@@ -582,6 +595,14 @@ export type DataTableProps<TData> = {
   rowSelection?: Record<string, boolean>;
   onRowSelectionChange?: (rowSelection: Record<string, boolean>) => void;
   enableRowSelection?: boolean;
+  /** Allows multiple selected rows globally or per row. Defaults to true. */
+  enableMultiRowSelection?: boolean | ((row: TData) => boolean);
+  /** Cascades parent selection to sub-rows globally or per row. Defaults to true. */
+  enableSubRowSelection?: boolean | ((row: TData) => boolean);
+  /** Prevents individual rows from being selected. */
+  getRowCanSelect?: (row: TData) => boolean;
+  /** Select-all affects the current page or all loaded filtered rows. */
+  rowSelectionSelectAllScope?: "page" | "filtered";
   expanded?: ExpandedState;
   onExpandedChange?: (expanded: ExpandedState) => void;
   getRowCanExpand?: (row: TData) => boolean;

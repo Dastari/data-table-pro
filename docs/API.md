@@ -611,7 +611,18 @@ Removed in `2.0.1`:
 | `rowSelection` | `Record<string, boolean>` | internal state | Controlled selection state keyed by row ID. |
 | `onRowSelectionChange` | `(rowSelection: Record<string, boolean>) => void` | `undefined` | Selection change callback. |
 | `enableRowSelection` | `boolean` | `false` | Enables checkbox selection column and card selection affordances. |
-| `selectionActions` | `Array<DataTableSelectionAction<TData>>` | `[]` | Toolbar actions shown when rows are selected. |
+| `enableMultiRowSelection` | `boolean \| ((row: TData) => boolean)` | `true` | Enables multi-select globally or for individual rows. Set `false` for radio-like single selection. |
+| `enableSubRowSelection` | `boolean \| ((row: TData) => boolean)` | `true` | Controls whether selecting a parent cascades to its sub-rows. |
+| `getRowCanSelect` | `(row: TData) => boolean` | all rows | Disables selection for individual rows. |
+| `rowSelectionSelectAllScope` | `"page" \| "filtered"` | `"page"` | Selects the current page or every loaded row in the filtered client row model. Server-wide selection remains application-owned. |
+| `selectionActions` | `Array<DataTableSelectionAction<TData>>` | `[]` | Toolbar actions shown when row IDs are selected. The callback receives `{ rows, rowIds }`; `rows` contains loaded records while `rowIds` preserves selections across manual/server pages. |
+
+Selection state is keyed by stable row ID and is not discarded merely because
+a server page is no longer loaded. Use `rowIds` in a selection action for
+server-owned bulk operations; the accompanying `rows` array intentionally
+contains only records available to the current client. In manual pagination,
+`"filtered"` select-all can only select loaded records—it does not imply an
+unbounded server query.
 
 ### Row and toolbar actions
 

@@ -1308,6 +1308,71 @@ for (const suite of suites) {
       expect(getSelectAll().getAttribute("aria-checked")).toBe("false");
     });
 
+    it("supports single-row selection mode", () => {
+      renderTable({
+        data: [
+          { id: "1", name: "Ada" },
+          { id: "2", name: "Grace" },
+        ],
+        enableRowSelection: true,
+        enableMultiRowSelection: false,
+      });
+
+      const rowCheckboxes = screen.getAllByRole("checkbox", {
+        name: "Select row",
+      });
+      expect(
+        screen.queryByRole("checkbox", { name: "Select all visible rows" }),
+      ).toBeNull();
+      fireEvent.click(rowCheckboxes[0]);
+      fireEvent.click(
+        screen.getAllByRole("checkbox", { name: "Select row" })[1],
+      );
+
+      const updatedCheckboxes = screen.getAllByRole("checkbox", {
+        name: "Select row",
+      });
+      expect(updatedCheckboxes[0]?.getAttribute("aria-checked")).toBe("false");
+      expect(updatedCheckboxes[1]?.getAttribute("aria-checked")).toBe("true");
+    });
+
+    it("disables selection for rows rejected by the selectability predicate", () => {
+      renderTable({
+        data: [
+          { id: "1", name: "Ada" },
+          { id: "2", name: "Grace" },
+        ],
+        enableRowSelection: true,
+        getRowCanSelect: (row) => row.name !== "Grace",
+      });
+
+      const rowCheckboxes = screen.getAllByRole("checkbox", {
+        name: "Select row",
+      });
+      expect(rowCheckboxes[0]?.hasAttribute("disabled")).toBe(false);
+      expect(rowCheckboxes[1]?.hasAttribute("disabled")).toBe(true);
+    });
+
+    it("can select every loaded filtered row across client pages", () => {
+      renderTable({
+        data: [
+          { id: "1", name: "Ada" },
+          { id: "2", name: "Grace" },
+          { id: "3", name: "Linus" },
+        ],
+        enableRowSelection: true,
+        pageSize: 1,
+        rowSelectionSelectAllScope: "filtered",
+        rowsPerPageOptions: [1],
+      });
+
+      fireEvent.click(
+        screen.getByRole("checkbox", { name: "Select all filtered rows" }),
+      );
+
+      expect(screen.getByText("3 records selected")).not.toBeNull();
+    });
+
     it("keeps icon-only toolbar actions square", () => {
       renderTable({
         toolbarActions: [
@@ -1863,6 +1928,28 @@ for (const suite of suites) {
       expect(onRowSelectionChange).toHaveBeenCalledWith({});
     });
 
+    it("enforces single selection in card mode", () => {
+      const { container } = renderTable({
+        data: [
+          { id: "1", name: "Ada" },
+          { id: "2", name: "Grace" },
+        ],
+        viewMode: "card",
+        cardRenderer: ({ row }) => <div>{row.name}</div>,
+        enableRowSelection: true,
+        enableMultiRowSelection: false,
+      });
+
+      fireEvent.click(screen.getByRole("checkbox", { name: "Select row 1" }));
+      fireEvent.click(screen.getByRole("checkbox", { name: "Select row 2" }));
+
+      const cardItems = container.querySelectorAll(
+        '[data-dtp-slot="data-table-card-item"]',
+      );
+      expect(cardItems[0]?.getAttribute("data-state")).toBeNull();
+      expect(cardItems[1]?.getAttribute("data-state")).toBe("selected");
+    });
+
     it("marks the active view-toggle button as pressed", () => {
       renderTable({
         viewMode: "card",
@@ -2125,6 +2212,27 @@ for (const suite of suites) {
         ],
       });
 
+      expect(screen.getByText("1 record selected")).not.toBeNull();
+    });
+
+    it("passes retained server-page row ids to selection actions", () => {
+      const onArchive = vi.fn();
+
+      renderTable({
+        enableRowSelection: true,
+        rowSelection: { remote: true },
+        selectionActions: [
+          {
+            key: "archive",
+            label: "Archive",
+            onClick: onArchive,
+          },
+        ],
+      });
+
+      fireEvent.click(screen.getByRole("button", { name: "Archive" }));
+
+      expect(onArchive).toHaveBeenCalledWith({ rows: [], rowIds: ["remote"] });
       expect(screen.getByText("1 record selected")).not.toBeNull();
     });
 
