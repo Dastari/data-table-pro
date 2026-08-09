@@ -77,6 +77,7 @@ export type DataTableTablePanelProps<TData> = {
   sentinelRef: React.RefObject<HTMLDivElement | null>;
   setDraftValues: React.Dispatch<React.SetStateAction<Record<string, unknown>>>;
   shouldRenderInitialLoading: boolean;
+  stateOverlayNode?: React.ReactNode;
   stickyHeader: boolean;
   stripedRows: boolean;
   summaryRows: NonNullable<DataTableProps<TData>["summaryRows"]>;
@@ -152,6 +153,7 @@ export function DataTableTablePanel<TData>({
   sentinelRef,
   setDraftValues,
   shouldRenderInitialLoading,
+  stateOverlayNode,
   stickyHeader,
   stripedRows,
   summaryRows,
@@ -429,7 +431,7 @@ export function DataTableTablePanel<TData>({
     <div
       data-dtp-slot="data-table-table-shell"
       className={cn(
-        "box-border border-2 border-transparent transition-colors",
+        "relative box-border border-2 border-transparent transition-colors",
         flexGrow ? "flex min-h-0 flex-1 flex-col" : "h-full",
         dragAndDrop?.isDragging &&
           (uiClassNames.dragActive ?? "rounded-md border-dashed"),
@@ -647,6 +649,7 @@ export function DataTableTablePanel<TData>({
           <ScrollBar orientation="horizontal" />
         </ScrollArea>
       </div>
+      {stateOverlayNode}
     </div>
   );
 }

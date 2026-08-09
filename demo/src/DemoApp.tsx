@@ -405,6 +405,8 @@ export function DemoApp() {
               enableRowSelection
               interactiveGrid
               enableCellSelection
+              enablePrint
+              enableFullscreen
               toolbarActions={[
                 {
                   key: "refresh",

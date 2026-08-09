@@ -701,10 +701,17 @@ the imperative copy API; `includeHeaders: true` remains available.
 | `hasNextPage` | `boolean` | `false` | Enables the next-page control when manual pagination has no known `totalRowCount` or `pageCount`. |
 | `pageIndex` | `number` | internal state | Controlled zero-based page index. |
 | `pageSize` | `number` | internal state | Controlled page size. |
+| `autoPageSize` | `boolean \| DataTableAutoPageSizeConfig` | `false` | Opt-in viewport-driven page size. It measures the scroll viewport/row height and resets to page 1 before reporting a size change. |
 | `onPageIndexChange` | `(pageIndex: number) => void` | `undefined` | Page-change callback. |
 | `onPageSizeChange` | `(pageSize: number) => void` | `undefined` | Page-size callback. |
 | `pageCount` | `number` | derived for client data | Known total page count in manual mode. Omit with `totalRowCount` to use unknown-total pagination. |
 | `manualPagination` | `boolean` | `false` | Disables client-side pagination row model. |
+
+`autoPageSize` is disabled by default and is safe with controlled pagination:
+when a measurement changes the size it calls `onPageIndexChange(0)` first (if
+needed), then `onPageSizeChange(nextSize)`. The parent remains responsible for
+feeding controlled values back. It uses `ResizeObserver` only after mount and
+falls back to a one-time estimate when the observer is unavailable.
 
 ### Selection props
 
@@ -781,6 +788,9 @@ discarded.
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `emptyState` | `React.ReactNode \| ((context: DataTableEmptyStateContext<TData>) => React.ReactNode)` | built-in empty state | Custom empty state for both table and card modes. |
+| `stateOverlay` | `DataTableStateOverlay<TData>` | `undefined` | Explicit empty/error/retry contract. `empty` supersedes `emptyState`; `error` overlays the current table/card, and `onRetry` is routed through `onActionError`. |
+| `enablePrint` | `boolean` | `false` | Adds a trailing toolbar control for `apiRef.current.print()`. |
+| `enableFullscreen` | `boolean` | `false` | Adds a trailing toolbar control for `apiRef.current.toggleFullscreen()`. |
 | `isLoading` | `boolean` | `false` | Renders initial skeleton rows or cards when `data` is empty and loading. |
 | `loadingRowCount` | `number` | `min(5, pageSize)` | Number of synthetic skeleton rows or cards to render for initial loading. |
 | `getRowLoadingState` | `(row: TData, index: number) => boolean \| DataTableRowLoadingState` | `undefined` | Per-row loading and skeleton override hook for real rows that already exist. |
