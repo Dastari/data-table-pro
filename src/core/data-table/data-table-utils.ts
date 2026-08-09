@@ -2,6 +2,7 @@ import type {
   Column,
   ColumnDef,
   ColumnPinningState,
+  ExpandedState,
   Row,
   Table as TanStackTable,
 } from "@tanstack/react-table";
@@ -19,6 +20,28 @@ import { cn } from "../../lib/utils";
 const DATA_TABLE_LOADING_ROW = Symbol("data-table-loading-row");
 
 export const UTILITY_COLUMN_SIZE = 50;
+
+export function toggleDataTableExpandedState(
+  current: ExpandedState,
+  rowId: string,
+  loadedRowIds: Array<string>,
+): ExpandedState {
+  if (current === true) {
+    return Object.fromEntries(
+      loadedRowIds.flatMap((loadedRowId) =>
+        loadedRowId === rowId ? [] : [[loadedRowId, true]],
+      ),
+    );
+  }
+
+  const next = { ...current };
+  if (next[rowId]) {
+    delete next[rowId];
+  } else {
+    next[rowId] = true;
+  }
+  return next;
+}
 
 type DataTableLoadingRow = {
   [DATA_TABLE_LOADING_ROW]: true;

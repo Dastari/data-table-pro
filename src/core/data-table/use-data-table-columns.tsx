@@ -1,8 +1,9 @@
 import * as React from "react";
-import type { ColumnDef, Table as TanStackTable } from "@tanstack/react-table";
+import type { ColumnDef, ExpandedState, OnChangeFn, Table as TanStackTable } from "@tanstack/react-table";
 import { IconChevronDown } from "../icons";
 import type {
   DataTableEditableRowsConfig,
+  DataTableDetailPanel,
   DataTableLabels,
   DataTableProps,
   DataTableRowAction,
@@ -13,6 +14,7 @@ import {
   UTILITY_COLUMN_SIZE,
   decorateFilterableColumn,
   isDataTableLoadingRow,
+  toggleDataTableExpandedState,
 } from "./data-table-utils";
 import { DATA_TABLE_DEFAULT_LABELS } from "./data-table-labels";
 
@@ -38,11 +40,13 @@ export function useDataTableColumns<TData>({
   editableRows,
   editingRowId,
   enableRowSelection,
-  getRowCanExpand,
+  hasTreeExpansion,
   isSavingEdit,
   labels,
   lastSelectedRowIdRef,
-  renderExpandedRow,
+  detailPanel,
+  detailExpanded,
+  onDetailExpandedChange,
   rowSelectionSelectAllScope,
   rowActions,
   saveEdit,
@@ -62,11 +66,13 @@ export function useDataTableColumns<TData>({
   editableRows: DataTableProps<TData>["editableRows"];
   editingRowId: string | null;
   enableRowSelection: boolean;
-  getRowCanExpand: DataTableProps<TData>["getRowCanExpand"];
+  hasTreeExpansion: boolean;
   isSavingEdit: boolean;
   labels: DataTableLabels;
   lastSelectedRowIdRef: React.MutableRefObject<string | null>;
-  renderExpandedRow: DataTableProps<TData>["renderExpandedRow"];
+  detailPanel: DataTableDetailPanel<TData> | undefined;
+  detailExpanded: ExpandedState;
+  onDetailExpandedChange: OnChangeFn<ExpandedState>;
   rowSelectionSelectAllScope: NonNullable<
     DataTableProps<TData>["rowSelectionSelectAllScope"]
   >;
@@ -98,9 +104,11 @@ export function useDataTableColumns<TData>({
       const to = Math.max(startIndex, endIndex);
       tableInstance.setRowSelection((current) => {
         const next = { ...current };
-        for (const row of rows.slice(from, to + 1).filter((item) =>
-          item.getCanSelect() && item.getCanMultiSelect()
-        )) {
+        for (const row of rows
+          .slice(from, to + 1)
+          .filter(
+            (item) => item.getCanSelect() && item.getCanMultiSelect(),
+          )) {
           if (selected) {
             next[row.id] = true;
           } else {
@@ -116,43 +124,88 @@ export function useDataTableColumns<TData>({
   return React.useMemo<Array<ColumnDef<TData, unknown>>>(() => {
     const defs: Array<ColumnDef<TData, unknown>> = [];
 
-    if (renderExpandedRow) {
+    if (hasTreeExpansion || detailPanel) {
+      const expansionColumnSize =
+        hasTreeExpansion && detailPanel ? 80 : UTILITY_COLUMN_SIZE;
       defs.push({
         id: "__expand__",
         enableResizing: false,
         enableSorting: false,
         enableHiding: false,
-        size: UTILITY_COLUMN_SIZE,
-        minSize: UTILITY_COLUMN_SIZE,
-        maxSize: UTILITY_COLUMN_SIZE,
+        size: expansionColumnSize,
+        minSize: expansionColumnSize,
+        maxSize: expansionColumnSize,
         header: () => <span className="sr-only">{labels.expandRow}</span>,
-        cell: ({ row }) => {
-          const canExpand =
-            getRowCanExpand?.(row.original) ?? Boolean(renderExpandedRow);
-          if (!canExpand) {
+        cell: ({ row, table }) => {
+          const canExpandTree = hasTreeExpansion && row.getCanExpand();
+          const canExpandDetail = Boolean(
+            detailPanel && (detailPanel.getRowCanExpand?.(row.original) ?? true),
+          );
+          if (!canExpandTree && !canExpandDetail) {
             return null;
           }
 
-          const isExpanded = row.getIsExpanded();
+          const isTreeExpanded = row.getIsExpanded();
+          const isDetailExpanded =
+            detailExpanded === true || Boolean(detailExpanded[row.id]);
           return (
-            <div className="flex items-center justify-center">
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                aria-label={
-                  isExpanded ? labels.collapseRow : labels.expandRow
-                }
-                aria-expanded={isExpanded}
-                onClick={() => row.toggleExpanded()}
-              >
-                <IconChevronDown
-                  className={cn(
-                    "transition-transform",
-                    isExpanded ? "rotate-0" : "-rotate-90",
-                  )}
-                />
-              </Button>
+            <div className="flex items-center justify-center gap-1">
+              {canExpandTree ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label={
+                    isTreeExpanded ? labels.collapseRow : labels.expandRow
+                  }
+                  aria-expanded={isTreeExpanded}
+                  data-tree-toggle="true"
+                  onClick={() => row.toggleExpanded()}
+                >
+                  <IconChevronDown
+                    className={cn(
+                      "transition-transform",
+                      isTreeExpanded ? "rotate-0" : "-rotate-90",
+                    )}
+                  />
+                </Button>
+              ) : null}
+              {canExpandDetail ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label={
+                    isDetailExpanded
+                      ? hasTreeExpansion
+                        ? (labels.collapseRowDetails ??
+                          DATA_TABLE_DEFAULT_LABELS.collapseRowDetails)
+                        : labels.collapseRow
+                      : hasTreeExpansion
+                        ? (labels.expandRowDetails ??
+                          DATA_TABLE_DEFAULT_LABELS.expandRowDetails)
+                        : labels.expandRow
+                  }
+                  aria-expanded={isDetailExpanded}
+                  data-detail-toggle="true"
+                  onClick={() => {
+                    onDetailExpandedChange((current) =>
+                      toggleDataTableExpandedState(
+                        current,
+                        row.id,
+                        table.getCoreRowModel().flatRows.map((item) => item.id),
+                      ),
+                    );
+                  }}
+                >
+                  <IconChevronDown
+                    className={cn(
+                      "transition-transform",
+                      isDetailExpanded ? "rotate-0" : "-rotate-90",
+                    )}
+                  />
+                </Button>
+              ) : null}
             </div>
           );
         },
@@ -322,13 +375,15 @@ export function useDataTableColumns<TData>({
     cancelEditing,
     columns,
     editableRows,
+    detailExpanded,
+    detailPanel,
     editingRowId,
     enableRowSelection,
-    getRowCanExpand,
+    hasTreeExpansion,
     isSavingEdit,
     labels,
     lastSelectedRowIdRef,
-    renderExpandedRow,
+    onDetailExpandedChange,
     rowSelectionSelectAllScope,
     rowActions,
     saveEdit,

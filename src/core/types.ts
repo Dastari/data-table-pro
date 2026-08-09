@@ -241,6 +241,10 @@ export type DataTableToolbarVisibility = {
 export type DataTableCardRendererProps<TData> = {
   row: TData;
   rowId: string;
+  depth: number;
+  canExpandSubRows: boolean;
+  isSubRowsExpanded: boolean;
+  toggleSubRowsExpanded: () => void;
   isSelected: boolean;
   onSelectedChange: (nextValue: boolean) => void;
   actions: Array<DataTableRowAction<TData>>;
@@ -321,6 +325,14 @@ export type DataTableExpandedRowProps<TData> = {
   row: TData;
   rowId: string;
   tableRow: Row<TData>;
+};
+
+/** A separately controlled application detail panel rendered beneath a row. */
+export type DataTableDetailPanel<TData> = {
+  expanded?: ExpandedState;
+  onExpandedChange?: (expanded: ExpandedState) => void;
+  getRowCanExpand?: (row: TData) => boolean;
+  render: (props: DataTableExpandedRowProps<TData>) => React.ReactNode;
 };
 
 export type DataTableCsvExportOptions<TData> = {
@@ -531,6 +543,8 @@ export type DataTableLabels = {
   cancelEdit: string;
   expandRow: string;
   collapseRow: string;
+  expandRowDetails?: string;
+  collapseRowDetails?: string;
   exportCsv: string;
   density: string;
   compactDensity: string;
@@ -605,7 +619,20 @@ export type DataTableProps<TData> = {
   rowSelectionSelectAllScope?: "page" | "filtered";
   expanded?: ExpandedState;
   onExpandedChange?: (expanded: ExpandedState) => void;
+  /** Resolve nested records for tree expansion. */
+  getSubRows?: (row: TData, index: number) => Array<TData> | undefined;
+  /** Keep expansion state controlled by the host; useful for server-loaded children. */
+  manualExpanding?: boolean;
+  /** Keep child rows with their parent when paginating. Defaults to TanStack's behavior. */
+  paginateExpandedRows?: boolean;
+  /** Include parents when a descendant matches a filter. */
+  filterFromLeafRows?: boolean;
+  /** Limit descendant traversal while filtering. */
+  maxLeafRowFilterDepth?: number;
+  /** New, independently controlled detail-panel contract. */
+  detailPanel?: DataTableDetailPanel<TData>;
   getRowCanExpand?: (row: TData) => boolean;
+  /** @deprecated Use `detailPanel={{ render }}`. Kept as a detail-panel bridge. */
   renderExpandedRow?: (
     props: DataTableExpandedRowProps<TData>,
   ) => React.ReactNode;

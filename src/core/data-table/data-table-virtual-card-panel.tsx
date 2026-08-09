@@ -13,6 +13,7 @@ export function DataTableVirtualCardPanel<TData>({
   cardRenderer,
   containerWidth,
   currentRowSelection,
+  currentDetailExpanded,
   DataTableCardView,
   DataTableEmptyState,
   dragAndDrop,
@@ -27,12 +28,13 @@ export function DataTableVirtualCardPanel<TData>({
   localSearchValue,
   onRowClick,
   renderedRows,
-  renderExpandedRow,
+  detailPanel,
   resolvedLabels,
   resolvedLoadingRowCount,
   rowActions = [],
   ScrollArea,
   sentinelRef,
+  setCurrentDetailExpanded,
   setCurrentRowSelection,
   setEditingRowId,
   shouldRenderInitialLoading,
@@ -91,7 +93,9 @@ export function DataTableVirtualCardPanel<TData>({
       cardSizing={cardSizing}
       rowActions={rowActions}
       editableRows={editableRows}
-      renderExpandedRow={renderExpandedRow}
+      detailPanel={detailPanel}
+      detailExpanded={currentDetailExpanded}
+      onDetailExpandedChange={setCurrentDetailExpanded}
       hasCardTitle={hasCardTitle}
       rowSelection={currentRowSelection}
       onRowSelectionChange={setCurrentRowSelection}

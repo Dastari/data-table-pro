@@ -1,5 +1,5 @@
 import type * as React from "react";
-import type { Row } from "@tanstack/react-table";
+import type { ExpandedState, OnChangeFn, Row } from "@tanstack/react-table";
 import type { DataTableLabels, DataTableProps } from "../types";
 import type { DataTableUiClassNames, DataTableUiKit } from "../ui-kit";
 
@@ -10,6 +10,7 @@ export type DataTableCardPanelProps<TData> = {
   cardRenderer: NonNullable<DataTableProps<TData>["cardRenderer"]>;
   containerWidth: number;
   currentRowSelection: Record<string, boolean>;
+  currentDetailExpanded: ExpandedState;
   DataTableCardView: React.ElementType;
   DataTableEmptyState: React.ElementType;
   dragAndDrop: DataTableProps<TData>["dragAndDrop"];
@@ -24,13 +25,14 @@ export type DataTableCardPanelProps<TData> = {
   localSearchValue: string;
   onRowClick: DataTableProps<TData>["onRowClick"];
   renderedRows: Array<Row<TData>>;
-  renderExpandedRow: DataTableProps<TData>["renderExpandedRow"];
+  detailPanel: DataTableProps<TData>["detailPanel"];
   resolvedLabels: DataTableLabels;
   resolvedLoadingRowCount: number;
   rowActions: DataTableProps<TData>["rowActions"];
   ScrollArea: DataTableUiKit["ScrollArea"];
   sentinelRef: React.RefObject<HTMLDivElement | null>;
   setCurrentRowSelection: (rowSelection: Record<string, boolean>) => void;
+  setCurrentDetailExpanded: OnChangeFn<ExpandedState>;
   setEditingRowId: React.Dispatch<React.SetStateAction<string | null>>;
   shouldRenderInitialLoading: boolean;
   tableContainerClassName: string | undefined;

@@ -242,6 +242,7 @@ These are exported from the adapter entrypoints and from `data-table-pro/types`.
 - `DataTableCsvExportOptions`
 - `DataTableCsvExportScope`
 - `DataTableDensity`
+- `DataTableDetailPanel`
 - `DataTableDragAndDropConfig`
 - `DataTableEditableRowsConfig`
 - `DataTableEmptyStateContext`
@@ -653,10 +654,26 @@ interaction semantics.
 | `cardSizing` | `"fixed" \| "content" \| "fluid"` | `"fixed"` | Selects capped fixed tracks, renderer-sized wrapping items, or responsive stretched tracks. |
 | `cardGridClassName` | `string` | responsive auto-fit grid | Supported grid slot for card mode. Prefer this over app CSS selectors against internal scroll/card wrappers. |
 | `cardClassName` | `string` | `undefined` | Supported item slot for card mode card wrappers. |
-| `expanded` | `ExpandedState` | internal state | Controlled expanded row state. |
-| `onExpandedChange` | `(expanded: ExpandedState) => void` | `undefined` | Expanded state callback. |
-| `getRowCanExpand` | `(row: TData) => boolean` | any row when `renderExpandedRow` exists | Optional per-row expansion gate. |
-| `renderExpandedRow` | `(props: DataTableExpandedRowProps<TData>) => React.ReactNode` | `undefined` | Detail panel rendered below table rows or inside cards. |
+| `expanded` | `ExpandedState` | internal state | Controlled tree expansion state. |
+| `onExpandedChange` | `(expanded: ExpandedState) => void` | `undefined` | Tree expansion state callback. |
+| `getSubRows` | `(row, index) => Array<TData> \| undefined` | `undefined` | Resolves hierarchical child rows. |
+| `manualExpanding` | `boolean` | `false` | Keeps expansion state controlled by the host, for example while children are loaded remotely. |
+| `paginateExpandedRows` | `boolean` | TanStack default | Controls whether expanded descendants participate in pagination. |
+| `filterFromLeafRows` | `boolean` | `false` | Retains a parent when one of its descendants matches filtering. |
+| `maxLeafRowFilterDepth` | `number` | TanStack default | Caps descendant traversal during leaf-row filtering. |
+| `getRowCanExpand` | `(row: TData) => boolean` | child rows only | Optional tree or detail-panel expansion gate. |
+| `detailPanel` | `DataTableDetailPanel<TData>` | `undefined` | Independently controlled application detail panel rendered beneath a row or in cards. |
+| `renderExpandedRow` | `(props: DataTableExpandedRowProps<TData>) => React.ReactNode` | `undefined` | Deprecated compatibility bridge for `detailPanel={{ render }}`; existing usage retains its previous `expanded` state behavior. |
+
+Tree rows receive an accessible expand/collapse button and `data-tree-depth`.
+Nested first data cells are indented by depth. Use `detailPanel` when a table
+also has `getSubRows`; it deliberately has separate `expanded` state so opening
+application details does not expand or collapse the row's children. Card
+renderers receive `depth`, `canExpandSubRows`, `isSubRowsExpanded`, and
+`toggleSubRowsExpanded`, and the built-in card overlay provides tree and detail
+toggles. When deprecated `renderExpandedRow` is combined with `getSubRows`, it
+is treated as an independently controlled detail panel instead of being
+discarded.
 
 ### Empty and loading props
 

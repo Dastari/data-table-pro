@@ -29,6 +29,7 @@ import {
 } from "./data-table-saved-views";
 import { resolveDataTableLabels } from "./data-table-labels";
 import { useDataTableColumns } from "./use-data-table-columns";
+import { useControllableState } from "./use-controllable-state";
 import { useDataTableInstance } from "./use-data-table-instance";
 import { useDataTableScrollViewport } from "./use-data-table-scroll-viewport";
 import {
@@ -134,6 +135,12 @@ export function createDataTableWithPanels(
     rowSelectionSelectAllScope = "page",
     expanded,
     onExpandedChange,
+    getSubRows,
+    manualExpanding = false,
+    paginateExpandedRows,
+    filterFromLeafRows,
+    maxLeafRowFilterDepth,
+    detailPanel,
     getRowCanExpand,
     renderExpandedRow,
     columnOrder,
@@ -481,6 +488,28 @@ export function createDataTableWithPanels(
       toolbarQueryValue: resolvedToolbarQueryValue,
       viewMode: resolvedViewMode,
     });
+    const usesLegacyDetailPanelState = Boolean(
+      renderExpandedRow && !detailPanel && !getSubRows,
+    );
+    const resolvedDetailPanel =
+      detailPanel ??
+      (renderExpandedRow
+        ? {
+            getRowCanExpand: getSubRows ? undefined : getRowCanExpand,
+            render: renderExpandedRow,
+          }
+        : undefined);
+    const [currentDetailExpanded, setCurrentDetailExpanded] =
+      useControllableState({
+        defaultValue: () =>
+          usesLegacyDetailPanelState ? (initialState?.expanded ?? {}) : {},
+        onChange: usesLegacyDetailPanelState
+          ? setCurrentExpanded
+          : resolvedDetailPanel?.onExpandedChange,
+        value: usesLegacyDetailPanelState
+          ? currentExpanded
+          : resolvedDetailPanel?.expanded,
+      });
     const {
       cancelEditing,
       draftValues,
@@ -528,11 +557,13 @@ export function createDataTableWithPanels(
       editableRows,
       editingRowId,
       enableRowSelection,
-      getRowCanExpand,
+      hasTreeExpansion: Boolean(getSubRows),
       isSavingEdit,
       labels: resolvedLabels,
       lastSelectedRowIdRef,
-      renderExpandedRow,
+      detailPanel: resolvedDetailPanel,
+      detailExpanded: currentDetailExpanded,
+      onDetailExpandedChange: setCurrentDetailExpanded,
       rowSelectionSelectAllScope,
       rowActions: guardedRowActions,
       saveEdit,
@@ -580,6 +611,7 @@ export function createDataTableWithPanels(
       enableSubRowSelection,
       getRowCanSelect,
       getRowCanExpand,
+      getSubRows,
       globalFilterFn,
       globalFilterValue,
       hasNextPage,
@@ -590,6 +622,7 @@ export function createDataTableWithPanels(
       handleExpandedChange: setCurrentExpanded,
       infiniteScroll,
       manualFiltering,
+      manualExpanding,
       manualPagination,
       manualSorting,
       onActionError,
@@ -598,7 +631,9 @@ export function createDataTableWithPanels(
       pageCount,
       pageIndex: resolvedPageIndex,
       pageSize: resolvedPageSize,
-      renderExpandedRow,
+      paginateExpandedRows,
+      filterFromLeafRows,
+      maxLeafRowFilterDepth,
       setCurrentRowSelection,
       setCurrentSorting,
       setLocalColumnSizing,
@@ -619,7 +654,7 @@ export function createDataTableWithPanels(
       editableRows: Boolean(editableRows),
       enableRowSelection,
       hasRowActions: rowActions.length > 0,
-      hasRowExpansion: Boolean(renderExpandedRow),
+      hasRowExpansion: Boolean(getSubRows || resolvedDetailPanel),
       layoutMode,
       uiClassNames,
       visibleLeafColumns,
@@ -1107,6 +1142,7 @@ export function createDataTableWithPanels(
                   cardSizing={cardSizing}
                   cardRenderer={cardRenderer}
                   containerWidth={containerWidth}
+                  currentDetailExpanded={currentDetailExpanded}
                   currentRowSelection={currentRowSelection}
                   DataTableCardView={DataTableCardView}
                   DataTableEmptyState={DataTableEmptyState}
@@ -1122,12 +1158,13 @@ export function createDataTableWithPanels(
                   localSearchValue={localSearchValue}
                   onRowClick={guardedOnRowClick}
                   renderedRows={renderedRows}
-                  renderExpandedRow={renderExpandedRow}
+                  detailPanel={resolvedDetailPanel}
                   resolvedLabels={resolvedLabels}
                   resolvedLoadingRowCount={resolvedLoadingRowCount}
                   rowActions={guardedRowActions}
                   ScrollArea={ScrollArea}
                   sentinelRef={sentinelRef}
+                  setCurrentDetailExpanded={setCurrentDetailExpanded}
                   setCurrentRowSelection={setCurrentRowSelection}
                   setEditingRowId={setEditingRowId}
                   shouldRenderInitialLoading={shouldRenderInitialLoading}
@@ -1143,6 +1180,7 @@ export function createDataTableWithPanels(
                   columnLayouts={columnLayout.columnLayouts}
                   currentDensity={currentDensity}
                   columnGroupHeaderHeight={columnGroupHeaderHeight}
+                  currentDetailExpanded={currentDetailExpanded}
                   currentSorting={currentSorting}
                   dir={dir}
                   DataTableEmptyState={DataTableEmptyState}
@@ -1165,7 +1203,7 @@ export function createDataTableWithPanels(
                   onRowClick={guardedOnRowClick}
                   primeColumnForResize={primeColumnForResize}
                   renderedRows={renderedRows}
-                  renderExpandedRow={renderExpandedRow}
+                  detailPanel={resolvedDetailPanel}
                   reorderColumn={reorderColumn}
                   resetColumnSize={resetColumnSize}
                   resolvedLabels={resolvedLabels}

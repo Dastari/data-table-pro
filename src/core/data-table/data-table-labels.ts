@@ -47,6 +47,8 @@ export const DATA_TABLE_DEFAULT_LABELS: ResolvedDataTableLabels = {
   cancelEdit: "Cancel editing",
   expandRow: "Expand row",
   collapseRow: "Collapse row",
+  expandRowDetails: "Expand row details",
+  collapseRowDetails: "Collapse row details",
   exportCsv: "Export CSV",
   density: "Density",
   compactDensity: "Compact",

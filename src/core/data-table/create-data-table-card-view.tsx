@@ -1,10 +1,11 @@
 import * as React from "react";
-import type { Row } from "@tanstack/react-table";
+import type { ExpandedState, OnChangeFn, Row } from "@tanstack/react-table";
+import { IconChevronDown } from "../icons";
 import type {
   DataTableCardRendererProps,
   DataTableCardSizing,
   DataTableEditableRowsConfig,
-  DataTableExpandedRowProps,
+  DataTableDetailPanel,
   DataTableLabels,
   DataTableProps,
   DataTableRowAction,
@@ -12,7 +13,10 @@ import type {
 import type { DataTableUiKit } from "../ui-kit";
 import { cn } from "../../lib/utils";
 import { DATA_TABLE_DEFAULT_LABELS } from "./data-table-labels";
-import { isDataTableInteractiveTarget } from "./data-table-utils";
+import {
+  isDataTableInteractiveTarget,
+  toggleDataTableExpandedState,
+} from "./data-table-utils";
 
 type DataTableCardViewProps<TData> = {
   rows: Array<Row<TData>>;
@@ -22,9 +26,9 @@ type DataTableCardViewProps<TData> = {
   cardClassName?: string;
   rowActions: Array<DataTableRowAction<TData>>;
   editableRows?: DataTableEditableRowsConfig<TData>;
-  renderExpandedRow?: (
-    props: DataTableExpandedRowProps<TData>,
-  ) => React.ReactNode;
+  detailPanel?: DataTableDetailPanel<TData>;
+  detailExpanded: ExpandedState;
+  onDetailExpandedChange: OnChangeFn<ExpandedState>;
   hasCardTitle: boolean;
   rowSelection: Record<string, boolean>;
   onRowSelectionChange: (rowSelection: Record<string, boolean>) => void;
@@ -64,7 +68,7 @@ export function createDataTableCardView(
   DataTableRowActions: DataTableRowActionsComponent,
 ) {
   const uiClassNames = ui.classNames ?? {};
-  const { Card, CardContent, CardHeader, Checkbox, Skeleton } = ui;
+  const { Button, Card, CardContent, CardHeader, Checkbox, Skeleton } = ui;
 
   return function DataTableCardView<TData>({
     rows,
@@ -74,7 +78,9 @@ export function createDataTableCardView(
     cardClassName,
     rowActions,
     editableRows,
-    renderExpandedRow,
+    detailPanel,
+    detailExpanded,
+    onDetailExpandedChange,
     hasCardTitle,
     rowSelection,
     onRowSelectionChange,
@@ -156,9 +162,16 @@ export function createDataTableCardView(
           const isSelected = Boolean(rowSelection[rowId]);
           const isEditing = editingRowId === rowId;
           const hasCardActions = rowActions.length > 0 || Boolean(editableRows);
+          const canExpandDetail = Boolean(
+            detailPanel && (detailPanel.getRowCanExpand?.(originalRow) ?? true),
+          );
           const showCardGradient =
             enableRowSelection || hasCardActions || hasCardTitle;
-          const showCardOverlayControls = enableRowSelection || hasCardActions;
+          const showCardOverlayControls =
+            enableRowSelection ||
+            hasCardActions ||
+            row.getCanExpand() ||
+            canExpandDetail;
           const handleCardActivate = () => {
             if (!onRowClick) {
               return;
@@ -172,6 +185,7 @@ export function createDataTableCardView(
               key={rowId}
               role="listitem"
               data-row-id={rowId}
+              data-tree-depth={row.depth}
               draggable={getRowDraggable?.(originalRow) ?? false}
               data-dtp-slot="data-table-card-item"
               data-state={isSelected ? "selected" : undefined}
@@ -254,6 +268,10 @@ export function createDataTableCardView(
                 {cardRenderer({
                   row: originalRow,
                   rowId,
+                  depth: row.depth,
+                  canExpandSubRows: row.getCanExpand(),
+                  isSubRowsExpanded: row.getIsExpanded(),
+                  toggleSubRowsExpanded: () => row.toggleExpanded(),
                   isSelected,
                   onSelectedChange: (nextValue) => {
                     onRowSelectionChange(
@@ -275,14 +293,23 @@ export function createDataTableCardView(
                     onEditingRowIdChange(null);
                   },
                 })}
-                {isEditing || !renderExpandedRow || !row.getIsExpanded()
-                  ? null
-                  : renderExpandedRow({
-                      row: originalRow,
-                      rowId,
-                      tableRow: row,
-                    })}
               </div>
+              {isEditing ||
+              !detailPanel ||
+              !(detailExpanded === true || Boolean(detailExpanded[row.id]))
+                ? null
+                : (
+                    <div
+                      data-dtp-slot="data-table-card-detail-panel"
+                      className="relative z-20 min-w-0"
+                    >
+                      {detailPanel.render({
+                        row: originalRow,
+                        rowId,
+                        tableRow: row,
+                      })}
+                    </div>
+                  )}
               {showCardOverlayControls ? (
                 <CardHeader className="absolute inset-x-0 top-0 z-20 flex flex-row items-center gap-3 space-y-0 px-4 pt-4 pb-8">
                   {enableRowSelection ? (
@@ -309,6 +336,75 @@ export function createDataTableCardView(
                           );
                         }}
                       />
+                    </div>
+                  ) : null}
+                  {row.getCanExpand() ? (
+                    <div data-row-click-ignore="true" className="pointer-events-auto">
+                      <Button
+                        type="button"
+                        size="icon-sm"
+                        variant="ghost"
+                        aria-label={
+                          row.getIsExpanded()
+                            ? labels.collapseRow
+                            : labels.expandRow
+                        }
+                        aria-expanded={row.getIsExpanded()}
+                        onClick={() => row.toggleExpanded()}
+                      >
+                        <IconChevronDown
+                          className={cn(
+                            "transition-transform",
+                            row.getIsExpanded() ? "rotate-0" : "-rotate-90",
+                          )}
+                        />
+                      </Button>
+                    </div>
+                  ) : null}
+                  {canExpandDetail ? (
+                    <div
+                      data-row-click-ignore="true"
+                      className="pointer-events-auto"
+                    >
+                      <Button
+                        type="button"
+                        size="icon-sm"
+                        variant="ghost"
+                        aria-label={
+                          detailExpanded === true || detailExpanded[row.id]
+                            ? row.getCanExpand()
+                              ? (labels.collapseRowDetails ??
+                                DATA_TABLE_DEFAULT_LABELS.collapseRowDetails)
+                              : labels.collapseRow
+                            : row.getCanExpand()
+                              ? (labels.expandRowDetails ??
+                                DATA_TABLE_DEFAULT_LABELS.expandRowDetails)
+                              : labels.expandRow
+                        }
+                        aria-expanded={
+                          detailExpanded === true ||
+                          Boolean(detailExpanded[row.id])
+                        }
+                        data-detail-toggle="true"
+                        onClick={() => {
+                          onDetailExpandedChange((current) =>
+                            toggleDataTableExpandedState(
+                              current,
+                              row.id,
+                              rows.map((item) => item.id),
+                            ),
+                          );
+                        }}
+                      >
+                        <IconChevronDown
+                          className={cn(
+                            "transition-transform",
+                            detailExpanded === true || detailExpanded[row.id]
+                              ? "rotate-0"
+                              : "-rotate-90",
+                          )}
+                        />
+                      </Button>
                     </div>
                   ) : null}
                   <div className="pointer-events-none min-w-0 flex-1" />

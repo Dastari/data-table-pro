@@ -17,6 +17,7 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
+import type { ExpandedState } from "@tanstack/react-table";
 import { createDataTable } from "./create-data-table";
 import * as RootEntry from "../../index";
 import { DataTable as ShadcnDataTable } from "../../index";
@@ -765,6 +766,133 @@ for (const suite of suites) {
       fireEvent.click(screen.getByRole("button", { name: "Expand row" }));
 
       expect(screen.getByText("Details for Ada")).not.toBeNull();
+    });
+
+    it("renders nested sub-rows and keeps a detail panel independently controlled", () => {
+      type TreeRow = TestRow & { children?: Array<TreeRow> };
+      const treeColumns: Array<DataTableColumnDef<TreeRow, unknown>> = [
+        { accessorKey: "name", header: "Name" },
+      ];
+
+      render(
+        <TooltipProvider>
+          <DataTable
+            columns={treeColumns}
+            data={[{ id: "parent", name: "Parent", children: [{ id: "child", name: "Child" }] }]}
+            detailPanel={{ render: ({ row }) => <div>Details for {row.name}</div> }}
+            getRowId={(row) => row.id}
+            getSubRows={(row) => row.children}
+          />
+        </TooltipProvider>,
+      );
+
+      expect(screen.getByRole("button", { name: "Expand row" })).not.toBeNull();
+      expect(
+        screen.getByRole("button", { name: "Expand row details" }),
+      ).not.toBeNull();
+      fireEvent.click(screen.getByRole("button", { name: "Expand row" }));
+      expect(screen.getByText("Child")).not.toBeNull();
+      const childRow = screen.getByText("Child").closest("tr");
+      expect(childRow?.getAttribute("data-tree-depth")).toBe("1");
+
+      fireEvent.click(
+        screen.getAllByRole("button", { name: "Expand row details" })[0]!,
+      );
+      expect(
+        screen.getByRole("button", { name: "Collapse row" }),
+      ).not.toBeNull();
+      expect(
+        screen.getByRole("button", { name: "Collapse row details" }),
+      ).not.toBeNull();
+      expect(screen.getByText("Details for Parent")).not.toBeNull();
+    });
+
+    it("supports controlled manual tree expansion without flattening locally", () => {
+      const onExpandedChange = vi.fn();
+      const manualTreeRows: Array<TestRow & { children?: Array<TestRow> }> = [
+        { id: "parent", name: "Parent", children: [{ id: "child", name: "Child" }] },
+      ];
+      renderTable({
+        data: manualTreeRows,
+        expanded: {},
+        getSubRows: (row) => (row as TestRow & { children?: Array<TestRow> }).children,
+        manualExpanding: true,
+        onExpandedChange,
+      });
+
+      fireEvent.click(screen.getByRole("button", { name: "Expand row" }));
+      expect(onExpandedChange).toHaveBeenCalled();
+      expect(screen.queryByText("Child")).toBeNull();
+    });
+
+    it("can collapse one detail panel from an all-expanded state", () => {
+      function DetailTable() {
+        const [detailExpanded, setDetailExpanded] =
+          React.useState<ExpandedState>(true);
+
+        return (
+          <TooltipProvider>
+            <DataTable
+              columns={columns}
+              data={[
+                { id: "1", name: "Ada" },
+                { id: "2", name: "Grace" },
+              ]}
+              detailPanel={{
+                expanded: detailExpanded,
+                onExpandedChange: setDetailExpanded,
+                render: ({ row }) => <div>Details for {row.name}</div>,
+              }}
+              getRowId={(row) => row.id}
+            />
+          </TooltipProvider>
+        );
+      }
+
+      render(<DetailTable />);
+      expect(screen.getByText("Details for Ada")).not.toBeNull();
+      expect(screen.getByText("Details for Grace")).not.toBeNull();
+
+      fireEvent.click(screen.getAllByRole("button", { name: "Collapse row" })[0]!);
+
+      expect(screen.queryByText("Details for Ada")).toBeNull();
+      expect(screen.getByText("Details for Grace")).not.toBeNull();
+    });
+
+    it("expands nested rows from card mode", () => {
+      type TreeRow = TestRow & { children?: Array<TreeRow> };
+      const treeColumns: Array<DataTableColumnDef<TreeRow, unknown>> = [
+        { accessorKey: "name", header: "Name" },
+      ];
+      render(
+        <TooltipProvider>
+          <DataTable
+            columns={treeColumns}
+            data={[{ id: "parent", name: "Parent", children: [{ id: "child", name: "Child" }] }]}
+            cardRenderer={({ row }) => <span>{row.name}</span>}
+            getRowId={(row) => row.id}
+            getSubRows={(row) => row.children}
+            viewMode="card"
+          />
+        </TooltipProvider>,
+      );
+
+      fireEvent.click(screen.getByRole("button", { name: "Expand row" }));
+      expect(screen.getByText("Child")).not.toBeNull();
+    });
+
+    it("opens detail panels from card mode", () => {
+      renderTable({
+        cardRenderer: ({ row }) => <span>{row.name}</span>,
+        detailPanel: {
+          render: ({ row }) => <div>Card details for {row.name}</div>,
+        },
+        viewMode: "card",
+      });
+
+      fireEvent.click(screen.getByRole("button", { name: "Expand row" }));
+
+      expect(screen.getByText("Card details for Ada")).not.toBeNull();
     });
 
     it("exports filtered visible rows to CSV", async () => {
