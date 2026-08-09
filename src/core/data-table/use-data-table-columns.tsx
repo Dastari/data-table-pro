@@ -1,5 +1,6 @@
 import * as React from "react";
 import type { ColumnDef, Table as TanStackTable } from "@tanstack/react-table";
+import type { RowPinningPosition } from "@tanstack/react-table";
 import { IconChevronDown } from "../icons";
 import type {
   DataTableEditableRowsConfig,
@@ -24,6 +25,11 @@ type DataTableRowActionsComponentProps<TData> = {
   onStartEditing: () => void;
   row: TData;
   rowActions: Array<DataTableRowAction<TData>>;
+  rowPinning?: {
+    canPin: boolean;
+    position: RowPinningPosition;
+    pin: (position: RowPinningPosition) => void;
+  };
 };
 
 export function useDataTableColumns<TData>({
@@ -38,6 +44,7 @@ export function useDataTableColumns<TData>({
   editableRows,
   editingRowId,
   enableRowSelection,
+  enableRowPinning,
   getRowCanExpand,
   isSavingEdit,
   labels,
@@ -61,6 +68,7 @@ export function useDataTableColumns<TData>({
   editableRows: DataTableProps<TData>["editableRows"];
   editingRowId: string | null;
   enableRowSelection: boolean;
+  enableRowPinning: DataTableProps<TData>["enableRowPinning"];
   getRowCanExpand: DataTableProps<TData>["getRowCanExpand"];
   isSavingEdit: boolean;
   labels: DataTableLabels;
@@ -208,7 +216,7 @@ export function useDataTableColumns<TData>({
 
     defs.push(...columns.map((column) => decorateFilterableColumn(column)));
 
-    if (rowActions.length || editableRows) {
+    if (rowActions.length || editableRows || enableRowPinning) {
       defs.push({
         id: "__actions__",
         enableSorting: false,
@@ -265,6 +273,15 @@ export function useDataTableColumns<TData>({
                 }}
                 onCancelEditing={() => {}}
                 labels={labels}
+                rowPinning={
+                  enableRowPinning
+                    ? {
+                        canPin: row.getCanPin(),
+                        position: row.getIsPinned(),
+                        pin: (position) => row.pin(position),
+                      }
+                    : undefined
+                }
               />
             </div>
           );
@@ -285,6 +302,7 @@ export function useDataTableColumns<TData>({
     editableRows,
     editingRowId,
     enableRowSelection,
+    enableRowPinning,
     getRowCanExpand,
     isSavingEdit,
     labels,

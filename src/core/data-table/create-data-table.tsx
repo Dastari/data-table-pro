@@ -139,6 +139,10 @@ export function createDataTableWithPanels(
     columnPinning,
     onColumnPinningChange,
     enableColumnPinning = false,
+    rowPinning,
+    onRowPinningChange,
+    enableRowPinning = false,
+    keepPinnedRows = true,
     toolbarActions = [],
     selectionActions = [],
     rowActions = [],
@@ -225,6 +229,7 @@ export function createDataTableWithPanels(
       columnOrder ?? unifiedState?.columnOrder;
     const resolvedColumnPinning =
       columnPinning ?? unifiedState?.columnPinning;
+    const resolvedRowPinning = rowPinning ?? unifiedState?.rowPinning;
     const resolvedColumnSizing =
       columnSizing ?? unifiedState?.columnSizing;
     const resolvedDensity = density ?? unifiedState?.density;
@@ -240,6 +245,7 @@ export function createDataTableWithPanels(
       columnFilters: columnFilters !== undefined,
       columnOrder: columnOrder !== undefined,
       columnPinning: columnPinning !== undefined,
+      rowPinning: rowPinning !== undefined,
       columnSizing: columnSizing !== undefined,
       columnVisibility: columnVisibility !== undefined,
       density: density !== undefined,
@@ -289,6 +295,11 @@ export function createDataTableWithPanels(
     const handleColumnPinningPropChange = useDataTableStateSliceChange(
       "columnPinning",
       onColumnPinningChange,
+      onStateChange,
+    );
+    const handleRowPinningPropChange = useDataTableStateSliceChange(
+      "rowPinning",
+      onRowPinningChange,
       onStateChange,
     );
     const handleColumnSizingPropChange = useDataTableStateSliceChange(
@@ -397,6 +408,7 @@ export function createDataTableWithPanels(
       currentColumnFilters,
       currentColumnOrder,
       currentColumnPinning,
+      currentRowPinning,
       currentColumnSizing,
       currentColumnVisibility,
       currentDensity,
@@ -418,6 +430,7 @@ export function createDataTableWithPanels(
       setCurrentColumnFilters,
       setCurrentColumnOrder,
       setCurrentColumnPinning,
+      setCurrentRowPinning,
       setCurrentColumnVisibility,
       setCurrentExpanded,
       setCurrentRowSelection,
@@ -433,6 +446,7 @@ export function createDataTableWithPanels(
       columnFilters: resolvedColumnFilters,
       columnOrder: resolvedColumnOrder,
       columnPinning: resolvedColumnPinning,
+      rowPinning: resolvedRowPinning,
       columnSizing: resolvedColumnSizing,
       columnPrefsKey,
       persistence,
@@ -453,6 +467,7 @@ export function createDataTableWithPanels(
       onColumnFiltersChange: handleColumnFiltersPropChange,
       onColumnOrderChange: handleColumnOrderPropChange,
       onColumnPinningChange: handleColumnPinningPropChange,
+      onRowPinningChange: handleRowPinningPropChange,
       onColumnSizingChange: handleColumnSizingPropChange,
       onColumnVisibilityChange: handleColumnVisibilityPropChange,
       onDensityChange: handleDensityPropChange,
@@ -523,6 +538,7 @@ export function createDataTableWithPanels(
       editableRows,
       editingRowId,
       enableRowSelection,
+      enableRowPinning,
       getRowCanExpand,
       isSavingEdit,
       labels: resolvedLabels,
@@ -545,6 +561,8 @@ export function createDataTableWithPanels(
       handleFooterPageSizeChange,
       isPageCountKnown,
       renderedRows,
+      topPinnedRows,
+      bottomPinnedRows,
       reorderColumn,
       rowsToRender,
       sentinelRef,
@@ -560,6 +578,7 @@ export function createDataTableWithPanels(
       currentColumnFilters,
       currentColumnOrder,
       currentColumnPinning,
+      currentRowPinning,
       currentColumnSizing,
       currentExpanded,
       currentPagination,
@@ -569,6 +588,7 @@ export function createDataTableWithPanels(
       defaultColumn,
       effectiveColumnVisibility,
       enableColumnResizing,
+      enableRowPinning,
       enableRowSelection,
       getRowCanExpand,
       globalFilterFn,
@@ -577,9 +597,11 @@ export function createDataTableWithPanels(
       handleColumnFiltersChange: setCurrentColumnFilters,
       handleColumnOrderChange: setCurrentColumnOrder,
       handleColumnPinningChange: setCurrentColumnPinning,
+      handleRowPinningChange: setCurrentRowPinning,
       handleColumnVisibilityChange: setCurrentColumnVisibility,
       handleExpandedChange: setCurrentExpanded,
       infiniteScroll,
+      keepPinnedRows,
       manualFiltering,
       manualPagination,
       manualSorting,
@@ -762,6 +784,7 @@ export function createDataTableWithPanels(
         expanded: currentExpanded,
         columnOrder: currentColumnOrder,
         columnPinning: currentColumnPinning,
+        rowPinning: currentRowPinning,
         columnSizing: currentColumnSizing,
         density: currentDensity,
         viewMode: currentViewMode,
@@ -772,6 +795,7 @@ export function createDataTableWithPanels(
         currentColumnFilters,
         currentColumnOrder,
         currentColumnPinning,
+        currentRowPinning,
         currentColumnSizing,
         currentColumnVisibility,
         currentDensity,
@@ -814,6 +838,9 @@ export function createDataTableWithPanels(
         if (nextState.columnPinning !== undefined) {
           table.setColumnPinning(nextState.columnPinning);
         }
+        if (nextState.rowPinning !== undefined) {
+          table.setRowPinning(nextState.rowPinning);
+        }
         if (nextState.columnSizing !== undefined) {
           table.setColumnSizing(nextState.columnSizing);
         }
@@ -854,6 +881,7 @@ export function createDataTableWithPanels(
           columnOrder: initialState?.columnOrder ?? [],
           columnPinning:
             initialState?.columnPinning ?? getInitialColumnPinning(columns),
+          rowPinning: initialState?.rowPinning ?? { top: [], bottom: [] },
           columnSizing: initialState?.columnSizing ?? {},
         });
       },
@@ -882,6 +910,7 @@ export function createDataTableWithPanels(
           columnOrder: initialState?.columnOrder ?? [],
           columnPinning:
             initialState?.columnPinning ?? getInitialColumnPinning(columns),
+          rowPinning: initialState?.rowPinning ?? { top: [], bottom: [] },
           columnSizing: initialState?.columnSizing ?? {},
           density: initialState?.density ?? "comfortable",
           viewMode: initialState?.viewMode ?? "table",
@@ -951,6 +980,36 @@ export function createDataTableWithPanels(
         }),
       [csvExport, resolvedLabels, table],
     );
+    const pinRow = React.useCallback<DataTableApi<TData>["pinRow"]>(
+      (rowId, position = "top") => {
+        try {
+          const row = table.getRow(rowId, true);
+          if (!row.getCanPin()) {
+            return false;
+          }
+          row.pin(position);
+          return true;
+        } catch {
+          return false;
+        }
+      },
+      [table],
+    );
+    const unpinRow = React.useCallback<DataTableApi<TData>["unpinRow"]>(
+      (rowId) => {
+        try {
+          const row = table.getRow(rowId, true);
+          if (!row.getCanPin()) {
+            return false;
+          }
+          row.pin(false);
+          return true;
+        } catch {
+          return false;
+        }
+      },
+      [table],
+    );
     React.useImperativeHandle(
       apiRef,
       () => ({
@@ -967,6 +1026,8 @@ export function createDataTableWithPanels(
         renameSavedView,
         deleteSavedView,
         clearSavedViews,
+        pinRow,
+        unpinRow,
         focus: () => {
           containerRef.current?.focus();
         },
@@ -993,6 +1054,8 @@ export function createDataTableWithPanels(
         resetColumnLayout,
         resetState,
         restoreState,
+        pinRow,
+        unpinRow,
       ],
     );
 
@@ -1155,6 +1218,8 @@ export function createDataTableWithPanels(
                   onRowClick={guardedOnRowClick}
                   primeColumnForResize={primeColumnForResize}
                   renderedRows={renderedRows}
+                  topPinnedRows={topPinnedRows}
+                  bottomPinnedRows={bottomPinnedRows}
                   renderExpandedRow={renderExpandedRow}
                   reorderColumn={reorderColumn}
                   resetColumnSize={resetColumnSize}
@@ -1308,6 +1373,10 @@ function cloneDataTableState(state: DataTableState): DataTableState {
       right: state.columnPinning.right
         ? [...state.columnPinning.right]
         : undefined,
+    },
+    rowPinning: {
+      top: state.rowPinning.top ? [...state.rowPinning.top] : undefined,
+      bottom: state.rowPinning.bottom ? [...state.rowPinning.bottom] : undefined,
     },
     columnSizing: { ...state.columnSizing },
     density: state.density,

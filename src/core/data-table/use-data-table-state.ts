@@ -6,6 +6,7 @@ import type {
   ColumnSizingState,
   ExpandedState,
   PaginationState,
+  RowPinningState,
   SortingState,
   VisibilityState,
 } from "@tanstack/react-table";
@@ -34,6 +35,7 @@ export function useDataTableState<TData>({
   columnFilters,
   columnOrder,
   columnPinning,
+  rowPinning,
   columnSizing,
   columnPrefsKey,
   persistence,
@@ -53,6 +55,7 @@ export function useDataTableState<TData>({
   onColumnFiltersChange,
   onColumnOrderChange,
   onColumnPinningChange,
+  onRowPinningChange,
   onColumnSizingChange,
   onColumnVisibilityChange,
   onDensityChange,
@@ -80,6 +83,7 @@ export function useDataTableState<TData>({
   columnFilters: DataTableProps<TData>["columnFilters"];
   columnOrder: DataTableProps<TData>["columnOrder"];
   columnPinning: DataTableProps<TData>["columnPinning"];
+  rowPinning: DataTableProps<TData>["rowPinning"];
   columnSizing?: DataTableProps<TData>["columnSizing"];
   columnPrefsKey: DataTableProps<TData>["columnPrefsKey"];
   persistence?: DataTableProps<TData>["persistence"];
@@ -99,6 +103,7 @@ export function useDataTableState<TData>({
   onColumnFiltersChange: DataTableProps<TData>["onColumnFiltersChange"];
   onColumnOrderChange: DataTableProps<TData>["onColumnOrderChange"];
   onColumnPinningChange: DataTableProps<TData>["onColumnPinningChange"];
+  onRowPinningChange: DataTableProps<TData>["onRowPinningChange"];
   onColumnSizingChange?: DataTableProps<TData>["onColumnSizingChange"];
   onColumnVisibilityChange: DataTableProps<TData>["onColumnVisibilityChange"];
   onDensityChange: DataTableProps<TData>["onDensityChange"];
@@ -188,6 +193,16 @@ export function useDataTableState<TData>({
         initialState?.columnPinning ??
         persistedColumnPrefs.pinning ??
         getInitialColumnPinning(columns),
+    });
+  const [currentRowPinning, setCurrentRowPinning] =
+    useControllableState<RowPinningState>({
+      value: rowPinning,
+      onChange: onRowPinningChange,
+      defaultValue: () =>
+        initialState?.rowPinning ?? persistedColumnPrefs.rowPinning ?? {
+          top: [],
+          bottom: [],
+        },
     });
   const [currentColumnSizing, setCurrentColumnSizing] =
     useControllableState<ColumnSizingState>({
@@ -354,6 +369,7 @@ export function useDataTableState<TData>({
         columnSizing === undefined ? currentColumnSizing : undefined,
       order: columnOrder ? undefined : currentColumnOrder,
       pinning: columnPinning ? undefined : currentColumnPinning,
+      rowPinning: rowPinning === undefined ? currentRowPinning : undefined,
       density: density ? undefined : currentDensity,
     },
   });
@@ -429,6 +445,7 @@ export function useDataTableState<TData>({
     currentColumnFilters,
     currentColumnOrder,
     currentColumnPinning,
+    currentRowPinning,
     currentColumnSizing,
     currentColumnVisibility,
     currentDensity,
@@ -450,6 +467,7 @@ export function useDataTableState<TData>({
     setCurrentColumnFilters,
     setCurrentColumnOrder,
     setCurrentColumnPinning,
+    setCurrentRowPinning,
     setCurrentColumnVisibility,
     setCurrentExpanded,
     setCurrentRowSelection,

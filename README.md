@@ -347,6 +347,40 @@ visible descendants proportionally.
 />
 ```
 
+### Row pinning
+
+Enable first-class row pinning to keep important records at the top or bottom
+of the table. `rowPinning` and `onRowPinningChange` follow TanStack's
+`{ top: string[]; bottom: string[] }` state shape and also participate in
+`initialState`, unified `state`, persistence, saved views, and `apiRef`.
+
+```tsx
+const apiRef = React.createRef<DataTableApi<Person>>();
+
+<DataTable
+  apiRef={apiRef}
+  columns={columns}
+  data={rows}
+  getRowId={(row) => row.id}
+  enableRowPinning
+  initialState={{ rowPinning: { top: ["important-id"], bottom: [] } }}
+/>;
+
+apiRef.current?.pinRow("important-id", "top");
+apiRef.current?.unpinRow("important-id");
+```
+
+When enabled, each row's action menu includes top, bottom, and unpin actions.
+Pinned rows render outside the virtualized center list and receive
+`data-dtp-slot="data-table-pinned-row"` plus `data-row-pinned="top"` or
+`"bottom"`; use `classNames.rowPinnedTop` and `classNames.rowPinnedBottom`
+for adapter styling. `keepPinnedRows` defaults to `true`, keeping supplied rows
+visible after client filtering or pagination; set it to `false` to hide pinned
+rows that are not in the current model. For server/manual pagination, the
+caller must still provide a pinned row in `data` for it to render. Card view
+preserves the ordinary card order; it does not provide separate top/bottom
+pinned regions.
+
 Toolbar search filters local/client-side data by default. Server-side tables can keep filtering consumer-owned:
 
 ```tsx

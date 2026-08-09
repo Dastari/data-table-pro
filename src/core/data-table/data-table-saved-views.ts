@@ -15,6 +15,7 @@ const DEFAULT_SLICES: Array<DataTableSavedViewSlice> = [
   "columnFilters",
   "columnOrder",
   "columnPinning",
+  "rowPinning",
   "columnSizing",
   "density",
   "viewMode",
@@ -275,6 +276,10 @@ function validateState(
   if (selected.has("columnPinning") && pinning) {
     state.columnPinning = pinning;
   }
+  const rowPinning = validateRowPinning(value.rowPinning);
+  if (selected.has("rowPinning") && rowPinning) {
+    state.rowPinning = rowPinning;
+  }
   const sizing = validateSizingRecord(value.columnSizing);
   if (selected.has("columnSizing") && sizing) state.columnSizing = sizing;
   if (
@@ -317,14 +322,25 @@ function cloneStateSlice(
     );
   }
   if (isRecord(value)) {
-    if (slice === "columnPinning") {
+    if (slice === "columnPinning" || slice === "rowPinning") {
       return {
-        left: Array.isArray(value.left)
-          ? [...(value.left as Array<unknown>)]
-          : undefined,
-        right: Array.isArray(value.right)
-          ? [...(value.right as Array<unknown>)]
-          : undefined,
+        ...(slice === "columnPinning"
+          ? {
+              left: Array.isArray(value.left)
+                ? [...(value.left as Array<unknown>)]
+                : undefined,
+              right: Array.isArray(value.right)
+                ? [...(value.right as Array<unknown>)]
+                : undefined,
+            }
+          : {
+              top: Array.isArray(value.top)
+                ? [...(value.top as Array<unknown>)]
+                : undefined,
+              bottom: Array.isArray(value.bottom)
+                ? [...(value.bottom as Array<unknown>)]
+                : undefined,
+            }),
       };
     }
     return { ...value };
@@ -375,6 +391,14 @@ function validatePinning(value: unknown) {
   return {
     left: validateStringArray(value.left) ?? [],
     right: validateStringArray(value.right) ?? [],
+  };
+}
+
+function validateRowPinning(value: unknown) {
+  if (!isRecord(value)) return undefined;
+  return {
+    top: validateStringArray(value.top) ?? [],
+    bottom: validateStringArray(value.bottom) ?? [],
   };
 }
 

@@ -186,6 +186,7 @@ export function createDataTableCardView(
                       isExpanded: row.getIsExpanded(),
                       isLoading: false,
                       isSelected,
+                      pinnedPosition: false,
                     }),
                   ]
                     .filter(Boolean)

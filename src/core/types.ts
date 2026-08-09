@@ -11,6 +11,7 @@ import type {
   HeaderContext,
   PaginationState,
   Row,
+  RowPinningState,
   SortingState,
   Table as TanStackTable,
   Updater,
@@ -344,6 +345,7 @@ export type DataTableColumnPrefs = {
   sizing?: Record<string, number>;
   order?: ColumnOrderState;
   pinning?: ColumnPinningState;
+  rowPinning?: RowPinningState;
   density?: DataTableDensity;
 };
 
@@ -394,6 +396,7 @@ export type DataTableState = {
   expanded: ExpandedState;
   columnOrder: ColumnOrderState;
   columnPinning: ColumnPinningState;
+  rowPinning: RowPinningState;
   columnSizing: ColumnSizingState;
   density: DataTableDensity;
   viewMode: DataTableViewMode;
@@ -467,6 +470,8 @@ export type DataTableApi<TData> = {
   ) => DataTableSavedView | undefined;
   deleteSavedView: (id: string) => boolean;
   clearSavedViews: () => boolean;
+  pinRow: (rowId: string, position?: "top" | "bottom") => boolean;
+  unpinRow: (rowId: string) => boolean;
   focus: () => void;
   scrollToRow: (rowId: string) => boolean;
   scrollToColumn: (columnId: string) => boolean;
@@ -526,6 +531,9 @@ export type DataTableLabels = {
   pinLeft: string;
   pinRight: string;
   unpin: string;
+  pinRowToTop: string;
+  pinRowToBottom: string;
+  unpinRow: string;
   resizeColumn: (columnLabel: string) => string;
 };
 
@@ -546,6 +554,7 @@ export type DataTableRowClassNameContext<TData> = {
   isExpanded: boolean;
   isLoading: boolean;
   isSelected: boolean;
+  pinnedPosition: false | "top" | "bottom";
 };
 
 export type DataTableProps<TData> = {
@@ -596,6 +605,12 @@ export type DataTableProps<TData> = {
   columnPinning?: ColumnPinningState;
   onColumnPinningChange?: (columnPinning: ColumnPinningState) => void;
   enableColumnPinning?: boolean;
+  rowPinning?: RowPinningState;
+  onRowPinningChange?: (rowPinning: RowPinningState) => void;
+  /** Enables row actions that pin a row to the top or bottom of the table. */
+  enableRowPinning?: boolean | ((row: TData) => boolean);
+  /** Keep pinned rows visible when filtering or paginating them out. */
+  keepPinnedRows?: boolean;
   toolbarActions?: Array<DataTableToolbarAction<TData>>;
   selectionActions?: Array<DataTableSelectionAction<TData>>;
   rowActions?: Array<DataTableRowAction<TData>>;

@@ -54,6 +54,9 @@ export const DATA_TABLE_DEFAULT_LABELS: ResolvedDataTableLabels = {
   pinLeft: "Pin left",
   pinRight: "Pin right",
   unpin: "Unpin",
+  pinRowToTop: "Pin row to top",
+  pinRowToBottom: "Pin row to bottom",
+  unpinRow: "Unpin row",
   resizeColumn: (columnLabel) => `Resize ${columnLabel}`,
 };
 

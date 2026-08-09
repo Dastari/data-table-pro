@@ -27,6 +27,8 @@ export type DataTableUiClassNames = {
   row?: string;
   rowEven?: string;
   rowOdd?: string;
+  rowPinnedBottom?: string;
+  rowPinnedTop?: string;
   rowSelected?: string;
   tableContainer?: string;
   tableScrollArea?: string;
