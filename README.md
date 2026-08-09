@@ -27,7 +27,8 @@ Dedicated subpath exports are also available:
 - `data-table-pro/advanced`: advanced composition hooks, panels, and adapter helpers
 - `data-table-pro/types`: public TypeScript types
 
-The current feature set includes client/manual filtering, sorting and
+The current feature set includes client/manual filtering with local or
+server-provided facets, grouping and aggregation, sorting and
 pagination, unknown-total pagination, selection, detail panels, table/card
 views, row/card virtualization, nested column groups, column
 sizing/order/pinning/visibility, versioned persistence, named saved views,
@@ -526,6 +527,38 @@ const columns: Array<DataTableColumnDef<Person>> = [
     },
   },
 ];
+```
+
+### Facets, grouping, and aggregation
+
+Use `type: "faceted"` for a searchable multi-select filter with local
+TanStack option counts. Supply `faceting.options` when counts come from the
+server. Grouping is controlled with `grouping` / `onGroupingChange` (or stored
+in `initialState.grouping`); set `enableGrouping` to expose the accessible
+group/ungroup menu and removable grouping bar.
+
+```tsx
+const columns: Array<DataTableColumnDef<Person>> = [
+  {
+    accessorKey: "team",
+    header: "Team",
+    enableGrouping: true,
+    meta: { filter: { type: "faceted" } },
+  },
+  {
+    accessorKey: "hours",
+    header: "Hours",
+    aggregationFn: "sum",
+  },
+];
+
+<DataTable
+  columns={columns}
+  data={people}
+  getRowId={(person) => person.id}
+  enableGrouping
+  initialState={{ grouping: ["team"] }}
+/>;
 ```
 
 ## Demo App

@@ -5,6 +5,7 @@ import type {
   ColumnPinningState,
   ColumnSizingState,
   ExpandedState,
+  GroupingState,
   PaginationState,
   RowPinningState,
   SortingState,
@@ -46,6 +47,7 @@ export function useDataTableState<TData>({
   enableRowSelection,
   enableToolbarQueryFiltering,
   expanded,
+  grouping,
   getSubRows,
   getRowId,
   hiddenRows,
@@ -61,6 +63,7 @@ export function useDataTableState<TData>({
   onColumnVisibilityChange,
   onDensityChange,
   onExpandedChange,
+  onGroupingChange,
   onPageIndexChange,
   onRowSelectionChange,
   onShowHiddenRowsChange,
@@ -95,6 +98,7 @@ export function useDataTableState<TData>({
   enableRowSelection: boolean;
   enableToolbarQueryFiltering: boolean;
   expanded: DataTableProps<TData>["expanded"];
+  grouping: DataTableProps<TData>["grouping"];
   getSubRows: DataTableProps<TData>["getSubRows"];
   getRowId: DataTableProps<TData>["getRowId"];
   hiddenRows: DataTableProps<TData>["hiddenRows"];
@@ -110,6 +114,7 @@ export function useDataTableState<TData>({
   onColumnVisibilityChange: DataTableProps<TData>["onColumnVisibilityChange"];
   onDensityChange: DataTableProps<TData>["onDensityChange"];
   onExpandedChange: DataTableProps<TData>["onExpandedChange"];
+  onGroupingChange: DataTableProps<TData>["onGroupingChange"];
   onPageIndexChange: DataTableProps<TData>["onPageIndexChange"];
   onRowSelectionChange: DataTableProps<TData>["onRowSelectionChange"];
   onShowHiddenRowsChange: DataTableProps<TData>["onShowHiddenRowsChange"];
@@ -219,6 +224,11 @@ export function useDataTableState<TData>({
     value: viewMode,
     onChange: onViewModeChange,
     defaultValue: () => initialState?.viewMode ?? "table",
+  });
+  const [currentGrouping, setCurrentGrouping] = useControllableState<GroupingState>({
+    value: grouping,
+    onChange: onGroupingChange,
+    defaultValue: () => initialState?.grouping ?? [],
   });
   const [currentShowHiddenRows, setCurrentShowHiddenRows] =
     useControllableState<boolean>({
@@ -468,6 +478,7 @@ export function useDataTableState<TData>({
     currentColumnVisibility,
     currentDensity,
     currentExpanded,
+    currentGrouping,
     currentPagination,
     currentRowSelection,
     currentShowHiddenRows,
@@ -489,6 +500,7 @@ export function useDataTableState<TData>({
     setCurrentRowPinning,
     setCurrentColumnVisibility,
     setCurrentExpanded,
+    setCurrentGrouping,
     setCurrentRowSelection,
     setCurrentSorting,
     setLocalColumnSizing: setCurrentColumnSizing,

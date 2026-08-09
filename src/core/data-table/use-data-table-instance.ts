@@ -2,7 +2,10 @@ import * as React from "react";
 import {
   getCoreRowModel,
   getExpandedRowModel,
+  getFacetedRowModel,
+  getFacetedUniqueValues,
   getFilteredRowModel,
+  getGroupedRowModel,
   getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
@@ -14,6 +17,7 @@ import type {
   ColumnPinningState,
   ColumnSizingState,
   ExpandedState,
+  GroupingState,
   FilterFnOption,
   OnChangeFn,
   PaginationState,
@@ -48,6 +52,7 @@ export function useDataTableInstance<TData>({
   currentRowPinning,
   currentColumnSizing,
   currentExpanded,
+  currentGrouping,
   currentPagination,
   currentRowSelection,
   currentSorting,
@@ -62,6 +67,8 @@ export function useDataTableInstance<TData>({
   getRowCanSelect,
   getRowCanExpand,
   getSubRows,
+  aggregationFns,
+  groupedColumnMode,
   globalFilterFn,
   globalFilterValue,
   hasNextPage,
@@ -71,9 +78,11 @@ export function useDataTableInstance<TData>({
   handleRowPinningChange,
   handleColumnVisibilityChange,
   handleExpandedChange,
+  handleGroupingChange,
   infiniteScroll,
   keepPinnedRows,
   manualFiltering,
+  manualGrouping,
   manualExpanding,
   manualPagination,
   manualSorting,
@@ -108,6 +117,7 @@ export function useDataTableInstance<TData>({
   currentRowPinning: RowPinningState;
   currentColumnSizing: ColumnSizingState;
   currentExpanded: ExpandedState;
+  currentGrouping: GroupingState;
   currentPagination: PaginationState;
   currentRowSelection: Record<string, boolean>;
   currentSorting: SortingState;
@@ -126,6 +136,8 @@ export function useDataTableInstance<TData>({
   getRowCanSelect: DataTableProps<TData>["getRowCanSelect"];
   getRowCanExpand: DataTableProps<TData>["getRowCanExpand"];
   getSubRows: DataTableProps<TData>["getSubRows"];
+  aggregationFns: DataTableProps<TData>["aggregationFns"];
+  groupedColumnMode: DataTableProps<TData>["groupedColumnMode"];
   globalFilterFn: FilterFnOption<TData> | undefined;
   globalFilterValue: string;
   hasNextPage?: DataTableProps<TData>["hasNextPage"];
@@ -135,9 +147,11 @@ export function useDataTableInstance<TData>({
   handleRowPinningChange: OnChangeFn<RowPinningState>;
   handleColumnVisibilityChange: OnChangeFn<VisibilityState>;
   handleExpandedChange: OnChangeFn<ExpandedState>;
+  handleGroupingChange: OnChangeFn<GroupingState>;
   infiniteScroll: DataTableProps<TData>["infiniteScroll"];
   keepPinnedRows: boolean;
   manualFiltering: boolean;
+  manualGrouping: boolean;
   manualExpanding: boolean;
   manualPagination: boolean;
   manualSorting: boolean;
@@ -268,6 +282,7 @@ export function useDataTableInstance<TData>({
       columnFilters: currentColumnFilters,
       globalFilter: globalFilterValue,
       expanded: currentExpanded,
+      grouping: currentGrouping,
       columnOrder: effectiveColumnOrder,
       columnPinning: effectiveColumnPinning,
       rowPinning: effectiveRowPinning,
@@ -277,6 +292,7 @@ export function useDataTableInstance<TData>({
       currentColumnFilters,
       currentColumnSizing,
       currentExpanded,
+      currentGrouping,
       currentPagination,
       currentRowSelection,
       currentSorting,
@@ -330,15 +346,31 @@ export function useDataTableInstance<TData>({
     [setLocalColumnSizing],
   );
 
+  const needsFaceting = React.useMemo(
+    () =>
+      getDataTableLeafColumns(
+        tableColumns as DataTableProps<TData>["columns"],
+      ).some(({ column }) => column.meta?.filter?.type === "faceted"),
+    [tableColumns],
+  );
+
   // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Table owns its instance functions.
   const table = useReactTable({
     data: tableData,
     columns: tableColumns,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: manualFiltering ? undefined : getFilteredRowModel(),
+    getFacetedRowModel:
+      needsFaceting && !manualFiltering ? getFacetedRowModel() : undefined,
+    getFacetedUniqueValues:
+      needsFaceting && !manualFiltering ? getFacetedUniqueValues() : undefined,
+    getGroupedRowModel:
+      currentGrouping.length && !manualGrouping ? getGroupedRowModel() : undefined,
     getSortedRowModel: manualSorting ? undefined : getSortedRowModel(),
     getExpandedRowModel:
-      getSubRows && !manualExpanding ? getExpandedRowModel() : undefined,
+      (getSubRows || currentGrouping.length) && !manualExpanding
+        ? getExpandedRowModel()
+        : undefined,
     getPaginationRowModel:
       manualPagination || infiniteScroll?.enabled
         ? undefined
@@ -372,6 +404,7 @@ export function useDataTableInstance<TData>({
       column.columnDef.enableGlobalFilter !== false &&
       typeof column.accessorFn === "function",
     manualSorting,
+    manualGrouping,
     manualFiltering,
     manualExpanding,
     manualPagination: manualPagination || Boolean(infiniteScroll?.enabled),
@@ -387,10 +420,13 @@ export function useDataTableInstance<TData>({
     onColumnVisibilityChange: handleColumnVisibilityChange,
     onColumnFiltersChange: handleColumnFiltersChange,
     onExpandedChange: handleExpandedChange,
+    onGroupingChange: handleGroupingChange,
     onColumnOrderChange: handleColumnOrderChange,
     onColumnPinningChange: handleColumnPinningChange,
     onRowPinningChange: handleRowPinningChange,
     onColumnSizingChange: handleColumnSizingChange,
+    aggregationFns,
+    groupedColumnMode,
   });
   tableRef.current = table;
 

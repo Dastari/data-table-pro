@@ -609,6 +609,7 @@ function createState(): DataTableState {
     columnVisibility: {},
     columnFilters: [],
     expanded: {},
+    grouping: [],
     columnOrder: [],
     columnPinning: {},
     rowPinning: { top: [], bottom: [] },

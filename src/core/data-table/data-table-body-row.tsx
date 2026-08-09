@@ -1,5 +1,5 @@
 import * as React from "react";
-import type { Cell, Row } from "@tanstack/react-table";
+import { flexRender, type Cell, type Row } from "@tanstack/react-table";
 import type { RowPinningPosition } from "@tanstack/react-table";
 import type {
   DataTableColumnDef,
@@ -93,6 +93,7 @@ function DataTableBodyRowInner<TData>({
           pinnedPosition ? "data-table-pinned-row" : "data-table-row"
         }
         data-row-pinned={pinnedPosition}
+        data-row-grouped={row.getIsGrouped() || undefined}
         draggable={isInitialLoadingRow ? false : isDraggable}
         data-loading={loadingState?.isLoading || undefined}
         data-row-index={isInitialLoadingRow ? undefined : rowIndex}
@@ -257,6 +258,35 @@ function DataTableBodyRowInner<TData>({
                     Checkbox,
                     Input,
                   })
+                ) : row.getIsGrouped() && cell.getIsPlaceholder() ? null : row.getIsGrouped() && cell.getIsGrouped() ? (
+                  <button
+                    type="button"
+                    className="inline-flex min-w-0 items-center gap-1 text-left font-medium"
+                    onClick={() => row.toggleExpanded()}
+                    aria-expanded={row.getIsExpanded()}
+                    aria-label={
+                      row.getIsExpanded() ? "Collapse group" : "Expand group"
+                    }
+                  >
+                    <span aria-hidden="true">
+                      {renderDataTableCellContent(cellContext, uiClassNames, {
+                        hasCustomCell:
+                          explicitCustomCellColumnIds.has(cell.column.id),
+                        useCustomOverflowDefaults:
+                          explicitCustomCellColumnIds.has(cell.column.id),
+                      })}
+                    </span>
+                    <span className="shrink-0 opacity-70">
+                      ({row.subRows.length})
+                    </span>
+                  </button>
+                ) : row.getIsGrouped() && cell.getIsAggregated() ? (
+                  cell.column.columnDef.aggregatedCell
+                    ? flexRender(cell.column.columnDef.aggregatedCell, cellContext)
+                    : renderDataTableCellContent(cellContext, uiClassNames, {
+                        hasCustomCell: false,
+                        useCustomOverflowDefaults: false,
+                      })
                 ) : (
                   renderDataTableCellContent(cellContext, uiClassNames, {
                     hasCustomCell:

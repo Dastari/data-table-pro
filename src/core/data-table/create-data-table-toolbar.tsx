@@ -1,4 +1,5 @@
 import * as React from "react";
+import type { Table as TanStackTable } from "@tanstack/react-table";
 import {
   IconAdjustmentsHorizontal,
   IconLayoutGrid,
@@ -26,7 +27,9 @@ export type DataTableToolbarColumnFilter = {
   type: DataTableColumnFilterType;
   value: unknown;
   placeholder?: string;
-  options: Array<{ label: string; value: string }>;
+  options: Array<{ label: string; value: string; count?: number; disabled?: boolean }>;
+  searchable?: boolean;
+  searchPlaceholder?: string;
   trueLabel?: string;
   falseLabel?: string;
   min?: number | string;
@@ -68,6 +71,8 @@ type DataTableToolbarProps<TData> = {
   labels: DataTableLabels;
   toolbarVisibility?: DataTableToolbarVisibility;
   openFileDialog?: () => void;
+  enableGrouping: boolean;
+  table: TanStackTable<TData>;
 };
 
 export function createDataTableToolbar(ui: DataTableUiKit) {
@@ -125,6 +130,8 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
     labels,
     toolbarVisibility,
     openFileDialog,
+    enableGrouping,
+    table,
   }: DataTableToolbarProps<TData>) {
     const compactSearchInputRef = React.useRef<HTMLInputElement | null>(null);
     const [isCompactSearchVisible, setIsCompactSearchVisible] =
@@ -154,7 +161,19 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
       (columnVisibilityOptions.some((column) => column.canHide) ||
         Boolean(onShowHiddenRowsChange && hiddenRowsLabel) ||
         enableColumnPinning ||
-        enableDensityToggle);
+        enableDensityToggle ||
+        enableGrouping);
+    const groupableColumns = table
+      .getAllLeafColumns()
+      .filter(
+        (column) =>
+          !column.id.startsWith("__") &&
+          column.getCanGroup(),
+      );
+    const groupedColumns = table.getState().grouping.flatMap((id) => {
+      const column = table.getColumn(id);
+      return column ? [column] : [];
+    });
     const hasVisibleViewToggle =
       showViewToggle && enableViewToggle && Boolean(onViewModeChange);
     const hasVisibleTrailingActions =
@@ -519,6 +538,34 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
                         </DropdownMenuGroup>
                       </>
                     ) : null}
+                    {enableGrouping && groupableColumns.length ? (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuLabel>{labels.grouping}</DropdownMenuLabel>
+                        <DropdownMenuGroup>
+                          {groupableColumns.map((column) => {
+                            const columnLabel =
+                              typeof column.columnDef.header === "string"
+                                ? column.columnDef.header
+                                : column.id;
+                            const isGrouped = column.getIsGrouped();
+                            return (
+                              <DropdownMenuCheckboxItem
+                                key={`group-${column.id}`}
+                                checked={isGrouped}
+                                onCheckedChange={() => {
+                                  column.toggleGrouping();
+                                }}
+                              >
+                                {isGrouped
+                                  ? labels.ungroup(columnLabel)
+                                  : labels.groupBy(columnLabel)}
+                              </DropdownMenuCheckboxItem>
+                            );
+                          })}
+                        </DropdownMenuGroup>
+                      </>
+                    ) : null}
                   </DropdownMenuContent>
                 </DropdownMenu>
               ) : null}
@@ -701,6 +748,34 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
             </div>
           ) : null}
 
+          {enableGrouping && groupedColumns.length ? (
+            <div
+              data-dtp-slot="data-table-grouping-bar"
+              aria-label={labels.grouping}
+              className="flex flex-wrap items-center gap-2"
+            >
+              <span className="text-sm opacity-70">{labels.grouping}:</span>
+              {groupedColumns.map((column) => {
+                const columnLabel =
+                  typeof column.columnDef.header === "string"
+                    ? column.columnDef.header
+                    : column.id;
+                return (
+                  <Button
+                    key={`grouping-bar-${column.id}`}
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => column.toggleGrouping()}
+                    aria-label={labels.removeGrouping(columnLabel)}
+                  >
+                    {columnLabel} <span aria-hidden="true">×</span>
+                  </Button>
+                );
+              })}
+            </div>
+          ) : null}
+
         </div>
 
         {showCustomToolbar && customToolbar ? (
@@ -724,6 +799,7 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
     labels: DataTableLabels;
     onColumnFilterChange: (columnId: string, value: unknown) => void;
   }) {
+    const [facetQuery, setFacetQuery] = React.useState("");
     if (filter.type === "text") {
       return (
         <InputGroup className="min-w-48 max-w-64">
@@ -796,6 +872,7 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
     }
 
     const isBoolean = filter.type === "boolean";
+    const isFaceted = filter.type === "faceted";
     const booleanOptions = [
       {
         label:
@@ -812,7 +889,15 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
         value: "false",
       },
     ];
-    const options = isBoolean ? booleanOptions : filter.options;
+    const options: DataTableToolbarColumnFilter["options"] = isBoolean
+      ? booleanOptions
+      : filter.options;
+    const visibleOptions =
+      isFaceted && facetQuery
+        ? options.filter((option) =>
+            option.label.toLocaleLowerCase().includes(facetQuery.toLocaleLowerCase()),
+          )
+        : options;
     const selectedValue =
       typeof filter.value === "string" || typeof filter.value === "boolean"
         ? String(filter.value)
@@ -842,8 +927,25 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-56">
           <DropdownMenuLabel>{filter.label}</DropdownMenuLabel>
+          {isFaceted && filter.searchable !== false ? (
+            <div className="px-2 pb-2">
+              <InputGroup>
+                <InputGroupInput
+                  value={facetQuery}
+                  onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                    setFacetQuery(event.target.value);
+                  }}
+                  placeholder={filter.searchPlaceholder ?? labels.facetSearch(filter.label)}
+                  aria-label={labels.facetSearch(filter.label)}
+                />
+                <InputGroupAddon align="inline-start" aria-hidden="true">
+                  <IconSearch />
+                </InputGroupAddon>
+              </InputGroup>
+            </div>
+          ) : null}
           <DropdownMenuGroup>
-            {filter.type === "select" || isBoolean ? (
+            {filter.type === "select" || isBoolean || isFaceted ? (
               <DropdownMenuItem
                 onClick={() => {
                   onColumnFilterChange(filter.id, "");
@@ -853,10 +955,11 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
                   DATA_TABLE_DEFAULT_LABELS.allFilterOptions}
               </DropdownMenuItem>
             ) : null}
-            {options.map((option) => (
+            {visibleOptions.map((option) => (
               <DropdownMenuCheckboxItem
                 key={option.value}
                 checked={selectedValues.includes(option.value)}
+                disabled={option.disabled}
                 onCheckedChange={(checked: boolean | "indeterminate") => {
                   if (filter.type === "select" || isBoolean) {
                     onColumnFilterChange(
@@ -875,7 +978,10 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
                   onColumnFilterChange(filter.id, Array.from(nextValues));
                 }}
               >
-                {option.label}
+                <span className="min-w-0 flex-1 truncate">{option.label}</span>
+                {option.count !== undefined ? (
+                  <span className="ml-3 tabular-nums opacity-70">{option.count}</span>
+                ) : null}
               </DropdownMenuCheckboxItem>
             ))}
           </DropdownMenuGroup>

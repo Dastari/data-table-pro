@@ -495,13 +495,45 @@ One parent requirement remains unavoidable: the nearest containing layout must e
 | `customToolbar` | `React.ReactNode` | `undefined` | Optional secondary toolbar row rendered below the main toolbar. |
 | `compactToolbar` | `React.ReactNode` | `undefined` | Optional mobile compact-toolbar content rendered inline with the collapsed toolbar control strip. Use this for icon-only filter/action controls in narrow container widths. |
 
-Column metadata supports six built-in filter controls: `text`, `select`,
-`multi`, `boolean`, `numberRange`, and `dateRange`. Range controls store plain
+Column metadata supports seven built-in filter controls: `text`, `select`,
+`multi`, `faceted`, `boolean`, `numberRange`, and `dateRange`. Range controls store plain
 `{ from, to }` objects so controlled state, URL state, and server requests stay
 serializable. Numeric range bounds are inclusive and accept `min`, `max`, and
 `step`; date bounds are inclusive `YYYY-MM-DD` values. Boolean controls accept
 optional `trueLabel` and `falseLabel` overrides. Text filters accept an
 `operator` of `contains` (the default), `equals`, `startsWith`, or `endsWith`.
+
+`faceted` is a multi-select filter. Without supplied options it reads
+TanStack's faceted unique-value map and displays local option counts. Set
+`faceting.options` when the server owns facet results; its optional `count`
+is displayed unchanged. `faceting.searchable` defaults to `true`.
+
+```tsx
+meta: {
+  filter: {
+    type: "faceted",
+    faceting: {
+      options: [{ label: "Active", value: "active", count: 42 }],
+      searchable: true,
+    },
+  },
+}
+```
+
+### Grouping and aggregation
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `grouping` | `GroupingState` | internal state | Controlled TanStack grouping state. |
+| `onGroupingChange` | `(grouping: GroupingState) => void` | `undefined` | Receives grouping updates. |
+| `manualGrouping` | `boolean` | `false` | Skips the local grouped row model for server-grouped data. |
+| `enableGrouping` | `boolean` | `false` | Adds accessible group/ungroup controls and a removable grouping bar. |
+| `groupedColumnMode` | `false \| "reorder" \| "remove"` | `"reorder"` | Placement of grouped columns. |
+| `aggregationFns` | `Record<string, AggregationFn<TData>>` | `undefined` | Named aggregation functions for column definitions. |
+
+Use native TanStack `enableGrouping`, `aggregationFn`, and `aggregatedCell`
+on a `DataTableColumnDef`. Grouped cells toggle descendants, aggregated cells
+use `aggregatedCell` when present, and placeholder cells render empty.
 
 ```tsx
 const columns = [

@@ -1,5 +1,6 @@
 import type * as React from "react";
 import type {
+  AggregationFn,
   CellContext,
   ColumnFiltersState,
   ColumnDef,
@@ -8,6 +9,7 @@ import type {
   ColumnSizingState,
   ExpandedState,
   FilterFnOption,
+  GroupingState,
   HeaderContext,
   PaginationState,
   Row,
@@ -35,6 +37,7 @@ export type DataTableColumnFilterType =
   | "text"
   | "select"
   | "multi"
+  | "faceted"
   | "boolean"
   | "numberRange"
   | "dateRange";
@@ -89,6 +92,24 @@ export type DataTableCellEditRenderProps<TData, TValue> = {
 export type DataTableColumnFilterOption = {
   label: string;
   value: string;
+  /** Number of matching records. Omit when the count is not known. */
+  count?: number;
+  disabled?: boolean;
+};
+
+export type DataTableFacetedFilterOptions<TData, TValue> = {
+  /**
+   * Server-provided facet values. When supplied, these take precedence over
+   * locally calculated unique values and their counts.
+   */
+  options?:
+    | Array<DataTableColumnFilterOption | string>
+    | ((context: { rows: Array<TData> }) => Array<DataTableColumnFilterOption | string>);
+  /** Render a readable label for values discovered from the local row model. */
+  getOptionLabel?: (value: TValue | undefined) => string;
+  /** Enables an in-menu search input. Defaults to true. */
+  searchable?: boolean;
+  searchPlaceholder?: string;
 };
 
 export type DataTableColumnFilterRangeValue<TValue extends number | string> = {
@@ -104,6 +125,8 @@ export type DataTableColumnFilterConfig<TData, TValue> = {
     | Array<DataTableColumnFilterOption | string>
     | ((context: { rows: Array<TData> }) => Array<DataTableColumnFilterOption | string>);
   getOptionValue?: (value: TValue | undefined, row: TData) => string;
+  /** Settings for `type: "faceted"`, including server-provided facet data. */
+  faceting?: DataTableFacetedFilterOptions<TData, TValue>;
   operator?: DataTableColumnFilterOperator;
   trueLabel?: string;
   falseLabel?: string;
@@ -422,6 +445,7 @@ export type DataTableState = {
   columnPinning: ColumnPinningState;
   rowPinning: RowPinningState;
   columnSizing: ColumnSizingState;
+  grouping: GroupingState;
   density: DataTableDensity;
   viewMode: DataTableViewMode;
   showHiddenRows: boolean;
@@ -562,6 +586,11 @@ export type DataTableLabels = {
   pinRowToBottom: string;
   unpinRow: string;
   resizeColumn: (columnLabel: string) => string;
+  grouping: string;
+  groupBy: (columnLabel: string) => string;
+  ungroup: (columnLabel: string) => string;
+  removeGrouping: (columnLabel: string) => string;
+  facetSearch: (columnLabel: string) => string;
 };
 
 export type DataTableSummaryRow<TData> = {
@@ -609,6 +638,16 @@ export type DataTableProps<TData> = {
   sorting?: SortingState;
   onSortingChange?: (sorting: SortingState) => void;
   manualSorting?: boolean;
+  grouping?: GroupingState;
+  onGroupingChange?: (grouping: GroupingState) => void;
+  /** Use rows already grouped by the server instead of TanStack's grouping model. */
+  manualGrouping?: boolean;
+  /** Show group/ungroup controls in the table options menu and grouping bar. */
+  enableGrouping?: boolean;
+  /** Controls whether grouped columns are reordered, removed, or left in place. */
+  groupedColumnMode?: false | "reorder" | "remove";
+  /** Named aggregation functions available to column `aggregationFn` definitions. */
+  aggregationFns?: Record<string, AggregationFn<TData>>;
   pageIndex?: number;
   pageSize?: number;
   onPageIndexChange?: (pageIndex: number) => void;

@@ -100,10 +100,25 @@ export function useDataTableToolbarFeatures<TData>({
             ? startCase(accessorKey)
             : startCase(id));
       const state = currentColumnFilters.find((item) => item.id === id);
+      const configuredFacetOptions = filter.faceting?.options;
       const rawOptions =
-        typeof filter.options === "function"
-          ? filter.options({ rows: visibleData })
-          : (filter.options ?? []);
+        filter.type === "faceted" && configuredFacetOptions
+          ? typeof configuredFacetOptions === "function"
+            ? configuredFacetOptions({ rows: visibleData })
+            : configuredFacetOptions
+          : filter.type === "faceted"
+            ? Array.from(table.getColumn(id)?.getFacetedUniqueValues() ?? []).map(
+                ([value, count]) => ({
+                  label:
+                    filter.faceting?.getOptionLabel?.(value as never) ??
+                    String(value),
+                  value: String(value),
+                  count,
+                }),
+              )
+            : typeof filter.options === "function"
+              ? filter.options({ rows: visibleData })
+              : (filter.options ?? []);
 
       return [
         {
@@ -113,6 +128,8 @@ export function useDataTableToolbarFeatures<TData>({
           value: state?.value,
           placeholder: filter.placeholder,
           options: normalizeColumnFilterOptions(rawOptions),
+          searchable: filter.faceting?.searchable,
+          searchPlaceholder: filter.faceting?.searchPlaceholder,
           trueLabel: filter.trueLabel,
           falseLabel: filter.falseLabel,
           min: filter.min,
@@ -121,7 +138,13 @@ export function useDataTableToolbarFeatures<TData>({
         },
       ];
     });
-  }, [columns, currentColumnFilters, enableColumnFilters, visibleData]);
+  }, [
+    columns,
+    currentColumnFilters,
+    enableColumnFilters,
+    table,
+    visibleData,
+  ]);
 
   const handleToolbarColumnFilterChange = React.useCallback(
     (columnId: string, value: unknown) => {
