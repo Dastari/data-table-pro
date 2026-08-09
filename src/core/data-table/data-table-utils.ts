@@ -8,6 +8,7 @@ import type {
 } from "@tanstack/react-table";
 import type {
   DataTableClipboardCopyOptions,
+  DataTableCellSelection,
   DataTableColumnDef,
   DataTableColumnFilterOption,
   DataTableCsvExportOptions,
@@ -489,9 +490,11 @@ export async function exportDataTableCsv<TData>({
 
 export async function copyDataTableToClipboard<TData>({
   clipboard,
+  cellSelection,
   table,
 }: {
   clipboard: boolean | DataTableClipboardCopyOptions<TData>;
+  cellSelection?: DataTableCellSelection | null;
   table: TanStackTable<TData>;
 }) {
   if (clipboard === false) {
@@ -504,18 +507,26 @@ export async function copyDataTableToClipboard<TData>({
   const requestedColumnIds = options.columns
     ? new Set(options.columns)
     : undefined;
-  const columns = table
-    .getVisibleLeafColumns()
+  const allVisibleColumns = table.getVisibleLeafColumns();
+  const visibleColumns = allVisibleColumns
     .filter(
       (column) =>
         !isUtilityColumnId(column.id) &&
         column.id !== "__spacer__" &&
         (!requestedColumnIds || requestedColumnIds.has(column.id)),
     );
-  const rows = getDataTableExportRows(table, scope);
+  const selectedRange =
+    scope === "cellSelection"
+      ? getDataTableCellSelectionRange(table, allVisibleColumns, cellSelection)
+      : undefined;
+  const columns = selectedRange?.columns ?? visibleColumns;
+  const rows =
+    scope === "cellSelection"
+      ? (selectedRange?.rows ?? [])
+      : getDataTableExportRows(table, scope);
   const values: Array<Array<unknown>> = [];
 
-  if (options.includeHeaders ?? true) {
+  if (options.includeHeaders ?? scope !== "cellSelection") {
     values.push(
       columns.map((column) =>
         typeof column.columnDef.header === "string"
@@ -570,6 +581,40 @@ export async function copyDataTableToClipboard<TData>({
   }
 
   return text;
+}
+
+function getDataTableCellSelectionRange<TData>(
+  table: TanStackTable<TData>,
+  columns: Array<Column<TData, unknown>>,
+  selection: DataTableCellSelection | null | undefined,
+) {
+  if (!selection) return undefined;
+  // flatRows preserves expanded tree/group display order, whereas `rows` only
+  // contains top-level entries and would omit selected descendants.
+  const rows = table.getRowModel().flatRows;
+  const anchorRow = rows.findIndex((row) => row.id === selection.anchor.rowId);
+  const focusRow = rows.findIndex((row) => row.id === selection.focus.rowId);
+  const anchorColumn = columns.findIndex(
+    (column) => column.id === selection.anchor.columnId,
+  );
+  const focusColumn = columns.findIndex(
+    (column) => column.id === selection.focus.columnId,
+  );
+  if (anchorRow < 0 || focusRow < 0 || anchorColumn < 0 || focusColumn < 0) {
+    return undefined;
+  }
+  return {
+    rows: rows.slice(Math.min(anchorRow, focusRow), Math.max(anchorRow, focusRow) + 1),
+    columns: columns
+      .slice(
+        Math.min(anchorColumn, focusColumn),
+        Math.max(anchorColumn, focusColumn) + 1,
+      )
+      .filter(
+        (column) =>
+          !isUtilityColumnId(column.id) && column.id !== "__spacer__",
+      ),
+  };
 }
 
 export function parseDataTableClipboardText(

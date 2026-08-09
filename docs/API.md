@@ -652,6 +652,46 @@ Ctrl/Cmd+Home/End, and PageUp/PageDown move that cell. Buttons, checkboxes,
 links, and edit inputs keep their own keyboard behavior; Escape returns focus
 from an interactive descendant to its grid cell.
 
+### Grid cell and range selection
+
+Cell selection is independent from row-checkbox selection and only activates in
+interactive grid mode. It stores stable row and column IDs rather than row
+positions, so hosts can control it without handing application data to the
+table.
+
+```tsx
+const [cellSelection, setCellSelection] = React.useState<DataTableCellSelection | null>(null);
+
+<DataTable
+  {...props}
+  interactiveGrid
+  enableCellSelection
+  cellSelection={cellSelection}
+  onCellSelectionChange={setCellSelection}
+  clipboard={{ copy: { onCopy: ({ text }) => navigator.clipboard.writeText(text) } }}
+  gridCommands={{
+    undo: ({ cellSelection }) => undoInMyStore(cellSelection),
+    redo: ({ cellSelection }) => redoInMyStore(cellSelection),
+  }}
+/>
+```
+
+| Prop/API | Type | Description |
+| --- | --- | --- |
+| `enableCellSelection` | `boolean` | Enables pointer drag and Shift+keyboard rectangular range selection. |
+| `cellSelection` / `defaultCellSelection` | `DataTableCellSelection \| null` | Controlled or initial `{ anchor, focus }` range, using `{ rowId, columnId }` corners. A controlled value also enables selection. |
+| `onCellSelectionChange` | `(selection) => void` | Receives the complete next range; the host owns controlled state. |
+| `gridCommands` | `DataTableGridCommands<TData>` | Receives Ctrl/Cmd+Z and Ctrl/Cmd+Shift+Z callbacks. The table does not retain an undo stack or application records. |
+| `apiRef.current.getCellSelection()` | `() => DataTableCellSelection \| null` | Reads the current controlled or uncontrolled range. |
+| `apiRef.current.setCellSelection()` / `clearCellSelection()` | command methods | Sets or clears the range without changing row selection. |
+
+Selected cells expose `aria-selected="true"`, `data-dtp-cell-selected`, and the
+optional adapter `classNames.cellSelected` styling hook. With an active range,
+Ctrl/Cmd+C uses the `"cellSelection"` clipboard scope by default and copies its
+rectangular values as TSV (without headers). Set
+`clipboard.copy.scope: "cellSelection"` to request that scope explicitly from
+the imperative copy API; `includeHeaders: true` remains available.
+
 ### Pagination props
 
 | Prop | Type | Default | Description |
