@@ -50,10 +50,12 @@ export function useDataTableColumns<TData>({
   columns,
   editableRows,
   editingRowId,
+  editErrors,
   enableRowSelection,
   enableRowPinning,
   hasTreeExpansion,
   isSavingEdit,
+  isEditDirty,
   labels,
   lastSelectedRowIdRef,
   detailPanel,
@@ -77,10 +79,12 @@ export function useDataTableColumns<TData>({
   columns: DataTableProps<TData>["columns"];
   editableRows: DataTableProps<TData>["editableRows"];
   editingRowId: string | null;
+  editErrors: Record<string, string>;
   enableRowSelection: boolean;
   enableRowPinning: DataTableProps<TData>["enableRowPinning"];
   hasTreeExpansion: boolean;
   isSavingEdit: boolean;
+  isEditDirty: boolean;
   labels: DataTableLabels;
   lastSelectedRowIdRef: React.MutableRefObject<string | null>;
   detailPanel: DataTableDetailPanel<TData> | undefined;
@@ -90,7 +94,7 @@ export function useDataTableColumns<TData>({
     DataTableProps<TData>["rowSelectionSelectAllScope"]
   >;
   rowActions: Array<DataTableRowAction<TData>>;
-  saveEdit: (row: TData) => Promise<void>;
+  saveEdit: (row: TData) => Promise<boolean>;
   startEditingRow: (row: TData, rowId: string) => void;
   tableRef: React.RefObject<TanStackTable<TData> | null>;
 }) {
@@ -330,10 +334,15 @@ export function useDataTableColumns<TData>({
           if (isEditing) {
             return (
               <div className="flex w-full items-center justify-end gap-2">
+                {editErrors._row ? (
+                  <span className="sr-only" role="alert">
+                    {editErrors._row}
+                  </span>
+                ) : null}
                 <Button
                   type="button"
                   size="sm"
-                  disabled={isSavingEdit}
+                  disabled={isSavingEdit || !isEditDirty}
                   onClick={() => {
                     void saveEdit(row.original);
                   }}
@@ -399,11 +408,13 @@ export function useDataTableColumns<TData>({
     editableRows,
     detailExpanded,
     detailPanel,
+    editErrors,
     editingRowId,
     enableRowSelection,
     enableRowPinning,
     hasTreeExpansion,
     isSavingEdit,
+    isEditDirty,
     labels,
     lastSelectedRowIdRef,
     onDetailExpandedChange,

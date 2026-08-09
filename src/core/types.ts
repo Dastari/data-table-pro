@@ -48,12 +48,49 @@ export type DataTableCsvExportScope =
   | "page"
   | "selected"
   | "all";
+export type DataTableClipboardCopyOptions<TData> = {
+  includeHeaders?: boolean;
+  columns?: Array<string>;
+  scope?: DataTableCsvExportScope;
+  /** Defaults to tab-separated text. */
+  delimiter?: "\t" | ",";
+  escapeFormulaValues?: boolean;
+  getCellValue?: (context: {
+    row: TData;
+    rowId: string;
+    columnId: string;
+    value: unknown;
+  }) => unknown;
+  /** Host-owned clipboard delivery for non-browser or permission-managed apps. */
+  onCopy?: (context: {
+    text: string;
+    rows: Array<TData>;
+    scope: DataTableCsvExportScope;
+  }) => void | Promise<void>;
+};
+export type DataTableClipboardPasteContext<TData> = {
+  text: string;
+  values: Array<Array<string>>;
+  table: TanStackTable<TData>;
+};
+export type DataTableClipboardConfig<TData> = {
+  copy?: boolean | DataTableClipboardCopyOptions<TData>;
+  paste?: {
+    enabled?: boolean;
+    preventDefault?: boolean;
+    onPaste: (
+      context: DataTableClipboardPasteContext<TData>,
+    ) => void | Promise<void>;
+  };
+};
 export type DataTableActionErrorSource =
   | "toolbarAction"
   | "selectionAction"
   | "rowAction"
   | "rowClick"
   | "edit"
+  | "clipboardCopy"
+  | "clipboardPaste"
   | "fileUpload"
   | "infiniteScroll";
 
@@ -84,6 +121,9 @@ export type DataTableCellEditRenderProps<TData, TValue> = {
   value: TValue | undefined;
   draftValue: unknown;
   setDraftValue: (value: unknown) => void;
+  error?: string;
+  isDirty: boolean;
+  isPending: boolean;
 };
 
 export type DataTableColumnFilterOption = {
@@ -257,10 +297,36 @@ export type DataTableCardRendererProps<TData> = {
 export type DataTableEditableRowsConfig<TData> = {
   canEditRow?: (row: TData) => boolean;
   getInitialValues?: (row: TData) => Record<string, unknown>;
+  validateRow?: (
+    row: TData,
+    draftValues: Record<string, unknown>,
+  ) =>
+    | void
+    | string
+    | Record<string, string>
+    | Promise<void | string | Record<string, string>>;
+  /** Apply an optimistic host update and optionally return a rollback callback. */
+  onOptimisticUpdate?: (
+    row: TData,
+    draftValues: Record<string, unknown>,
+  ) => void | (() => void);
   onSaveRow: (
     row: TData,
     draftValues: Record<string, unknown>,
   ) => void | Promise<void>;
+  onSaveSuccess?: (
+    row: TData,
+    draftValues: Record<string, unknown>,
+  ) => void;
+  onSaveError?: (
+    error: unknown,
+    row: TData,
+    draftValues: Record<string, unknown>,
+  ) => void;
+  /** Defaults to true for inputs owned by the table. */
+  commitOnEnter?: boolean;
+  /** Defaults to true for inputs owned by the table. */
+  cancelOnEscape?: boolean;
 };
 
 export type DataTableInfiniteScroll = {
@@ -502,6 +568,11 @@ export type DataTableApi<TData> = {
   exportCsv: (
     options?: boolean | DataTableCsvExportOptions<TData>,
   ) => Promise<void>;
+  copyToClipboard: (
+    options?: boolean | DataTableClipboardCopyOptions<TData>,
+  ) => Promise<string | undefined>;
+  print: () => boolean;
+  toggleFullscreen: () => Promise<boolean>;
 };
 
 export type DataTableLabels = {
@@ -663,6 +734,8 @@ export type DataTableProps<TData> = {
   selectionActions?: Array<DataTableSelectionAction<TData>>;
   rowActions?: Array<DataTableRowAction<TData>>;
   csvExport?: boolean | DataTableCsvExportOptions<TData>;
+  /** Opt-in TSV/CSV copy and application-owned paste handling. */
+  clipboard?: DataTableClipboardConfig<TData>;
   density?: DataTableDensity;
   onDensityChange?: (density: DataTableDensity) => void;
   enableDensityToggle?: boolean;

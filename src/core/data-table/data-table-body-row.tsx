@@ -19,6 +19,17 @@ import {
 import { renderEditableCell } from "./use-row-editing";
 import { cellAlignClassName, hideOnClassName } from "../types";
 
+export type DataTableRowEditingContext<TData> = {
+  cancel: () => void;
+  clearError: (columnId: string) => void;
+  commit: (row: TData) => void;
+  errors: Record<string, string>;
+  isDirty: boolean;
+  isPending: boolean;
+  cancelOnEscape: boolean;
+  commitOnEnter: boolean;
+};
+
 type DataTableBodyRowProps<TData> = {
   columnLayouts: ReadonlyMap<string, DataTableColumnLayout>;
   components: Pick<
@@ -27,6 +38,7 @@ type DataTableBodyRowProps<TData> = {
   >;
   currentDensity: DataTableDensity;
   draftValues: Record<string, unknown>;
+  editingContext?: DataTableRowEditingContext<TData>;
   dragAndDrop: DataTableProps<TData>["dragAndDrop"];
   explicitCustomCellColumnIds: ReadonlySet<string>;
   getRowClassName: DataTableProps<TData>["getRowClassName"];
@@ -55,6 +67,7 @@ function DataTableBodyRowInner<TData>({
   components,
   currentDensity,
   draftValues,
+  editingContext,
   dragAndDrop,
   explicitCustomCellColumnIds,
   getRowClassName,
@@ -253,10 +266,27 @@ function DataTableBodyRowInner<TData>({
                   cell.column.id !== "__select__" &&
                   cell.column.id !== "__expand__" &&
                   cell.column.id !== "__actions__" ? (
-                  renderEditableCell(cellContext, draftValues, setDraftValues, {
-                    Checkbox,
-                    Input,
-                  })
+                  renderEditableCell(
+                    cellContext,
+                    draftValues,
+                    setDraftValues,
+                    {
+                      Checkbox,
+                      Input,
+                    },
+                    editingContext
+                      ? {
+                          cancel: editingContext.cancel,
+                          cancelOnEscape: editingContext.cancelOnEscape,
+                          commit: () => editingContext.commit(originalRow),
+                          commitOnEnter: editingContext.commitOnEnter,
+                          errors: editingContext.errors,
+                          isDirty: editingContext.isDirty,
+                          isPending: editingContext.isPending,
+                          onValueChange: editingContext.clearError,
+                        }
+                      : undefined,
+                  )
                 ) : (
                   renderDataTableCellContent(cellContext, uiClassNames, {
                     hasCustomCell:
@@ -314,6 +344,7 @@ function areDataTableBodyRowsEqual<TData>(
     previous.isSelected === next.isSelected &&
     previous.isInitialLoadingRow === next.isInitialLoadingRow &&
     previous.isEditing === next.isEditing &&
+    (!previous.isEditing || previous.editingContext === next.editingContext) &&
     previous.isExpanded === next.isExpanded &&
     previous.isDraggable === next.isDraggable &&
     sameLoadingState(previous.loadingState, next.loadingState) &&

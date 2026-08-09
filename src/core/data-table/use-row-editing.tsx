@@ -22,7 +22,17 @@ export function useRowEditing<TData>({
     Record<string, unknown>
   >({});
   const draftValuesRef = React.useRef(draftValues);
+  const [originalDraftValues, setOriginalDraftValues] = React.useState<
+    Record<string, unknown>
+  >({});
+  const [editErrors, setEditErrors] = React.useState<Record<string, string>>(
+    {},
+  );
   const [isSavingEdit, setIsSavingEdit] = React.useState(false);
+  const isEditDirty = React.useMemo(
+    () => !areDraftValuesEqual(draftValues, originalDraftValues),
+    [draftValues, originalDraftValues],
+  );
 
   React.useEffect(() => {
     draftValuesRef.current = draftValues;
@@ -31,6 +41,8 @@ export function useRowEditing<TData>({
   const cancelEditing = React.useCallback(() => {
     setEditingRowId(null);
     setDraftValues({});
+    setEditErrors({});
+    setOriginalDraftValues({});
   }, []);
 
   const startEditingRow = React.useCallback(
@@ -38,7 +50,9 @@ export function useRowEditing<TData>({
       const initialValues =
         editableRows?.getInitialValues?.(row) ??
         defaultDraftValues(row, columns);
+      setOriginalDraftValues({ ...initialValues });
       setDraftValues(initialValues);
+      setEditErrors({});
       setEditingRowId(rowId);
     },
     [columns, editableRows],
@@ -47,26 +61,70 @@ export function useRowEditing<TData>({
   const saveEdit = React.useCallback(
     async (row: TData) => {
       if (!editableRows) {
-        return;
+        return false;
       }
 
       setIsSavingEdit(true);
+      const draftSnapshot = { ...draftValuesRef.current };
+      let rollback: (() => void) | undefined;
       try {
-        await editableRows.onSaveRow(row, draftValuesRef.current);
+        const validation = await editableRows.validateRow?.(
+          row,
+          draftSnapshot,
+        );
+        const validationErrors = normalizeEditValidationErrors(validation);
+        if (Object.keys(validationErrors).length > 0) {
+          setEditErrors(validationErrors);
+          return false;
+        }
+
+        setEditErrors({});
+        const optimisticResult = editableRows.onOptimisticUpdate?.(
+          row,
+          draftSnapshot,
+        );
+        rollback =
+          typeof optimisticResult === "function"
+            ? optimisticResult
+            : undefined;
+        await editableRows.onSaveRow(row, draftSnapshot);
+        editableRows.onSaveSuccess?.(row, draftSnapshot);
         React.startTransition(cancelEditing);
+        return true;
       } catch (error) {
+        try {
+          rollback?.();
+        } catch {
+          // Preserve the original save error for the public error callbacks.
+        }
+        editableRows.onSaveError?.(error, row, draftSnapshot);
         onError?.(error, row);
+        return false;
       } finally {
         setIsSavingEdit(false);
       }
     },
     [cancelEditing, editableRows, onError],
   );
+  const clearEditError = React.useCallback((columnId: string) => {
+    setEditErrors((current) => {
+      if (!current[columnId] && !current._row) {
+        return current;
+      }
+      const next = { ...current };
+      delete next[columnId];
+      delete next._row;
+      return next;
+    });
+  }, []);
 
   return {
     cancelEditing,
+    clearEditError,
     draftValues,
+    editErrors,
     editingRowId,
+    isEditDirty,
     isSavingEdit,
     saveEdit,
     setDraftValues,
@@ -97,6 +155,16 @@ export function renderEditableCell<TData>(
   draftValues: Record<string, unknown>,
   setDraftValues: React.Dispatch<React.SetStateAction<Record<string, unknown>>>,
   components: Pick<DataTableUiKit, "Checkbox" | "Input">,
+  editing?: {
+    cancel: () => void;
+    commit: () => void;
+    errors: Record<string, string>;
+    isDirty: boolean;
+    isPending: boolean;
+    cancelOnEscape: boolean;
+    commitOnEnter: boolean;
+    onValueChange: (columnId: string) => void;
+  },
 ) {
   const { Checkbox, Input } = components;
   const column = context.column.columnDef as DataTableColumnDef<TData, unknown>;
@@ -106,11 +174,29 @@ export function renderEditableCell<TData>(
       ? column.accessorKey
       : context.column.id;
   const draftValue = draftValues[accessorKey];
+  const error =
+    editing?.errors[accessorKey] ??
+    editing?.errors[context.column.id] ??
+    editing?.errors._row;
   const setDraftValue = (value: unknown) => {
+    editing?.onValueChange(accessorKey);
     setDraftValues((current) => ({
       ...current,
       [accessorKey]: value,
     }));
+  };
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
+    if (event.key === "Escape" && editing?.cancelOnEscape) {
+      event.preventDefault();
+      editing.cancel();
+    } else if (
+      event.key === "Enter" &&
+      !event.shiftKey &&
+      editing?.commitOnEnter
+    ) {
+      event.preventDefault();
+      editing.commit();
+    }
   };
 
   if (meta?.renderEditCell) {
@@ -119,6 +205,9 @@ export function renderEditableCell<TData>(
       row: context.row.original,
       value: context.getValue(),
       draftValue,
+      error,
+      isDirty: editing?.isDirty ?? false,
+      isPending: editing?.isPending ?? false,
       setDraftValue,
     });
   }
@@ -127,32 +216,69 @@ export function renderEditableCell<TData>(
 
   if (typeof draftValue === "boolean") {
     return (
-      <Checkbox
-        checked={draftValue}
-        onCheckedChange={(checked: boolean | "indeterminate") => {
-          setDraftValue(checked === true);
-        }}
-      />
+      <div className="min-w-0">
+        <Checkbox
+          aria-invalid={Boolean(error) || undefined}
+          checked={draftValue}
+          disabled={editing?.isPending}
+          onCheckedChange={(checked: boolean | "indeterminate") => {
+            setDraftValue(checked === true);
+          }}
+          onKeyDown={handleKeyDown}
+        />
+        {error ? (
+          <span className="mt-1 block text-xs text-destructive" role="alert">
+            {error}
+          </span>
+        ) : null}
+      </div>
     );
   }
 
   return (
-    <Input
-      type={inputType}
-      value={
-        meta?.formatEditValue
-          ? meta.formatEditValue(draftValue, context)
-          : getEditableInputValue(draftValue, inputType)
-      }
-      onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-        const rawValue = event.target.value;
-        const parsedValue = meta?.parseEditValue
-          ? meta.parseEditValue(rawValue, context)
-          : parseEditableInputValue(rawValue, inputType, draftValue);
-        setDraftValue(parsedValue);
-      }}
-    />
+    <div className="min-w-0">
+      <Input
+        aria-invalid={Boolean(error) || undefined}
+        disabled={editing?.isPending}
+        type={inputType}
+        value={
+          meta?.formatEditValue
+            ? meta.formatEditValue(draftValue, context)
+            : getEditableInputValue(draftValue, inputType)
+        }
+        onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+          const rawValue = event.target.value;
+          const parsedValue = meta?.parseEditValue
+            ? meta.parseEditValue(rawValue, context)
+            : parseEditableInputValue(rawValue, inputType, draftValue);
+          setDraftValue(parsedValue);
+        }}
+        onKeyDown={handleKeyDown}
+      />
+      {error ? (
+        <span className="mt-1 block text-xs text-destructive" role="alert">
+          {error}
+        </span>
+      ) : null}
+    </div>
   );
+}
+
+function normalizeEditValidationErrors(
+  value: void | string | Record<string, string>,
+) {
+  if (!value) {
+    return {};
+  }
+  return typeof value === "string" ? { _row: value } : value;
+}
+
+function areDraftValuesEqual(
+  left: Record<string, unknown>,
+  right: Record<string, unknown>,
+) {
+  const keys = new Set([...Object.keys(left), ...Object.keys(right)]);
+  return Array.from(keys).every((key) => Object.is(left[key], right[key]));
 }
 
 function getEditableInputType(

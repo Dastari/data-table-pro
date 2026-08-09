@@ -5,6 +5,7 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
 } from "@testing-library/react";
 import {
   afterAll,
@@ -352,6 +353,108 @@ describe("DataTable unified state API", () => {
       screen.getByText("Child").closest('[data-dtp-slot="data-table-pinned-row"]')
         ?.getAttribute("data-row-pinned"),
     ).toBe("top");
+  });
+
+  it("copies delimited rows, handles opt-in paste, print, and fullscreen APIs", async () => {
+    const apiRef = React.createRef<DataTableApi<TestRow>>();
+    const onCopy = vi.fn();
+    const onPaste = vi.fn();
+    const print = vi.spyOn(window, "print").mockImplementation(() => {});
+    const { container } = render(
+      <DataTable
+        apiRef={apiRef}
+        columns={columns}
+        data={rows}
+        getRowId={(row) => row.id}
+        clipboard={{
+          copy: { onCopy, scope: "all" },
+          paste: { onPaste },
+        }}
+      />,
+    );
+    const root = container.querySelector<HTMLElement>(
+      '[data-dtp-slot="data-table-root"]',
+    );
+    expect(root).not.toBeNull();
+
+    fireEvent.keyDown(root!, { ctrlKey: true, key: "c" });
+    await waitFor(() => expect(onCopy).toHaveBeenCalled());
+    const copyContext = onCopy.mock.calls[0]?.[0] as { text: string };
+    expect(copyContext.text).toBe("Name\nAda\nGrace");
+
+    fireEvent.paste(root!, {
+      clipboardData: {
+        getData: () => 'Ada\t"Admin\nOwner"',
+      },
+    });
+    expect(onPaste).toHaveBeenCalledWith(
+      expect.objectContaining({
+        text: 'Ada\t"Admin\nOwner"',
+        values: [["Ada", "Admin\nOwner"]],
+      }),
+    );
+
+    expect(apiRef.current?.print()).toBe(true);
+    expect(print).toHaveBeenCalled();
+
+    const requestFullscreen = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(root, "requestFullscreen", {
+      configurable: true,
+      value: requestFullscreen,
+    });
+    await expect(apiRef.current?.toggleFullscreen()).resolves.toBe(true);
+    expect(requestFullscreen).toHaveBeenCalled();
+  });
+
+  it("validates edits and rolls back failed optimistic saves", async () => {
+    const saveError = new Error("save failed");
+    const rollback = vi.fn();
+    const onSaveRow = vi.fn().mockRejectedValue(saveError);
+    const onSaveError = vi.fn();
+    const onActionError = vi.fn();
+    render(
+      <DataTable
+        columns={columns}
+        data={rows}
+        getRowId={(row) => row.id}
+        editableRows={{
+          onOptimisticUpdate: () => rollback,
+          onSaveError,
+          onSaveRow,
+          validateRow: (_row, draft) =>
+            draft.name ? undefined : { name: "Name is required" },
+        }}
+        onActionError={onActionError}
+      />,
+    );
+
+    fireEvent.pointerDown(
+      screen.getAllByRole("button", { name: "Row actions" })[0],
+    );
+    fireEvent.click(screen.getByText("Edit row"));
+    const input = screen.getByDisplayValue("Ada");
+
+    fireEvent.change(input, { target: { value: "" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect((await screen.findByRole("alert")).textContent).toContain(
+      "Name is required",
+    );
+    expect(onSaveRow).not.toHaveBeenCalled();
+
+    fireEvent.change(input, { target: { value: "Ada Lovelace" } });
+    expect(screen.queryByRole("alert")).toBeNull();
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    await waitFor(() => expect(onSaveError).toHaveBeenCalled());
+    expect(onSaveError).toHaveBeenCalledWith(
+      saveError,
+      rows[0],
+      expect.objectContaining({ name: "Ada Lovelace" }),
+    );
+    expect(rollback).toHaveBeenCalled();
+    expect(onActionError).toHaveBeenCalledWith(
+      expect.objectContaining({ error: saveError, source: "edit" }),
+    );
   });
 
   it("configures resizing and keyboard reordering for RTL", () => {

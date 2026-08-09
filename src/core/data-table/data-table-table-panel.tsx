@@ -14,7 +14,10 @@ import type {
 } from "../types";
 import type { DataTableUiClassNames, DataTableUiKit } from "../ui-kit";
 import { cn } from "../../lib/utils";
-import { DataTableBodyRow } from "./data-table-body-row";
+import {
+  DataTableBodyRow,
+  type DataTableRowEditingContext,
+} from "./data-table-body-row";
 import { DataTableHeaderCell } from "./data-table-header-cell";
 import type { DataTableColumnLayout } from "./use-column-layout";
 import { isDataTableLoadingRow } from "./data-table-utils";
@@ -38,6 +41,7 @@ export type DataTableTablePanelProps<TData> = {
   draggedColumnIdRef: React.RefObject<string | null>;
   draftValues: Record<string, unknown>;
   editingRowId: string | null;
+  editingContext?: DataTableRowEditingContext<TData>;
   emptyNode: React.ReactNode;
   enableColumnReordering: boolean;
   enableColumnResizing: boolean;
@@ -104,6 +108,7 @@ export function DataTableTablePanel<TData>({
   draggedColumnIdRef,
   draftValues,
   editingRowId,
+  editingContext,
   emptyNode,
   enableColumnReordering,
   enableColumnResizing,
@@ -190,6 +195,7 @@ export function DataTableTablePanel<TData>({
         components={bodyRowComponents}
         currentDensity={currentDensity}
         draftValues={draftValues}
+        editingContext={editingContext}
         dragAndDrop={dragAndDrop}
         explicitCustomCellColumnIds={explicitCustomCellColumnIds}
         getRowClassName={getRowClassName}

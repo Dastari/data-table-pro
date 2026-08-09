@@ -33,11 +33,13 @@ import { useControllableState } from "./use-controllable-state";
 import { useDataTableInstance } from "./use-data-table-instance";
 import { useDataTableScrollViewport } from "./use-data-table-scroll-viewport";
 import {
+  copyDataTableToClipboard,
   exportDataTableCsv,
   getColumnId,
   getDataTableColumnGroupPaths,
   getDataTableLeafColumns,
   getInitialColumnPinning,
+  parseDataTableClipboardText,
   validateDataTableColumnIds,
 } from "./data-table-utils";
 import { useDataTableState } from "./use-data-table-state";
@@ -158,6 +160,7 @@ export function createDataTableWithPanels(
     selectionActions = [],
     rowActions = [],
     csvExport,
+    clipboard,
     density,
     onDensityChange,
     enableDensityToggle = false,
@@ -528,8 +531,11 @@ export function createDataTableWithPanels(
       });
     const {
       cancelEditing,
+      clearEditError,
       draftValues,
+      editErrors,
       editingRowId,
+      isEditDirty,
       isSavingEdit,
       saveEdit,
       setDraftValues,
@@ -540,6 +546,30 @@ export function createDataTableWithPanels(
       editableRows,
       onError: handleEditError,
     });
+    const rowEditingContext = React.useMemo(
+      () => ({
+        cancel: cancelEditing,
+        cancelOnEscape: editableRows?.cancelOnEscape !== false,
+        clearError: clearEditError,
+        commit: (row: TData) => {
+          void saveEdit(row);
+        },
+        commitOnEnter: editableRows?.commitOnEnter !== false,
+        errors: editErrors,
+        isDirty: isEditDirty,
+        isPending: isSavingEdit,
+      }),
+      [
+        cancelEditing,
+        clearEditError,
+        editableRows?.cancelOnEscape,
+        editableRows?.commitOnEnter,
+        editErrors,
+        isEditDirty,
+        isSavingEdit,
+        saveEdit,
+      ],
+    );
     const { viewportElement: tableScrollElement, viewportHeight } =
       useDataTableScrollViewport(tableScrollContainerRef, currentViewMode);
     const openFileDialog = React.useCallback(() => {
@@ -571,11 +601,13 @@ export function createDataTableWithPanels(
       cancelEditing,
       columns,
       editableRows,
+      editErrors,
       editingRowId,
       enableRowSelection,
       enableRowPinning,
       hasTreeExpansion: Boolean(getSubRows),
       isSavingEdit,
+      isEditDirty,
       labels: resolvedLabels,
       lastSelectedRowIdRef,
       detailPanel: resolvedDetailPanel,
@@ -1025,6 +1057,41 @@ export function createDataTableWithPanels(
         }),
       [csvExport, resolvedLabels, table],
     );
+    const copyToClipboard = React.useCallback<
+      DataTableApi<TData>["copyToClipboard"]
+    >(
+      (options) =>
+        copyDataTableToClipboard({
+          clipboard: options ?? clipboard?.copy ?? true,
+          table,
+        }),
+      [clipboard?.copy, table],
+    );
+    const print = React.useCallback(() => {
+      if (typeof window === "undefined" || typeof window.print !== "function") {
+        return false;
+      }
+      window.print();
+      return true;
+    }, []);
+    const toggleFullscreen = React.useCallback(async () => {
+      const element = containerRef.current;
+      if (!element || typeof document === "undefined") {
+        return false;
+      }
+      if (document.fullscreenElement) {
+        if (typeof document.exitFullscreen !== "function") {
+          return false;
+        }
+        await document.exitFullscreen();
+        return true;
+      }
+      if (typeof element.requestFullscreen !== "function") {
+        return false;
+      }
+      await element.requestFullscreen();
+      return true;
+    }, []);
     const pinRow = React.useCallback<DataTableApi<TData>["pinRow"]>(
       (rowId, position = "top") => {
         try {
@@ -1085,11 +1152,15 @@ export function createDataTableWithPanels(
             columnId,
           ),
         exportCsv: exportCsvFromApi,
+        copyToClipboard,
+        print,
+        toggleFullscreen,
       }),
       [
         applySavedView,
         clearPersistedState,
         clearSavedViews,
+        copyToClipboard,
         createSavedView,
         deleteSavedView,
         exportCsvFromApi,
@@ -1100,7 +1171,9 @@ export function createDataTableWithPanels(
         resetState,
         restoreState,
         pinRow,
+        print,
         unpinRow,
+        toggleFullscreen,
       ],
     );
 
@@ -1123,6 +1196,51 @@ export function createDataTableWithPanels(
           onDragOver={dragAndDrop?.onDragOver}
           onDragLeave={dragAndDrop?.onDragLeave}
           onDrop={dragAndDrop?.onDrop}
+          onKeyDown={(event) => {
+            if (
+              !clipboard?.copy ||
+              !(event.ctrlKey || event.metaKey) ||
+              event.key.toLowerCase() !== "c" ||
+              isDataTableEditableClipboardTarget(event.target)
+            ) {
+              return;
+            }
+            event.preventDefault();
+            runAction(
+              { source: "clipboardCopy" },
+              async () => {
+                await copyToClipboard(
+                  clipboard.copy === true ? undefined : clipboard.copy,
+                );
+              },
+            );
+          }}
+          onPaste={(event) => {
+            const paste = clipboard?.paste;
+            if (
+              !paste ||
+              paste.enabled === false ||
+              isDataTableEditableClipboardTarget(event.target)
+            ) {
+              return;
+            }
+            const text = event.clipboardData.getData("text/plain");
+            if (!text) {
+              return;
+            }
+            if (paste.preventDefault ?? true) {
+              event.preventDefault();
+            }
+            runAction(
+              { source: "clipboardPaste" },
+              () =>
+                paste.onPaste({
+                  table,
+                  text,
+                  values: parseDataTableClipboardText(text),
+                }),
+            );
+          }}
         >
           {fileUpload ? (
             <input
@@ -1252,6 +1370,7 @@ export function createDataTableWithPanels(
                   draggedColumnIdRef={draggedColumnIdRef}
                   draftValues={draftValues}
                   editingRowId={editingRowId}
+                  editingContext={rowEditingContext}
                   emptyNode={emptyNode}
                   enableColumnReordering={enableColumnReordering}
                   enableColumnResizing={enableColumnResizing}
@@ -1454,4 +1573,16 @@ function scrollDataTableElementIntoView(
 
   element.scrollIntoView?.({ block: "nearest", inline: "nearest" });
   return true;
+}
+
+function isDataTableEditableClipboardTarget(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) {
+    return false;
+  }
+  return (
+    target.isContentEditable ||
+    target instanceof HTMLInputElement ||
+    target instanceof HTMLTextAreaElement ||
+    target instanceof HTMLSelectElement
+  );
 }
