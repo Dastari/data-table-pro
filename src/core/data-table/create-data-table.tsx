@@ -6,6 +6,7 @@ import type {
 import type {
   DataTableActionErrorContext,
   DataTableApi,
+  DataTableCellSelection,
   DataTableProps,
   DataTableState,
 } from "../types";
@@ -168,6 +169,11 @@ export function createDataTableWithPanels(
     rowActions = [],
     csvExport,
     clipboard,
+    enableCellSelection = false,
+    cellSelection,
+    defaultCellSelection,
+    onCellSelectionChange,
+    gridCommands,
     density,
     onDensityChange,
     enableDensityToggle = false,
@@ -236,6 +242,16 @@ export function createDataTableWithPanels(
       () => resolveDataTableLabels(labels),
       [labels],
     );
+    const gridMode =
+      accessibility?.mode === "grid" ||
+      interactiveGrid === true ||
+      typeof interactiveGrid === "object";
+    const [currentCellSelection, setCurrentCellSelection] =
+      useControllableState<DataTableCellSelection | null>({
+        defaultValue: defaultCellSelection ?? null,
+        onChange: onCellSelectionChange,
+        value: cellSelection,
+      });
     const resolvedToolbarQueryValue =
       toolbarQueryValue ?? unifiedState?.globalFilter;
     const resolvedSorting = sorting ?? unifiedState?.sorting;
@@ -1094,10 +1110,15 @@ export function createDataTableWithPanels(
     >(
       (options) =>
         copyDataTableToClipboard({
-          clipboard: options ?? clipboard?.copy ?? true,
+          clipboard:
+            options ??
+            (currentCellSelection
+              ? { ...(clipboard?.copy === true ? {} : clipboard?.copy), scope: "cellSelection" }
+              : clipboard?.copy ?? true),
+          cellSelection: currentCellSelection,
           table,
         }),
-      [clipboard?.copy, table],
+      [clipboard?.copy, currentCellSelection, table],
     );
     const print = React.useCallback(() => {
       if (typeof window === "undefined" || typeof window.print !== "function") {
@@ -1185,6 +1206,9 @@ export function createDataTableWithPanels(
           ),
         exportCsv: exportCsvFromApi,
         copyToClipboard,
+        getCellSelection: () => currentCellSelection,
+        setCellSelection: setCurrentCellSelection,
+        clearCellSelection: () => setCurrentCellSelection(null),
         print,
         toggleFullscreen,
       }),
@@ -1193,6 +1217,7 @@ export function createDataTableWithPanels(
         clearPersistedState,
         clearSavedViews,
         copyToClipboard,
+        currentCellSelection,
         createSavedView,
         deleteSavedView,
         exportCsvFromApi,
@@ -1204,6 +1229,7 @@ export function createDataTableWithPanels(
         restoreState,
         pinRow,
         print,
+        setCurrentCellSelection,
         unpinRow,
         toggleFullscreen,
       ],
@@ -1230,6 +1256,23 @@ export function createDataTableWithPanels(
           onDrop={dragAndDrop?.onDrop}
           onKeyDown={(event) => {
             if (
+              gridMode &&
+              gridCommands &&
+              (event.ctrlKey || event.metaKey) &&
+              event.key.toLowerCase() === "z" &&
+              !isDataTableEditableClipboardTarget(event.target)
+            ) {
+              const command = event.shiftKey ? gridCommands.redo : gridCommands.undo;
+              if (command) {
+                event.preventDefault();
+                runAction(
+                  { source: event.shiftKey ? "redo" : "undo" },
+                  () => command({ cellSelection: currentCellSelection, table }),
+                );
+              }
+              return;
+            }
+            if (
               !clipboard?.copy ||
               !(event.ctrlKey || event.metaKey) ||
               event.key.toLowerCase() !== "c" ||
@@ -1242,7 +1285,13 @@ export function createDataTableWithPanels(
               { source: "clipboardCopy" },
               async () => {
                 await copyToClipboard(
-                  clipboard.copy === true ? undefined : clipboard.copy,
+                  clipboard.copy === true
+                    ? undefined
+                    : currentCellSelection &&
+                        typeof clipboard.copy === "object" &&
+                        !clipboard.copy.scope
+                      ? { ...clipboard.copy, scope: "cellSelection" }
+                      : clipboard.copy,
                 );
               },
             );
@@ -1449,16 +1498,21 @@ export function createDataTableWithPanels(
                   uiClassNames={uiClassNames}
                   viewportHeight={viewportHeight}
                   virtualization={virtualization}
-                  gridMode={
-                    accessibility?.mode === "grid" || interactiveGrid === true ||
-                    typeof interactiveGrid === "object"
-                  }
+                  gridMode={gridMode}
                   gridPageSize={
                     accessibility?.pageSize ??
                     (typeof interactiveGrid === "object"
                       ? interactiveGrid.pageSize
                       : undefined)
                   }
+                  cellSelectionEnabled={
+                    gridMode &&
+                    (enableCellSelection ||
+                    cellSelection !== undefined ||
+                    defaultCellSelection !== undefined)
+                  }
+                  cellSelection={currentCellSelection}
+                  onCellSelectionChange={setCurrentCellSelection}
                   gridRowOffset={
                     manualPagination
                       ? currentPagination.pageIndex * currentPagination.pageSize

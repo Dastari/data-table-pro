@@ -48,9 +48,21 @@ type DataTableBodyRowProps<TData> = {
   gridRowAriaIndex: number;
   gridRowIndex: number;
   activeGridCell: { row: number; column: number };
+  cellSelectionEnabled: boolean;
+  isGridCellSelected: (row: number, column: number) => boolean;
   onGridCellFocus: (cell: { row: number; column: number }) => void;
   onGridCellKeyDown: (
     event: React.KeyboardEvent<HTMLElement>,
+    row: number,
+    column: number,
+  ) => void;
+  onGridCellPointerDown: (
+    event: React.PointerEvent<HTMLElement>,
+    row: number,
+    column: number,
+  ) => void;
+  onGridCellPointerEnter: (
+    event: React.PointerEvent<HTMLElement>,
     row: number,
     column: number,
   ) => void;
@@ -88,8 +100,12 @@ function DataTableBodyRowInner<TData>({
   gridRowAriaIndex,
   gridRowIndex,
   activeGridCell,
+  cellSelectionEnabled,
+  isGridCellSelected,
   onGridCellFocus,
   onGridCellKeyDown,
+  onGridCellPointerDown,
+  onGridCellPointerEnter,
   isDraggable,
   isDetailExpanded,
   isEditing,
@@ -183,6 +199,8 @@ function DataTableBodyRowInner<TData>({
             return;
           }
 
+          if (gridMode && cellSelectionEnabled) return;
+
           void onRowClick?.({ row: originalRow, rowId: row.id });
         }}
         onKeyDown={(event: React.KeyboardEvent<HTMLTableRowElement>) => {
@@ -245,13 +263,24 @@ function DataTableBodyRowInner<TData>({
                     value,
                   })
                 : meta?.cellClassName;
+          const isCellSelected =
+            gridMode && cellSelectionEnabled &&
+            !isInitialLoadingRow &&
+            isGridCellSelected(gridRowIndex, columnIndex);
 
           return (
             <TableCell
               key={cell.id}
               role={gridMode ? "gridcell" : undefined}
               aria-colindex={gridMode ? columnIndex + 1 : undefined}
-              aria-selected={gridMode && !isInitialLoadingRow ? isSelected : undefined}
+              aria-selected={
+                gridMode && !isInitialLoadingRow
+                  ? cellSelectionEnabled
+                    ? isCellSelected
+                    : isSelected
+                  : undefined
+              }
+              data-dtp-cell-selected={isCellSelected || undefined}
               data-dtp-grid-cell={gridMode ? "true" : undefined}
               data-grid-row-index={gridMode ? gridRowIndex : undefined}
               data-grid-column-index={gridMode ? columnIndex : undefined}
@@ -282,10 +311,28 @@ function DataTableBodyRowInner<TData>({
                     }
                   : undefined
               }
+              onPointerDown={
+                gridMode && cellSelectionEnabled
+                  ? (event: React.PointerEvent<HTMLTableCellElement>) => {
+                      if (isDataTableInteractiveTarget(event.target, event.currentTarget)) return;
+                      event.currentTarget.focus();
+                      onGridCellPointerDown(event, gridRowIndex, columnIndex);
+                    }
+                  : undefined
+              }
+              onPointerEnter={
+                gridMode && cellSelectionEnabled
+                  ? (event: React.PointerEvent<HTMLTableCellElement>) => {
+                      if (isDataTableInteractiveTarget(event.target, event.currentTarget)) return;
+                      onGridCellPointerEnter(event, gridRowIndex, columnIndex);
+                    }
+                  : undefined
+              }
               className={cn(
                 "border-b",
                 getDensityCellClassName(currentDensity),
                 uiClassNames.cellBorder,
+                isCellSelected && uiClassNames.cellSelected,
                 layout?.utilityClassName,
                 layout?.isSpacerColumn && "border-b-0 bg-transparent p-0",
                 layout?.pinnedClassName,
@@ -452,12 +499,17 @@ function areDataTableBodyRowsEqual<TData>(
     previous.getRowClassName === next.getRowClassName &&
     previous.groupToggleLabel === next.groupToggleLabel &&
     previous.gridMode === next.gridMode &&
-    previous.gridRowAriaIndex === next.gridRowAriaIndex &&
-    previous.gridRowIndex === next.gridRowIndex &&
-    previous.activeGridCell.row === next.activeGridCell.row &&
-    previous.activeGridCell.column === next.activeGridCell.column &&
-    previous.onGridCellFocus === next.onGridCellFocus &&
-    previous.onGridCellKeyDown === next.onGridCellKeyDown &&
+    (!next.gridMode ||
+      (previous.gridRowAriaIndex === next.gridRowAriaIndex &&
+        previous.gridRowIndex === next.gridRowIndex &&
+        previous.activeGridCell.row === next.activeGridCell.row &&
+        previous.activeGridCell.column === next.activeGridCell.column &&
+        previous.cellSelectionEnabled === next.cellSelectionEnabled &&
+        previous.isGridCellSelected === next.isGridCellSelected &&
+        previous.onGridCellFocus === next.onGridCellFocus &&
+        previous.onGridCellKeyDown === next.onGridCellKeyDown &&
+        previous.onGridCellPointerDown === next.onGridCellPointerDown &&
+        previous.onGridCellPointerEnter === next.onGridCellPointerEnter)) &&
     previous.stripedRows === next.stripedRows &&
     previous.uiClassNames === next.uiClassNames &&
     previous.explicitCustomCellColumnIds === next.explicitCustomCellColumnIds &&

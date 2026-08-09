@@ -199,3 +199,20 @@ test("interactive grid navigation follows the rendered cell geometry", async ({
   expect(focused.row).not.toBe("0");
   expect(focused.column).toBe("1");
 });
+
+test("interactive grid selects a pointer-dragged cell range", async ({ page }) => {
+  await page.goto("/");
+  const grid = page.getByRole("grid").first();
+  const firstCell = grid.getByRole("gridcell").nth(0);
+  const fourthCell = grid.getByRole("gridcell").nth(3);
+  const start = await firstCell.boundingBox();
+  const end = await fourthCell.boundingBox();
+  expect(start).not.toBeNull();
+  expect(end).not.toBeNull();
+  await page.mouse.move(start!.x + 8, start!.y + 8);
+  await page.mouse.down();
+  await page.mouse.move(end!.x + 8, end!.y + 8, { steps: 4 });
+  await page.mouse.up();
+  await expect(firstCell).toHaveAttribute("aria-selected", "true");
+  await expect(fourthCell).toHaveAttribute("aria-selected", "true");
+});

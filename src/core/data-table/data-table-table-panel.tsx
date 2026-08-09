@@ -9,6 +9,7 @@ import type {
 } from "@tanstack/react-table";
 import type {
   DataTableDensity,
+  DataTableCellSelection,
   DataTableProps,
   DataTableRowLoadingState,
 } from "../types";
@@ -30,6 +31,8 @@ export type DataTableTablePanelProps<TData> = {
     DataTableUiKit,
     "Checkbox" | "Input" | "Skeleton" | "TableCell" | "TableRow"
   >;
+  cellSelection: DataTableCellSelection | null;
+  cellSelectionEnabled: boolean;
   columnLayouts: ReadonlyMap<string, DataTableColumnLayout>;
   columnGroupHeaderHeight: DataTableProps<TData>["columnGroupHeaderHeight"];
   currentDensity: DataTableDensity;
@@ -52,6 +55,7 @@ export type DataTableTablePanelProps<TData> = {
   gridPageSize?: number;
   gridRowOffset: number;
   onGridActiveRowIndexChange?: (rowIndex: number) => void;
+  onCellSelectionChange: (selection: DataTableCellSelection | null) => void;
   getColumnLayout: (columnId: string) => DataTableColumnLayout;
   getRowClassName: DataTableProps<TData>["getRowClassName"];
   getRowLoadingState: DataTableProps<TData>["getRowLoadingState"];
@@ -102,6 +106,8 @@ export function DataTableTablePanel<TData>({
   ariaDescribedBy,
   ariaLabelledBy,
   bodyRowComponents,
+  cellSelection,
+  cellSelectionEnabled,
   columnLayouts,
   columnGroupHeaderHeight,
   currentDensity,
@@ -124,6 +130,7 @@ export function DataTableTablePanel<TData>({
   gridPageSize,
   gridRowOffset,
   onGridActiveRowIndexChange,
+  onCellSelectionChange,
   getColumnLayout,
   getRowClassName,
   getRowLoadingState,
@@ -186,6 +193,48 @@ export function DataTableTablePanel<TData>({
     topPinnedRows.length + renderedRows.length + bottomPinnedRows.length;
   const [activeCell, setActiveCell] = React.useState({ row: 0, column: 0 });
   const shouldRestoreGridFocusRef = React.useRef(false);
+  const pointerSelectingRef = React.useRef(false);
+  const gridRows = React.useMemo(
+    () => [...topPinnedRows, ...renderedRows, ...bottomPinnedRows],
+    [bottomPinnedRows, renderedRows, topPinnedRows],
+  );
+  const getGridCoordinate = React.useCallback(
+    (rowIndex: number, columnIndex: number) => {
+      const row = gridRows[rowIndex];
+      const column = visibleLeafColumns[columnIndex];
+      return row && column ? { rowId: row.id, columnId: column.id } : undefined;
+    },
+    [gridRows, visibleLeafColumns],
+  );
+  const selectedBounds = React.useMemo(() => {
+    if (!cellSelection) return undefined;
+    const anchorRow = gridRows.findIndex((row) => row.id === cellSelection.anchor.rowId);
+    const focusRow = gridRows.findIndex((row) => row.id === cellSelection.focus.rowId);
+    const anchorColumn = visibleLeafColumns.findIndex(
+      (column) => column.id === cellSelection.anchor.columnId,
+    );
+    const focusColumn = visibleLeafColumns.findIndex(
+      (column) => column.id === cellSelection.focus.columnId,
+    );
+    if (anchorRow < 0 || focusRow < 0 || anchorColumn < 0 || focusColumn < 0) return undefined;
+    return {
+      firstRow: Math.min(anchorRow, focusRow),
+      lastRow: Math.max(anchorRow, focusRow),
+      firstColumn: Math.min(anchorColumn, focusColumn),
+      lastColumn: Math.max(anchorColumn, focusColumn),
+    };
+  }, [cellSelection, gridRows, visibleLeafColumns]);
+  const isGridCellSelected = React.useCallback(
+    (rowIndex: number, columnIndex: number) =>
+      Boolean(
+        selectedBounds &&
+          rowIndex >= selectedBounds.firstRow &&
+          rowIndex <= selectedBounds.lastRow &&
+          columnIndex >= selectedBounds.firstColumn &&
+          columnIndex <= selectedBounds.lastColumn,
+      ),
+    [selectedBounds],
+  );
   const handleGridCellFocus = React.useCallback(
     (cell: { row: number; column: number }) => {
       shouldRestoreGridFocusRef.current = true;
@@ -193,6 +242,39 @@ export function DataTableTablePanel<TData>({
     },
     [],
   );
+  const selectGridCell = React.useCallback(
+    (rowIndex: number, columnIndex: number, extend: boolean) => {
+      if (!cellSelectionEnabled) return;
+      const focus = getGridCoordinate(rowIndex, columnIndex);
+      if (!focus) return;
+      const anchor =
+        extend && cellSelection?.anchor
+          ? cellSelection.anchor
+          : focus;
+      onCellSelectionChange({ anchor, focus });
+    },
+    [cellSelection, cellSelectionEnabled, getGridCoordinate, onCellSelectionChange],
+  );
+  const handleGridCellPointerDown = React.useCallback(
+    (event: React.PointerEvent<HTMLElement>, rowIndex: number, columnIndex: number) => {
+      if (!cellSelectionEnabled || event.button !== 0) return;
+      pointerSelectingRef.current = true;
+      selectGridCell(rowIndex, columnIndex, event.shiftKey);
+    },
+    [cellSelectionEnabled, selectGridCell],
+  );
+  const handleGridCellPointerEnter = React.useCallback(
+    (event: React.PointerEvent<HTMLElement>, rowIndex: number, columnIndex: number) => {
+      if (!cellSelectionEnabled || !pointerSelectingRef.current || event.buttons !== 1) return;
+      selectGridCell(rowIndex, columnIndex, true);
+    },
+    [cellSelectionEnabled, selectGridCell],
+  );
+  React.useEffect(() => {
+    const stopSelecting = () => { pointerSelectingRef.current = false; };
+    window.addEventListener("pointerup", stopSelecting);
+    return () => window.removeEventListener("pointerup", stopSelecting);
+  }, []);
 
   // Keep focus on the roving cell after sorting, filtering, or a virtual row
   // range changes. A missing target is normal while a virtualizer is rendering.
@@ -246,12 +328,28 @@ export function DataTableTablePanel<TData>({
         default: return;
       }
       event.preventDefault();
-      setActiveCell({
+      const nextCell = {
         row: Math.min(lastRow, Math.max(0, nextRow)),
         column: Math.min(lastColumn, Math.max(0, nextColumn)),
-      });
+      };
+      setActiveCell(nextCell);
+      if (event.shiftKey && cellSelectionEnabled) {
+        const focus = getGridCoordinate(nextCell.row, nextCell.column);
+        const anchor =
+          cellSelection?.anchor ?? getGridCoordinate(row, column) ?? focus;
+        if (anchor && focus) onCellSelectionChange({ anchor, focus });
+      }
     },
-    [displayRowCount, gridPageSize, tableScrollElement, visibleLeafColumnCount],
+    [
+      cellSelection,
+      cellSelectionEnabled,
+      displayRowCount,
+      getGridCoordinate,
+      gridPageSize,
+      onCellSelectionChange,
+      tableScrollElement,
+      visibleLeafColumnCount,
+    ],
   );
   const renderBodyRow = (
     row: Row<TData>,
@@ -312,8 +410,12 @@ export function DataTableTablePanel<TData>({
         gridRowIndex={rowIndex}
         gridRowAriaIndex={headerRowCount + gridRowOffset + rowIndex + 1}
         activeGridCell={activeCell}
+        cellSelectionEnabled={cellSelectionEnabled}
+        isGridCellSelected={isGridCellSelected}
         onGridCellFocus={handleGridCellFocus}
         onGridCellKeyDown={moveGridFocus}
+        onGridCellPointerDown={handleGridCellPointerDown}
+        onGridCellPointerEnter={handleGridCellPointerEnter}
       />
     );
   };

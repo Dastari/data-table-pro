@@ -39,6 +39,29 @@ export type DataTableInteractiveGridOptions = Omit<
   "mode"
 >;
 
+/** A stable grid coordinate used for cell and rectangular range selection. */
+export type DataTableCellCoordinate = {
+  rowId: string;
+  columnId: string;
+};
+
+/** The two corners of a cell selection. A single-cell selection has equal corners. */
+export type DataTableCellSelection = {
+  anchor: DataTableCellCoordinate;
+  focus: DataTableCellCoordinate;
+};
+
+export type DataTableGridCommandContext<TData> = {
+  table: TanStackTable<TData>;
+  cellSelection: DataTableCellSelection | null;
+};
+
+/** Commands are delegated to the application; the table never records app data. */
+export type DataTableGridCommands<TData> = {
+  undo?: (context: DataTableGridCommandContext<TData>) => void | Promise<void>;
+  redo?: (context: DataTableGridCommandContext<TData>) => void | Promise<void>;
+};
+
 export type DataTableAlign = "start" | "center" | "end";
 export type DataTableColumnType = "text" | "numeric" | "date";
 export type DataTableColumnFixed = "left" | "right";
@@ -68,10 +91,13 @@ export type DataTableCsvExportScope =
   | "page"
   | "selected"
   | "all";
+export type DataTableClipboardCopyScope =
+  | DataTableCsvExportScope
+  | "cellSelection";
 export type DataTableClipboardCopyOptions<TData> = {
   includeHeaders?: boolean;
   columns?: Array<string>;
-  scope?: DataTableCsvExportScope;
+  scope?: DataTableClipboardCopyScope;
   /** Defaults to tab-separated text. */
   delimiter?: "\t" | ",";
   escapeFormulaValues?: boolean;
@@ -85,7 +111,7 @@ export type DataTableClipboardCopyOptions<TData> = {
   onCopy?: (context: {
     text: string;
     rows: Array<TData>;
-    scope: DataTableCsvExportScope;
+    scope: DataTableClipboardCopyScope;
   }) => void | Promise<void>;
 };
 export type DataTableClipboardPasteContext<TData> = {
@@ -109,6 +135,8 @@ export type DataTableActionErrorSource =
   | "rowAction"
   | "rowClick"
   | "edit"
+  | "undo"
+  | "redo"
   | "clipboardCopy"
   | "clipboardPaste"
   | "fileUpload"
@@ -612,6 +640,9 @@ export type DataTableApi<TData> = {
   copyToClipboard: (
     options?: boolean | DataTableClipboardCopyOptions<TData>,
   ) => Promise<string | undefined>;
+  getCellSelection: () => DataTableCellSelection | null;
+  setCellSelection: (selection: DataTableCellSelection | null) => void;
+  clearCellSelection: () => void;
   print: () => boolean;
   toggleFullscreen: () => Promise<boolean>;
 };
@@ -794,6 +825,15 @@ export type DataTableProps<TData> = {
   csvExport?: boolean | DataTableCsvExportOptions<TData>;
   /** Opt-in TSV/CSV copy and application-owned paste handling. */
   clipboard?: DataTableClipboardConfig<TData>;
+  /** Enables pointer and Shift+keyboard rectangular cell selection in grid mode. */
+  enableCellSelection?: boolean;
+  /** Controlled cell/range selection. Supplying a value also enables it in grid mode. */
+  cellSelection?: DataTableCellSelection | null;
+  /** Initial cell/range selection when uncontrolled. */
+  defaultCellSelection?: DataTableCellSelection | null;
+  onCellSelectionChange?: (selection: DataTableCellSelection | null) => void;
+  /** Host-owned undo/redo commands invoked by Ctrl/Cmd+Z and Ctrl/Cmd+Shift+Z. */
+  gridCommands?: DataTableGridCommands<TData>;
   density?: DataTableDensity;
   onDensityChange?: (density: DataTableDensity) => void;
   enableDensityToggle?: boolean;

@@ -1,5 +1,5 @@
 import * as React from "react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   cleanup,
   createEvent,
@@ -11,7 +11,7 @@ import {
 import { DataTable as ShadcnDataTable } from "../../index";
 import { DataTable as HeroDataTable } from "../../entries/heroui";
 import { DataTable as GridcnDataTable } from "../../entries/thegridcn";
-import type { DataTableColumnDef } from "../types";
+import type { DataTableApi, DataTableColumnDef } from "../types";
 
 type Person = { id: string; name: string; age: number };
 
@@ -125,5 +125,95 @@ describe("interactive grid accessibility", () => {
     const sortEvent = createEvent.keyDown(sort, { key: "Enter" });
     fireEvent(sort, sortEvent);
     expect(sortEvent.defaultPrevented).toBe(false);
+  });
+
+  it("selects a pointer-dragged rectangle and exposes ARIA styling hooks", () => {
+    const onCellSelectionChange = vi.fn();
+    render(
+      <ShadcnDataTable
+        columns={columns}
+        data={data}
+        getRowId={(row) => row.id}
+        interactiveGrid
+        enableCellSelection
+        onCellSelectionChange={onCellSelectionChange}
+      />,
+    );
+
+    const cells = screen.getAllByRole("gridcell");
+    fireEvent.pointerDown(cells[0], { button: 0 });
+    fireEvent.pointerEnter(cells[3], { buttons: 1 });
+    fireEvent.pointerUp(window);
+    expect(cells.slice(0, 4).every((cell) => cell.getAttribute("aria-selected") === "true")).toBe(true);
+    expect(cells[3].getAttribute("data-dtp-cell-selected")).toBe("true");
+    expect(onCellSelectionChange).toHaveBeenLastCalledWith({
+      anchor: { rowId: "ada", columnId: "name" },
+      focus: { rowId: "grace", columnId: "age" },
+    });
+  });
+
+  it("extends a range with Shift+navigation and copies only its cells", async () => {
+    const onCopy = vi.fn();
+    const apiRef = React.createRef<DataTableApi<Person>>();
+    const { container } = render(
+      <ShadcnDataTable
+        apiRef={apiRef}
+        columns={columns}
+        data={data}
+        getRowId={(row) => row.id}
+        interactiveGrid
+        enableCellSelection
+        clipboard={{ copy: { onCopy } }}
+      />,
+    );
+    const cells = screen.getAllByRole("gridcell");
+    cells[0].focus();
+    fireEvent.keyDown(cells[0], { key: "ArrowRight", shiftKey: true });
+    await waitFor(() => expect(cells[0].getAttribute("aria-selected")).toBe("true"));
+    expect(cells[1].getAttribute("aria-selected")).toBe("true");
+    expect(apiRef.current?.getCellSelection()).toEqual({
+      anchor: { rowId: "ada", columnId: "name" },
+      focus: { rowId: "ada", columnId: "age" },
+    });
+    const root = container.querySelector<HTMLElement>('[data-dtp-slot="data-table-root"]');
+    fireEvent.keyDown(root!, { ctrlKey: true, key: "c" });
+    await waitFor(() => expect(onCopy).toHaveBeenCalled());
+    const copyContext = onCopy.mock.calls[0]?.[0] as { text: string };
+    expect(copyContext.text).toBe("Ada\t36");
+    apiRef.current?.clearCellSelection();
+    await waitFor(() => expect(apiRef.current?.getCellSelection()).toBeNull());
+  });
+
+  it("keeps controlled selection and delegates undo/redo to the application", () => {
+    const onCellSelectionChange = vi.fn();
+    const undo = vi.fn();
+    const redo = vi.fn();
+    const selection = {
+      anchor: { rowId: "grace", columnId: "age" },
+      focus: { rowId: "grace", columnId: "age" },
+    };
+    const { container } = render(
+      <ShadcnDataTable
+        columns={columns}
+        data={data}
+        getRowId={(row) => row.id}
+        interactiveGrid
+        cellSelection={selection}
+        onCellSelectionChange={onCellSelectionChange}
+        gridCommands={{ undo, redo }}
+      />,
+    );
+    const cells = screen.getAllByRole("gridcell");
+    expect(cells[3].getAttribute("aria-selected")).toBe("true");
+    fireEvent.pointerDown(cells[0], { button: 0 });
+    expect(onCellSelectionChange).toHaveBeenCalledWith({
+      anchor: { rowId: "ada", columnId: "name" },
+      focus: { rowId: "ada", columnId: "name" },
+    });
+    const root = container.querySelector<HTMLElement>('[data-dtp-slot="data-table-root"]');
+    fireEvent.keyDown(root!, { ctrlKey: true, key: "z" });
+    fireEvent.keyDown(root!, { ctrlKey: true, shiftKey: true, key: "z" });
+    expect(undo).toHaveBeenCalledWith(expect.objectContaining({ cellSelection: selection }));
+    expect(redo).toHaveBeenCalledWith(expect.objectContaining({ cellSelection: selection }));
   });
 });
