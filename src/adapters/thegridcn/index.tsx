@@ -201,6 +201,8 @@ export const theGridcnUiKit: DataTableUiKit = {
     cardUnselected: "border-cyan-400/35",
     cardViewport: "bg-transparent",
     cellBorder: "border-cyan-400/16",
+    cellSelected: "!bg-cyan-400/15 ring-1 ring-inset ring-cyan-300/60",
+    columnGroupHeader: "bg-cyan-400/10 text-cyan-200",
     dragActive: "rounded-md border-dashed border-cyan-300",
     emptyState: "border-cyan-400/35 bg-black/80",
     footer: "border-cyan-400/40 bg-black/80 text-cyan-50",

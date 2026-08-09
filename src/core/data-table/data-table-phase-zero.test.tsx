@@ -29,6 +29,7 @@ const columns: Array<DataTableColumnDef<TestRow, unknown>> = [
     header: "Name",
   },
 ];
+const getRowId = (row: TestRow) => row.id;
 
 class ResizeObserverMock {
   observe() {}
@@ -65,6 +66,25 @@ afterEach(() => {
 });
 
 describe("DataTable phase-zero contracts", () => {
+  it("associates table titles and descriptions with the native table", () => {
+    render(
+      <DataTable
+        columns={columns}
+        data={[{ id: "1", name: "Ada" }]}
+        description="Current engineering employees"
+        getRowId={(row) => row.id}
+        title="Employees"
+      />,
+    );
+
+    const table = screen.getByRole("table", { name: "Employees" });
+    const descriptionId = table.getAttribute("aria-describedby");
+    expect(descriptionId).toBeTruthy();
+    expect(document.getElementById(descriptionId!)?.textContent).toBe(
+      "Current engineering employees",
+    );
+  });
+
   it("applies a custom globalFilterFn to the toolbar query", () => {
     const globalFilterFn = vi.fn<FilterFn<TestRow>>(
       (row, _columnId, filterValue) =>
@@ -92,6 +112,79 @@ describe("DataTable phase-zero contracts", () => {
     expect(screen.queryByText("Ada")).toBeNull();
     expect(screen.getByText("Grace")).not.toBeNull();
     expect(globalFilterFn).toHaveBeenCalled();
+  });
+
+  it("caches normalized built-in search values across query changes", () => {
+    const getAccessorValue = vi.fn((row: TestRow) => row.name);
+    const searchColumns: Array<DataTableColumnDef<TestRow, unknown>> = [
+      {
+        id: "name",
+        accessorFn: getAccessorValue,
+        header: "Name",
+      },
+    ];
+
+    render(
+      <DataTable
+        columns={searchColumns}
+        data={[
+          { id: "1", name: "Ada" },
+          { id: "2", name: "Grace" },
+        ]}
+        getRowId={(row) => row.id}
+      />,
+    );
+
+    fireEvent.change(screen.getByPlaceholderText("Search rows..."), {
+      target: { value: "ada" },
+    });
+    expect(screen.getByText("Ada")).not.toBeNull();
+    expect(getAccessorValue).toHaveBeenCalledTimes(2);
+
+    fireEvent.change(screen.getByPlaceholderText("Search rows..."), {
+      target: { value: "ad" },
+    });
+    expect(screen.getByText("Ada")).not.toBeNull();
+    expect(getAccessorValue).toHaveBeenCalledTimes(2);
+  });
+
+  it("warns in development when row identity cannot safely anchor table state", () => {
+    const warning = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    render(
+      <DataTable
+        columns={columns}
+        data={[
+          { id: "duplicate", name: "Ada" },
+          { id: "duplicate", name: "Grace" },
+        ]}
+        getRowId={(row) => row.id}
+      />,
+    );
+
+    expect(warning).toHaveBeenCalledWith(
+      expect.stringContaining("Duplicate row id \"duplicate\""),
+    );
+  });
+
+  it("does not mistake genuinely changed rows for array identity churn", () => {
+    const warning = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const firstRows = [{ id: "1", name: "Ada" }];
+    const { rerender } = render(
+      <DataTable columns={columns} data={firstRows} getRowId={getRowId} />,
+    );
+
+    rerender(
+      <DataTable
+        columns={columns}
+        data={[{ id: "1", name: "Ada Lovelace" }]}
+        getRowId={getRowId}
+      />,
+    );
+
+    expect(warning).not.toHaveBeenCalledWith(
+      expect.stringContaining("data array identity changed"),
+    );
   });
 
   it("searches nested leaf columns with the real row index", () => {
@@ -478,6 +571,11 @@ describe("DataTable phase-zero contracts", () => {
     fireEvent.click(screen.getByRole("button", { name: "Archive" }));
     fireEvent.pointerDown(screen.getByRole("button", { name: "Row actions" }));
     fireEvent.click(screen.getByText("Edit row"));
+    const editInput = container.querySelector("tbody input:not([type=checkbox])");
+    expect(editInput).not.toBeNull();
+    fireEvent.change(editInput!, {
+      target: { value: "Ada Lovelace" },
+    });
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     const fileInput = container.querySelector('input[type="file"]');

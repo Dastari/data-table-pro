@@ -13,8 +13,10 @@ const DEFAULT_SLICES: Array<DataTableSavedViewSlice> = [
   "sorting",
   "columnVisibility",
   "columnFilters",
+  "grouping",
   "columnOrder",
   "columnPinning",
+  "rowPinning",
   "columnSizing",
   "density",
   "viewMode",
@@ -262,6 +264,8 @@ function validateState(
   }
   const filters = validateFilters(value.columnFilters);
   if (selected.has("columnFilters") && filters) state.columnFilters = filters;
+  const grouping = validateStringArray(value.grouping);
+  if (selected.has("grouping") && grouping) state.grouping = grouping;
   const expanded =
     value.expanded === true
       ? true
@@ -274,6 +278,10 @@ function validateState(
   const pinning = validatePinning(value.columnPinning);
   if (selected.has("columnPinning") && pinning) {
     state.columnPinning = pinning;
+  }
+  const rowPinning = validateRowPinning(value.rowPinning);
+  if (selected.has("rowPinning") && rowPinning) {
+    state.rowPinning = rowPinning;
   }
   const sizing = validateSizingRecord(value.columnSizing);
   if (selected.has("columnSizing") && sizing) state.columnSizing = sizing;
@@ -317,14 +325,25 @@ function cloneStateSlice(
     );
   }
   if (isRecord(value)) {
-    if (slice === "columnPinning") {
+    if (slice === "columnPinning" || slice === "rowPinning") {
       return {
-        left: Array.isArray(value.left)
-          ? [...(value.left as Array<unknown>)]
-          : undefined,
-        right: Array.isArray(value.right)
-          ? [...(value.right as Array<unknown>)]
-          : undefined,
+        ...(slice === "columnPinning"
+          ? {
+              left: Array.isArray(value.left)
+                ? [...(value.left as Array<unknown>)]
+                : undefined,
+              right: Array.isArray(value.right)
+                ? [...(value.right as Array<unknown>)]
+                : undefined,
+            }
+          : {
+              top: Array.isArray(value.top)
+                ? [...(value.top as Array<unknown>)]
+                : undefined,
+              bottom: Array.isArray(value.bottom)
+                ? [...(value.bottom as Array<unknown>)]
+                : undefined,
+            }),
       };
     }
     return { ...value };
@@ -375,6 +394,14 @@ function validatePinning(value: unknown) {
   return {
     left: validateStringArray(value.left) ?? [],
     right: validateStringArray(value.right) ?? [],
+  };
+}
+
+function validateRowPinning(value: unknown) {
+  if (!isRecord(value)) return undefined;
+  return {
+    top: validateStringArray(value.top) ?? [],
+    bottom: validateStringArray(value.bottom) ?? [],
   };
 }
 

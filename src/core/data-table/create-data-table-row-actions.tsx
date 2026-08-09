@@ -5,6 +5,7 @@ import type {
   DataTableLabels,
   DataTableRowAction,
 } from "../types";
+import type { RowPinningPosition } from "@tanstack/react-table";
 import type { DataTableUiKit } from "../ui-kit";
 import { canEditRow, canUseRowAction, resolveRowActionLabel } from "../types";
 
@@ -16,6 +17,11 @@ type DataTableRowActionsProps<TData> = {
   onStartEditing: () => void;
   onCancelEditing: () => void;
   labels: DataTableLabels;
+  rowPinning?: {
+    canPin: boolean;
+    position: RowPinningPosition;
+    pin: (position: RowPinningPosition) => void;
+  };
 };
 
 export function createDataTableRowActions(ui: DataTableUiKit) {
@@ -40,6 +46,7 @@ export function createDataTableRowActions(ui: DataTableUiKit) {
     onStartEditing,
     onCancelEditing,
     labels,
+    rowPinning,
   }: DataTableRowActionsProps<TData>) {
     const actions = rowActions.filter((action) => canUseRowAction(action, row));
     const stopRowClickPropagation = React.useCallback(
@@ -70,7 +77,8 @@ export function createDataTableRowActions(ui: DataTableUiKit) {
     }
 
     const allowEdit = canEditRow(editableRows, row);
-    if (!actions.length && !allowEdit) {
+    const canPin = rowPinning?.canPin ?? false;
+    if (!actions.length && !allowEdit && !canPin) {
       return null;
     }
 
@@ -107,7 +115,41 @@ export function createDataTableRowActions(ui: DataTableUiKit) {
               </DropdownMenuItem>
             </DropdownMenuGroup>
           ) : null}
-          {allowEdit && actions.length ? <DropdownMenuSeparator /> : null}
+          {allowEdit && (actions.length || canPin) ? <DropdownMenuSeparator /> : null}
+          {canPin ? (
+            <DropdownMenuGroup>
+              {rowPinning?.position ? (
+                <DropdownMenuItem
+                  onClick={(event: React.MouseEvent<HTMLElement>) => {
+                    event.stopPropagation();
+                    rowPinning.pin(false);
+                  }}
+                >
+                  {labels.unpinRow}
+                </DropdownMenuItem>
+              ) : (
+                <>
+                  <DropdownMenuItem
+                    onClick={(event: React.MouseEvent<HTMLElement>) => {
+                      event.stopPropagation();
+                      rowPinning?.pin("top");
+                    }}
+                  >
+                    {labels.pinRowToTop}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={(event: React.MouseEvent<HTMLElement>) => {
+                      event.stopPropagation();
+                      rowPinning?.pin("bottom");
+                    }}
+                  >
+                    {labels.pinRowToBottom}
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuGroup>
+          ) : null}
+          {canPin && actions.length ? <DropdownMenuSeparator /> : null}
           {actions.length ? (
             <DropdownMenuGroup>
               {actions.map((action) => {

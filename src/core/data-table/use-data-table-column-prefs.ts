@@ -7,6 +7,7 @@ import type {
   DataTablePersistenceSlice,
   DataTablePersistenceStorage,
 } from "../types";
+import type { RowPinningState } from "@tanstack/react-table";
 
 const STORAGE_PREFIX = "data-table-pro:column-prefs:";
 const DEFAULT_VERSION = 1;
@@ -15,6 +16,7 @@ const ALL_SLICES: Array<DataTablePersistenceSlice> = [
   "sizing",
   "order",
   "pinning",
+  "rowPinning",
   "density",
 ];
 
@@ -263,6 +265,10 @@ function validateDataTableColumnPrefs(value: unknown): DataTableColumnPrefs {
     const right = validateStringArray(value.pinning.right) ?? [];
     prefs.pinning = { left, right };
   }
+  const rowPinning = validateRowPinning(value.rowPinning);
+  if (rowPinning) {
+    prefs.rowPinning = rowPinning;
+  }
   if (isDataTableDensity(value.density)) {
     prefs.density = value.density;
   }
@@ -303,6 +309,17 @@ function validateStringArray(value: unknown) {
   }
 
   return value.filter((item): item is string => typeof item === "string");
+}
+
+function validateRowPinning(value: unknown): RowPinningState | undefined {
+  if (!isRecord(value)) {
+    return undefined;
+  }
+
+  return {
+    top: validateStringArray(value.top) ?? [],
+    bottom: validateStringArray(value.bottom) ?? [],
+  };
 }
 
 function isDataTableDensity(value: unknown): value is DataTableDensity {

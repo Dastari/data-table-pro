@@ -5,6 +5,7 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
 } from "@testing-library/react";
 import {
   afterAll,
@@ -23,10 +24,12 @@ import {
   type DataTablePersistenceStorage,
   type DataTableState,
 } from "../../index";
+import { useDataTableAutoPageSize } from "./use-data-table-auto-page-size";
 
 type TestRow = {
   id: string;
   name: string;
+  children?: Array<TestRow>;
 };
 
 const columns: Array<DataTableColumnDef<TestRow, unknown>> = [
@@ -115,6 +118,101 @@ describe("DataTable unified state API", () => {
     expect(screen.getByText("Grace")).not.toBeNull();
   });
 
+  it("derives an opt-in controlled page size from the scroll viewport", async () => {
+    const clientHeight = Object.getOwnPropertyDescriptor(
+      HTMLElement.prototype,
+      "clientHeight",
+    );
+    const frame = vi
+      .spyOn(window, "requestAnimationFrame")
+      .mockImplementation((callback) => {
+        callback(0);
+        return 1;
+      });
+    Object.defineProperty(HTMLElement.prototype, "clientHeight", {
+      configurable: true,
+      get: function getClientHeight(this: HTMLElement) {
+        return this.getAttribute("data-slot") === "scroll-area-viewport"
+          ? 100
+          : 0;
+      },
+    });
+    const onPageIndexChange = vi.fn();
+    const onPageSizeChange = vi.fn();
+
+    try {
+      render(
+        <DataTable
+          autoPageSize={{ estimateRowHeight: 20 }}
+          columns={columns}
+          data={rows}
+          getRowId={(row) => row.id}
+          onPageIndexChange={onPageIndexChange}
+          onPageSizeChange={onPageSizeChange}
+          pageIndex={1}
+          pageSize={10}
+        />,
+      );
+
+      await waitFor(() => {
+        expect(onPageIndexChange).toHaveBeenCalledWith(0);
+        expect(onPageSizeChange).toHaveBeenCalledWith(5);
+      });
+    } finally {
+      frame.mockRestore();
+      if (clientHeight) {
+        Object.defineProperty(HTMLElement.prototype, "clientHeight", clientHeight);
+      } else {
+        delete (HTMLElement.prototype as { clientHeight?: number }).clientHeight;
+      }
+    }
+  });
+
+  it("does not recursively grow a content-sized auto page", () => {
+    const onPageSizeChange = vi.fn();
+    const frame = vi
+      .spyOn(window, "requestAnimationFrame")
+      .mockImplementation((callback) => {
+        callback(0);
+        return 1;
+      });
+
+    function Harness() {
+      const [element, setElement] = React.useState<HTMLDivElement | null>(null);
+      const [pageSize, setPageSize] = React.useState(1);
+      const [height, setHeight] = React.useState(100);
+      const setViewport = React.useCallback((node: HTMLDivElement | null) => {
+        if (!node) return;
+        Object.defineProperty(node, "clientHeight", {
+          configurable: true,
+          get: () => height,
+        });
+        setElement(node);
+      }, [height]);
+      useDataTableAutoPageSize({
+        config: { estimateRowHeight: 20 },
+        currentPageSize: pageSize,
+        enabled: true,
+        onPageSizeChange: (nextPageSize) => {
+          onPageSizeChange(nextPageSize);
+          setPageSize(nextPageSize);
+          setHeight(200);
+        },
+        viewportElement: element,
+        viewportHeight: height,
+      });
+      return <div ref={setViewport} />;
+    }
+
+    try {
+      render(<Harness />);
+      expect(onPageSizeChange).toHaveBeenCalledTimes(1);
+      expect(onPageSizeChange).toHaveBeenCalledWith(5);
+    } finally {
+      frame.mockRestore();
+    }
+  });
+
   it("supports unified controlled state with legacy-prop precedence", () => {
     const warning = vi.spyOn(console, "warn").mockImplementation(() => {});
     const state: Partial<DataTableState> = {
@@ -189,7 +287,7 @@ describe("DataTable unified state API", () => {
 
   it("accepts controlled column sizing and reports resize changes", () => {
     const onColumnSizingChange = vi.fn();
-    const { container } = render(
+    render(
       <DataTable
         columns={columns}
         data={rows}
@@ -205,13 +303,358 @@ describe("DataTable unified state API", () => {
       screen.getByRole("columnheader", { name: "Name" }).style.width,
     ).toBe("220px");
 
-    const resizeHandle = container.querySelector(".cursor-col-resize");
-    expect(resizeHandle).not.toBeNull();
-    fireEvent.mouseDown(resizeHandle!, { clientX: 220 });
+    const resizeHandle = screen.getByRole("separator", {
+      name: "Resize Name",
+    });
+    expect(resizeHandle.getAttribute("aria-valuenow")).toBe("220");
+    fireEvent.keyDown(resizeHandle, { key: "ArrowRight" });
+    expect(onColumnSizingChange).toHaveBeenCalledWith({ name: 230 });
+
+    fireEvent.mouseDown(resizeHandle, { clientX: 220 });
     fireEvent.mouseMove(document, { clientX: 260 });
     fireEvent.mouseUp(document);
 
     expect(onColumnSizingChange).toHaveBeenCalled();
+  });
+
+  it("renders top and bottom pinned rows and exposes row pin actions", () => {
+    const onRowPinningChange = vi.fn();
+    render(
+      <DataTable
+        columns={columns}
+        data={rows}
+        getRowId={(row) => row.id}
+        enableRowPinning
+        onRowPinningChange={onRowPinningChange}
+      />,
+    );
+
+    fireEvent.pointerDown(
+      screen.getAllByRole("button", { name: "Row actions" })[0],
+    );
+    fireEvent.click(screen.getByText("Pin row to top"));
+
+    expect(onRowPinningChange).toHaveBeenCalledWith({
+      top: ["1"],
+      bottom: [],
+    });
+    expect(
+      screen.getByText("Ada").closest('[data-dtp-slot="data-table-pinned-row"]')
+        ?.getAttribute("data-row-pinned"),
+    ).toBe("top");
+
+    fireEvent.pointerDown(
+      screen.getAllByRole("button", { name: "Row actions" })[0],
+    );
+    fireEvent.click(screen.getByText("Unpin row"));
+    expect(onRowPinningChange).toHaveBeenLastCalledWith({
+      top: [],
+      bottom: [],
+    });
+  });
+
+  it("supports controlled row pinning, API methods, saved views, and persistence", () => {
+    const apiRef = React.createRef<DataTableApi<TestRow>>();
+    const storage = new MemoryStorage();
+    render(
+      <DataTable
+        apiRef={apiRef}
+        columns={columns}
+        data={rows}
+        getRowId={(row) => row.id}
+        enableRowPinning
+        persistence={{ key: "row-pinning", debounceMs: 0, storage }}
+        savedViews={{ key: "row-pinning", storage }}
+      />,
+    );
+
+    act(() => {
+      expect(apiRef.current?.pinRow("2", "bottom")).toBe(true);
+    });
+    expect(apiRef.current?.getState().rowPinning).toEqual({
+      top: [],
+      bottom: ["2"],
+    });
+    expect(apiRef.current?.createSavedView("Pinned")).toBeDefined();
+    expect(apiRef.current?.unpinRow("2")).toBe(true);
+    expect(apiRef.current?.applySavedView(apiRef.current.getSavedViews()[0]!.id)).toBe(
+      true,
+    );
+    expect(apiRef.current?.getState().rowPinning).toEqual({
+      top: [],
+      bottom: ["2"],
+    });
+
+    const persisted = JSON.parse(
+      storage.values.get("data-table-pro:column-prefs:row-pinning") ?? "{}",
+    ) as { state?: { rowPinning?: unknown } };
+    expect(persisted.state?.rowPinning).toEqual({ top: [], bottom: ["2"] });
+  });
+
+  it("honors keepPinnedRows when filters exclude a pinned row", () => {
+    const view = render(
+      <DataTable
+        columns={columns}
+        data={rows}
+        getRowId={(row) => row.id}
+        rowPinning={{ top: ["1"], bottom: [] }}
+        toolbarQueryValue="Grace"
+        keepPinnedRows={false}
+      />,
+    );
+
+    expect(screen.queryByText("Ada")).toBeNull();
+    expect(screen.getByText("Grace")).not.toBeNull();
+
+    view.rerender(
+      <DataTable
+        columns={columns}
+        data={rows}
+        getRowId={(row) => row.id}
+        rowPinning={{ top: ["1"], bottom: [] }}
+        toolbarQueryValue="Grace"
+        keepPinnedRows
+      />,
+    );
+
+    expect(screen.getByText("Ada")).not.toBeNull();
+    expect(screen.getByText("Grace")).not.toBeNull();
+  });
+
+  it("pins nested rows resolved through getSubRows", () => {
+    const apiRef = React.createRef<DataTableApi<TestRow>>();
+    render(
+      <DataTable
+        apiRef={apiRef}
+        columns={columns}
+        data={[
+          {
+            id: "parent",
+            name: "Parent",
+            children: [{ id: "child", name: "Child" }],
+          },
+        ]}
+        getRowId={(row) => row.id}
+        getSubRows={(row) => row.children}
+        initialState={{ expanded: { parent: true } }}
+        enableRowPinning
+      />,
+    );
+
+    act(() => {
+      expect(apiRef.current?.pinRow("child", "top")).toBe(true);
+    });
+
+    expect(
+      screen.getByText("Child").closest('[data-dtp-slot="data-table-pinned-row"]')
+        ?.getAttribute("data-row-pinned"),
+    ).toBe("top");
+  });
+
+  it("copies delimited rows, handles opt-in paste, print, and fullscreen APIs", async () => {
+    const apiRef = React.createRef<DataTableApi<TestRow>>();
+    const onCopy = vi.fn();
+    const onPaste = vi.fn();
+    const print = vi.spyOn(window, "print").mockImplementation(() => {});
+    const { container } = render(
+      <DataTable
+        apiRef={apiRef}
+        columns={columns}
+        data={rows}
+        getRowId={(row) => row.id}
+        clipboard={{
+          copy: { onCopy, scope: "all" },
+          paste: { onPaste },
+        }}
+      />,
+    );
+    const root = container.querySelector<HTMLElement>(
+      '[data-dtp-slot="data-table-root"]',
+    );
+    expect(root).not.toBeNull();
+
+    fireEvent.keyDown(root!, { ctrlKey: true, key: "c" });
+    await waitFor(() => expect(onCopy).toHaveBeenCalled());
+    const copyContext = onCopy.mock.calls[0]?.[0] as { text: string };
+    expect(copyContext.text).toBe("Name\nAda\nGrace");
+
+    fireEvent.paste(root!, {
+      clipboardData: {
+        getData: () => 'Ada\t"Admin\nOwner"',
+      },
+    });
+    await waitFor(() => {
+      expect(onPaste).toHaveBeenCalledWith(
+        expect.objectContaining({
+          text: 'Ada\t"Admin\nOwner"',
+          values: [["Ada", "Admin\nOwner"]],
+        }),
+      );
+    });
+
+    expect(apiRef.current?.print()).toBe(true);
+    expect(print).toHaveBeenCalled();
+
+    const requestFullscreen = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(root, "requestFullscreen", {
+      configurable: true,
+      value: requestFullscreen,
+    });
+    await expect(apiRef.current?.toggleFullscreen()).resolves.toBe(true);
+    expect(requestFullscreen).toHaveBeenCalled();
+  });
+
+  it("renders opt-in print/fullscreen toolbar controls and an error retry overlay", async () => {
+    const print = vi.spyOn(window, "print").mockImplementation(() => {});
+    const requestFullscreen = vi.fn().mockResolvedValue(undefined);
+    const retry = vi.fn();
+    Object.defineProperty(HTMLElement.prototype, "requestFullscreen", {
+      configurable: true,
+      value: requestFullscreen,
+    });
+
+    render(
+      <DataTable
+        columns={columns}
+        data={rows}
+        getRowId={(row) => row.id}
+        enablePrint
+        enableFullscreen
+        stateOverlay={{ error: new Error("Offline"), onRetry: retry }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Print table" }));
+    expect(print).toHaveBeenCalled();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Enter fullscreen" }),
+    );
+    await waitFor(() => expect(requestFullscreen).toHaveBeenCalled());
+
+    expect(await screen.findByRole("alert")).not.toBeNull();
+    fireEvent.click(await screen.findByRole("button", { name: "Retry" }));
+    expect(retry).toHaveBeenCalled();
+  });
+
+  it("does not render an error overlay for a null data-source error", () => {
+    render(
+      <DataTable
+        columns={columns}
+        data={rows}
+        getRowId={(row) => row.id}
+        stateOverlay={{ error: null }}
+      />,
+    );
+
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("validates edits and rolls back failed optimistic saves", async () => {
+    const saveError = new Error("save failed");
+    const rollback = vi.fn();
+    const onSaveRow = vi.fn().mockRejectedValue(saveError);
+    const onSaveError = vi.fn();
+    const onActionError = vi.fn();
+    render(
+      <DataTable
+        columns={columns}
+        data={rows}
+        getRowId={(row) => row.id}
+        editableRows={{
+          onOptimisticUpdate: () => rollback,
+          onSaveError,
+          onSaveRow,
+          validateRow: (_row, draft) =>
+            draft.name ? undefined : { name: "Name is required" },
+        }}
+        onActionError={onActionError}
+      />,
+    );
+
+    fireEvent.pointerDown(
+      screen.getAllByRole("button", { name: "Row actions" })[0],
+    );
+    fireEvent.click(screen.getByText("Edit row"));
+    const input = screen.getByDisplayValue("Ada");
+
+    fireEvent.change(input, { target: { value: "" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect((await screen.findByRole("alert")).textContent).toContain(
+      "Name is required",
+    );
+    expect(onSaveRow).not.toHaveBeenCalled();
+
+    fireEvent.change(input, { target: { value: "Ada Lovelace" } });
+    expect(screen.queryByRole("alert")).toBeNull();
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    await waitFor(() => expect(onSaveError).toHaveBeenCalled());
+    expect(onSaveError).toHaveBeenCalledWith(
+      saveError,
+      rows[0],
+      expect.objectContaining({ name: "Ada Lovelace" }),
+    );
+    expect(rollback).toHaveBeenCalled();
+    expect(onActionError).toHaveBeenCalledWith(
+      expect.objectContaining({ error: saveError, source: "edit" }),
+    );
+  });
+
+  it("configures resizing and keyboard reordering for RTL", () => {
+    const apiRef = React.createRef<DataTableApi<TestRow>>();
+    const onColumnOrderChange = vi.fn();
+    const rtlColumns: Array<DataTableColumnDef<TestRow, unknown>> = [
+      { accessorKey: "name", header: "Name" },
+      { accessorKey: "id", header: "Identifier" },
+    ];
+    const { container } = render(
+      <DataTable
+        apiRef={apiRef}
+        columns={rtlColumns}
+        data={rows}
+        dir="rtl"
+        enableColumnReordering
+        enableColumnResizing
+        getRowId={(row) => row.id}
+        onColumnOrderChange={onColumnOrderChange}
+      />,
+    );
+
+    expect(apiRef.current?.getTable()?.options.columnResizeDirection).toBe(
+      "rtl",
+    );
+    const resizeHandle = container.querySelector(".cursor-col-resize");
+    expect(resizeHandle?.className).toContain("rtl:left-0");
+
+    fireEvent.keyDown(screen.getByRole("columnheader", { name: "Name" }), {
+      altKey: true,
+      key: "ArrowLeft",
+    });
+    expect(onColumnOrderChange).toHaveBeenLastCalledWith([
+      "id",
+      "name",
+    ]);
+  });
+
+  it("accepts non-serializable controlled filter values", () => {
+    const circularFilter: Record<string, unknown> = {};
+    circularFilter.self = circularFilter;
+
+    expect(() =>
+      render(
+        <DataTable
+          columns={columns}
+          columnFilters={[
+            { id: "name", value: circularFilter },
+            { id: "name", value: 1n },
+          ]}
+          data={rows}
+          getRowId={(row) => row.id}
+          manualFiltering
+        />,
+      ),
+    ).not.toThrow();
   });
 
   it("exposes typed inspection, snapshot, restore, reset, focus, scroll, and export commands", async () => {
@@ -301,6 +744,7 @@ describe("DataTable unified state API", () => {
     act(() => {
       apiRef.current?.restore({
         sorting: [{ id: "name", desc: true }],
+        grouping: ["name"],
         columnVisibility: { name: false },
         pagination: { pageIndex: 1, pageSize: 1 },
         rowSelection: { "1": true },
@@ -315,6 +759,7 @@ describe("DataTable unified state API", () => {
 
     expect(savedView?.name).toBe("My view");
     expect(savedView?.state.sorting).toEqual([{ id: "name", desc: true }]);
+    expect(savedView?.state.grouping).toEqual(["name"]);
     expect(savedView?.state.columnVisibility).toEqual({ name: false });
     expect(savedView?.state.pagination).toBeUndefined();
     expect(savedView?.state.rowSelection).toBeUndefined();
@@ -328,6 +773,7 @@ describe("DataTable unified state API", () => {
     act(() => {
       apiRef.current?.restore({
         sorting: [],
+        grouping: [],
         columnVisibility: {},
       });
     });
@@ -337,6 +783,7 @@ describe("DataTable unified state API", () => {
     expect(apiRef.current?.getState().sorting).toEqual([
       { id: "name", desc: true },
     ]);
+    expect(apiRef.current?.getState().grouping).toEqual(["name"]);
     expect(onApply).toHaveBeenCalledWith(
       expect.objectContaining({ id: savedView?.id }),
     );
@@ -413,8 +860,10 @@ function createState(): DataTableState {
     columnVisibility: {},
     columnFilters: [],
     expanded: {},
+    grouping: [],
     columnOrder: [],
     columnPinning: {},
+    rowPinning: { top: [], bottom: [] },
     columnSizing: {},
     density: "comfortable",
     viewMode: "table",

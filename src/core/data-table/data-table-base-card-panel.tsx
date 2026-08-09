@@ -9,6 +9,7 @@ export function DataTableBaseCardPanel<TData>({
   cardSizing,
   cardRenderer,
   currentRowSelection,
+  currentDetailExpanded,
   DataTableCardView,
   DataTableEmptyState,
   dragAndDrop,
@@ -23,15 +24,17 @@ export function DataTableBaseCardPanel<TData>({
   localSearchValue,
   onRowClick,
   renderedRows,
-  renderExpandedRow,
+  detailPanel,
   resolvedLabels,
   resolvedLoadingRowCount,
   rowActions = [],
   ScrollArea,
   sentinelRef,
+  setCurrentDetailExpanded,
   setCurrentRowSelection,
   setEditingRowId,
   shouldRenderInitialLoading,
+  stateOverlayNode,
   tableContainerClassName,
   uiClassNames,
 }: DataTableCardPanelProps<TData>) {
@@ -54,7 +57,9 @@ export function DataTableBaseCardPanel<TData>({
       cardSizing={cardSizing}
       rowActions={rowActions}
       editableRows={editableRows}
-      renderExpandedRow={renderExpandedRow}
+      detailPanel={detailPanel}
+      detailExpanded={currentDetailExpanded}
+      onDetailExpandedChange={setCurrentDetailExpanded}
       hasCardTitle={hasCardTitle}
       rowSelection={currentRowSelection}
       onRowSelectionChange={setCurrentRowSelection}
@@ -77,7 +82,7 @@ export function DataTableBaseCardPanel<TData>({
       ref={cardScrollContainerRef}
       data-dtp-slot="data-table-card-shell"
       className={cn(
-        "box-border border-2 border-transparent transition-colors",
+        "relative box-border border-2 border-transparent transition-colors",
         flexGrow ? "flex min-h-0 flex-1 flex-col" : "h-full",
         dragAndDrop?.isDragging &&
           (uiClassNames.dragActive ?? "rounded-md border-dashed"),
@@ -133,6 +138,7 @@ export function DataTableBaseCardPanel<TData>({
           ) : null}
         </div>
       </ScrollArea>
+      {stateOverlayNode}
     </div>
   );
 }

@@ -5,7 +5,9 @@ import type {
   ColumnPinningState,
   ColumnSizingState,
   ExpandedState,
+  GroupingState,
   PaginationState,
+  RowPinningState,
   SortingState,
   VisibilityState,
 } from "@tanstack/react-table";
@@ -17,6 +19,7 @@ import type {
 import {
   createDataTableLoadingRows,
   getColumnId,
+  getDataTableLeafColumns,
   getDataTableLoadingRowId,
   getInitialColumnPinning,
   isDataTableLoadingRow,
@@ -33,6 +36,7 @@ export function useDataTableState<TData>({
   columnFilters,
   columnOrder,
   columnPinning,
+  rowPinning,
   columnSizing,
   columnPrefsKey,
   persistence,
@@ -43,6 +47,8 @@ export function useDataTableState<TData>({
   enableRowSelection,
   enableToolbarQueryFiltering,
   expanded,
+  grouping,
+  getSubRows,
   getRowId,
   hiddenRows,
   initialState,
@@ -52,10 +58,12 @@ export function useDataTableState<TData>({
   onColumnFiltersChange,
   onColumnOrderChange,
   onColumnPinningChange,
+  onRowPinningChange,
   onColumnSizingChange,
   onColumnVisibilityChange,
   onDensityChange,
   onExpandedChange,
+  onGroupingChange,
   onPageIndexChange,
   onRowSelectionChange,
   onShowHiddenRowsChange,
@@ -79,6 +87,7 @@ export function useDataTableState<TData>({
   columnFilters: DataTableProps<TData>["columnFilters"];
   columnOrder: DataTableProps<TData>["columnOrder"];
   columnPinning: DataTableProps<TData>["columnPinning"];
+  rowPinning: DataTableProps<TData>["rowPinning"];
   columnSizing?: DataTableProps<TData>["columnSizing"];
   columnPrefsKey: DataTableProps<TData>["columnPrefsKey"];
   persistence?: DataTableProps<TData>["persistence"];
@@ -89,6 +98,8 @@ export function useDataTableState<TData>({
   enableRowSelection: boolean;
   enableToolbarQueryFiltering: boolean;
   expanded: DataTableProps<TData>["expanded"];
+  grouping: DataTableProps<TData>["grouping"];
+  getSubRows: DataTableProps<TData>["getSubRows"];
   getRowId: DataTableProps<TData>["getRowId"];
   hiddenRows: DataTableProps<TData>["hiddenRows"];
   initialState?: DataTableProps<TData>["initialState"];
@@ -98,10 +109,12 @@ export function useDataTableState<TData>({
   onColumnFiltersChange: DataTableProps<TData>["onColumnFiltersChange"];
   onColumnOrderChange: DataTableProps<TData>["onColumnOrderChange"];
   onColumnPinningChange: DataTableProps<TData>["onColumnPinningChange"];
+  onRowPinningChange: DataTableProps<TData>["onRowPinningChange"];
   onColumnSizingChange?: DataTableProps<TData>["onColumnSizingChange"];
   onColumnVisibilityChange: DataTableProps<TData>["onColumnVisibilityChange"];
   onDensityChange: DataTableProps<TData>["onDensityChange"];
   onExpandedChange: DataTableProps<TData>["onExpandedChange"];
+  onGroupingChange: DataTableProps<TData>["onGroupingChange"];
   onPageIndexChange: DataTableProps<TData>["onPageIndexChange"];
   onRowSelectionChange: DataTableProps<TData>["onRowSelectionChange"];
   onShowHiddenRowsChange: DataTableProps<TData>["onShowHiddenRowsChange"];
@@ -188,6 +201,16 @@ export function useDataTableState<TData>({
         persistedColumnPrefs.pinning ??
         getInitialColumnPinning(columns),
     });
+  const [currentRowPinning, setCurrentRowPinning] =
+    useControllableState<RowPinningState>({
+      value: rowPinning,
+      onChange: onRowPinningChange,
+      defaultValue: () =>
+        initialState?.rowPinning ?? persistedColumnPrefs.rowPinning ?? {
+          top: [],
+          bottom: [],
+        },
+    });
   const [currentColumnSizing, setCurrentColumnSizing] =
     useControllableState<ColumnSizingState>({
       value: columnSizing,
@@ -201,6 +224,11 @@ export function useDataTableState<TData>({
     value: viewMode,
     onChange: onViewModeChange,
     defaultValue: () => initialState?.viewMode ?? "table",
+  });
+  const [currentGrouping, setCurrentGrouping] = useControllableState<GroupingState>({
+    value: grouping,
+    onChange: onGroupingChange,
+    defaultValue: () => initialState?.grouping ?? [],
   });
   const [currentShowHiddenRows, setCurrentShowHiddenRows] =
     useControllableState<boolean>({
@@ -285,8 +313,13 @@ export function useDataTableState<TData>({
     1,
     loadingRowCount ?? Math.min(5, currentPagination.pageSize),
   );
+  // Keep input/callback state eager. Only the client row-model input is
+  // deferred, so server/manual callbacks never wait behind a large filter.
+  const deferredSearchValue = React.useDeferredValue(localSearchValue);
   const globalFilterValue = enableToolbarQueryFiltering
-    ? localSearchValue
+    ? manualFiltering
+      ? localSearchValue
+      : deferredSearchValue
     : "";
   const handleViewModeChange = React.useCallback(
     (nextViewMode: "table" | "card") => {
@@ -314,29 +347,36 @@ export function useDataTableState<TData>({
       );
     }
   }, [onPageIndexChange, pageIndex]);
-  const filterResetSignature = React.useMemo(
-    () =>
-      JSON.stringify({
-        globalFilterValue,
-        columnFilters: currentColumnFilters,
-      }),
-    [currentColumnFilters, globalFilterValue],
-  );
-  const lastFilterResetSignatureRef = React.useRef(filterResetSignature);
+  const lastFilterStateRef = React.useRef({
+    columnFilters: currentColumnFilters,
+    globalFilterValue,
+  });
 
   React.useEffect(() => {
+    const previous = lastFilterStateRef.current;
+    const filtersChanged = previous.columnFilters !== currentColumnFilters;
+    const globalFilterChanged =
+      previous.globalFilterValue !== globalFilterValue;
+    lastFilterStateRef.current = {
+      columnFilters: currentColumnFilters,
+      globalFilterValue,
+    };
+
     if (manualFiltering) {
-      lastFilterResetSignatureRef.current = filterResetSignature;
       return;
     }
 
-    if (lastFilterResetSignatureRef.current === filterResetSignature) {
+    if (!filtersChanged && !globalFilterChanged) {
       return;
     }
 
-    lastFilterResetSignatureRef.current = filterResetSignature;
     resetPageIndexForFilterChange();
-  }, [filterResetSignature, manualFiltering, resetPageIndexForFilterChange]);
+  }, [
+    currentColumnFilters,
+    globalFilterValue,
+    manualFiltering,
+    resetPageIndexForFilterChange,
+  ]);
 
   usePersistDataTableColumnPrefs({
     persistence: persistenceConfig,
@@ -346,17 +386,21 @@ export function useDataTableState<TData>({
         columnSizing === undefined ? currentColumnSizing : undefined,
       order: columnOrder ? undefined : currentColumnOrder,
       pinning: columnPinning ? undefined : currentColumnPinning,
+      rowPinning: rowPinning === undefined ? currentRowPinning : undefined,
       density: density ? undefined : currentDensity,
     },
   });
   const responsiveColumnVisibility = React.useMemo<VisibilityState>(() => {
-    return columns.reduce<VisibilityState>((visibility, column, index) => {
-      const columnId = getColumnId(column, index);
-      if (isHiddenAtContainerWidth(column.meta?.hideOn, containerWidth)) {
-        visibility[columnId] = false;
-      }
-      return visibility;
-    }, {});
+    return getDataTableLeafColumns(columns).reduce<VisibilityState>(
+      (visibility, { column, index }) => {
+        const columnId = getColumnId(column, index);
+        if (isHiddenAtContainerWidth(column.meta?.hideOn, containerWidth)) {
+          visibility[columnId] = false;
+        }
+        return visibility;
+      },
+      {},
+    );
   }, [columns, containerWidth]);
   const effectiveColumnVisibility = React.useMemo<VisibilityState>(() => {
     return {
@@ -398,10 +442,19 @@ export function useDataTableState<TData>({
       return new Map<string, TData>();
     }
 
-    return new Map(
-      visibleData.map((row, index) => [getRowId(row, index), row]),
-    );
-  }, [getRowId, shouldResolveSelectedRows, visibleData]);
+    const rows = new Map<string, TData>();
+    const visitRows = (currentRows: Array<TData>) => {
+      currentRows.forEach((row, index) => {
+        rows.set(getRowId(row, index), row);
+        const subRows = getSubRows?.(row, index);
+        if (subRows?.length) {
+          visitRows(subRows);
+        }
+      });
+    };
+    visitRows(visibleData);
+    return rows;
+  }, [getRowId, getSubRows, shouldResolveSelectedRows, visibleData]);
   const selectedRows = React.useMemo(() => {
     if (!shouldResolveSelectedRows) {
       return [];
@@ -412,15 +465,25 @@ export function useDataTableState<TData>({
       .map(([rowId]) => rowById.get(rowId))
       .filter((row): row is TData => Boolean(row));
   }, [currentRowSelection, rowById, shouldResolveSelectedRows]);
+  const selectedRowIds = React.useMemo(
+    () =>
+      Object.entries(currentRowSelection).flatMap(([rowId, selected]) =>
+        selected ? [rowId] : [],
+      ),
+    [currentRowSelection],
+  );
 
   return {
+    containerWidth,
     currentColumnFilters,
     currentColumnOrder,
     currentColumnPinning,
+    currentRowPinning,
     currentColumnSizing,
     currentColumnVisibility,
     currentDensity,
     currentExpanded,
+    currentGrouping,
     currentPagination,
     currentRowSelection,
     currentShowHiddenRows,
@@ -434,12 +497,15 @@ export function useDataTableState<TData>({
     localSearchValue,
     resolvedLoadingRowCount,
     resolvedToolbarQueryPlaceholder,
+    selectedRowIds,
     selectedRows,
     setCurrentColumnFilters,
     setCurrentColumnOrder,
     setCurrentColumnPinning,
+    setCurrentRowPinning,
     setCurrentColumnVisibility,
     setCurrentExpanded,
+    setCurrentGrouping,
     setCurrentRowSelection,
     setCurrentSorting,
     setLocalColumnSizing: setCurrentColumnSizing,

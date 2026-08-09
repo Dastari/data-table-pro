@@ -18,6 +18,7 @@ import {
 } from "data-table-pro";
 
 import { useDataTableUrlState } from "data-table-pro/url-state";
+import { useDataTableDataSource } from "data-table-pro/data-source";
 import type { DataTableProps as DataTablePropsFromSubpath } from "data-table-pro/types";
 ```
 
@@ -91,31 +92,31 @@ Container helpers included by the package:
   container-name: data-table;
 }
 
-@container data-table (width < 40rem) {
+@container data-table (width < 640px) {
   .dt-hide-on-sm {
     display: none;
   }
 }
 
-@container data-table (width < 48rem) {
+@container data-table (width < 768px) {
   .dt-hide-on-md {
     display: none;
   }
 }
 
-@container data-table (width < 64rem) {
+@container data-table (width < 1024px) {
   .dt-hide-on-lg {
     display: none;
   }
 }
 
-@container data-table (width < 80rem) {
+@container data-table (width < 1280px) {
   .dt-hide-on-xl {
     display: none;
   }
 }
 
-@container data-table (width < 96rem) {
+@container data-table (width < 1536px) {
   .dt-hide-on-2xl {
     display: none;
   }
@@ -151,6 +152,7 @@ The Gridcn consumers must also import a host-managed The Gridcn theme or token s
 - `data-table-pro/virtual`, `data-table-pro/heroui/virtual`, and
   `data-table-pro/thegridcn/virtual` export the eager-virtual `DataTable`
 - `data-table-pro/url-state` exports `useDataTableUrlState`
+- `data-table-pro/data-source` exports `useDataTableDataSource`
 - `data-table-pro/adapter` exports `createDataTable` and `primitiveUiKit`
 - `data-table-pro/adapter/virtual` exports `createVirtualDataTable`
 - `data-table-pro/advanced` exports `createDataTable`, `primitiveUiKit`,
@@ -168,18 +170,73 @@ The URL-state subpath also exports the
 `UseDataTableUrlStateOptions`, `DataTableUrlStateSlice`,
 `DataTableUrlEnhancedState`, and `DataTableUrlStateMigrationPayload` types.
 
+## Server data sources
+
+Use `data-table-pro/data-source` when sorting, filtering, and pagination are
+performed by your backend. The hook accepts either offset or cursor requests,
+cancels superseded work, ignores stale responses, deduplicates a repeated
+in-flight request, and caches successful results per hook instance (30 seconds
+by default). `refresh()` bypasses a fresh cache entry and `invalidate()` removes
+one cache key or all cache entries.
+
+```tsx
+const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 25 });
+const [sorting, setSorting] = useState<SortingState>([]);
+const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+
+const users = useDataTableDataSource({
+  mode: "offset",
+  pagination,
+  sorting,
+  columnFilters,
+  query: { organizationId },
+  source: async ({ offset, limit, sorting, columnFilters, query, signal }) => {
+    const response = await fetch("/api/users", {
+      method: "POST",
+      signal,
+      body: JSON.stringify({ offset, limit, sorting, columnFilters, ...query }),
+    });
+    return response.json(); // { rows, rowCount?, nextCursor?, facets? }
+  },
+  onPageIndexChange: (pageIndex) =>
+    setPagination((current) => ({ ...current, pageIndex })),
+  onPageSizeChange: (pageSize) =>
+    setPagination({ pageIndex: 0, pageSize }),
+  onSortingChange: setSorting,
+  onColumnFiltersChange: setColumnFilters,
+});
+
+<DataTable columns={columns} getRowId={(user) => user.id} {...users.tableProps} />;
+```
+
+For cursor APIs, set `mode: "cursor"` and pass the cursor for the requested
+page as `cursor`; the hook exposes the backend's `nextCursor`. Memoize `source`
+with `useCallback`, or include all of its changing inputs in `query`, so a
+changed request is observable. Provide `getRequestKey` when `query` contains a
+non-serializable value. Requests also carry `globalFilter`, `grouping`, named
+`aggregations`, and an `expansionPath`; results may return stable `rowIds`,
+`facets`, `aggregates`, and arbitrary `metadata`. These fields are additive, so
+an existing source may ignore them and retain its previous result shape.
+
 ## Type Exports
 
 These are exported from the adapter entrypoints and from `data-table-pro/types`.
 
 - `DataTableAlign`
+- `DataTableAccessibilityOptions`
 - `DataTableApi`
+- `DataTableAutoPageSizeConfig`
 - `DataTableCardSizing`
 - `DataTableCardVirtualizationConfig`
 - `DataTableCellOverflow`
 - `DataTableCellEditRenderProps`
+- `DataTableCellSelection`
+- `DataTableClipboardConfig`
+- `DataTableClipboardCopyOptions`
+- `DataTableClipboardCopyScope`
 - `DataTableCardRendererProps`
 - `DataTableColumnDef`
+- `DataTableColumnGroupDef`
 - `DataTableColumnFilterConfig`
 - `DataTableColumnFilterOption`
 - `DataTableColumnFilterType`
@@ -194,6 +251,7 @@ These are exported from the adapter entrypoints and from `data-table-pro/types`.
 - `DataTableCsvExportOptions`
 - `DataTableCsvExportScope`
 - `DataTableDensity`
+- `DataTableDetailPanel`
 - `DataTableDragAndDropConfig`
 - `DataTableEditableRowsConfig`
 - `DataTableEmptyStateContext`
@@ -202,6 +260,8 @@ These are exported from the adapter entrypoints and from `data-table-pro/types`.
 - `DataTableHiddenRowsConfig`
 - `DataTableInfiniteScroll`
 - `DataTableInitialState`
+- `DataTableGridCommands`
+- `DataTableInteractiveGridOptions`
 - `DataTableLabels`
 - `DataTableLoadingState`
 - `DataTablePersistenceConfig`
@@ -219,6 +279,8 @@ These are exported from the adapter entrypoints and from `data-table-pro/types`.
 - `DataTableRowAction`
 - `DataTableRowLoadingState`
 - `DataTableState`
+- `DataTableStateOverlay`
+- `DataTableToolbarDataOperations`
 - `DataTableSelectionAction`
 - `DataTableSummaryRow`
 - `DataTableToolbarAction`
@@ -241,6 +303,49 @@ function DataTable<TData>(props: DataTableProps<TData>): React.ReactElement;
 | `columns` | `Array<DataTableColumnDef<TData, any>>` | Column definitions passed to TanStack Table. |
 | `data` | `Array<TData>` | Row data. |
 | `getRowId` | `(row: TData, index: number) => string` | Stable row identifier used for selection, editing, and row actions. |
+
+### Grouped column headers
+
+Column groups use nested `DataTableColumnDef` objects. A group requires a
+stable `id`, a shared `header`, and a non-empty `columns` array:
+
+```tsx
+const columns: Array<DataTableColumnDef<Person>> = [
+  {
+    id: "contact",
+    header: "Contact",
+    meta: {
+      align: "center",
+      headerClassName: "bg-muted/50 font-semibold",
+      headerStyle: { letterSpacing: "0.025em" },
+    },
+    columns: [
+      { accessorKey: "name", header: "Name" },
+      { accessorKey: "email", header: "Email" },
+    ],
+  },
+];
+```
+
+Groups may be nested to any depth. Every nesting level renders as another
+header row; group cells receive `colSpan` for their visible descendants and
+`scope="colgroup"`, while leaf headers receive `scope="col"`. A group header
+supports string or render-function content plus `meta.headerClassName`,
+`meta.headerStyle`, and `meta.align` styling. Group definitions additionally
+support `description` (an accessible native tooltip), `headerClassName`,
+`headerStyle`, and `headerHeight`; `columnGroupHeaderHeight` sets the default
+height for all shared group headers. The DOM also exposes
+`data-dtp-slot="data-table-column-group-header"` and `data-header-depth`.
+
+Visibility, toolbar filters, ordering, pinning, sizing, responsive hiding,
+editing defaults, card-title detection, and CSV export resolve nested leaf
+columns. Leaf columns remain independently pinnable. Reordering is locked to a
+leaf's same nested group by default so shared headings remain intact. Set
+`freeReordering: true` on every group boundary crossed to allow a leaf to leave,
+enter, or split groups. Resizing a group distributes the size change proportionally across its
+visible descendants; setting `enableResizing: false` on the group removes its
+resize handle. Group definitions themselves do not appear in the leaf-column
+visibility, filter, or pinning controls.
 
 ### Unified state and API ref
 
@@ -266,7 +371,12 @@ Legacy controlled props remain supported. If a legacy prop and its matching
   `renameSavedView(id, name)`, `deleteSavedView(id)`, and
   `clearSavedViews()`
 - `focus()`, `scrollToRow(rowId)`, and `scrollToColumn(columnId)`
+- `pinRow(rowId, position?)` and `unpinRow(rowId)` when row pinning is enabled
 - `exportCsv(options?)`
+- `copyToClipboard(options?)`
+- `getCellSelection()`, `setCellSelection(selection)`, and
+  `clearCellSelection()`
+- `print()` and `toggleFullscreen()`
 
 Scroll commands return `false` when the requested rendered element is not
 currently available, including a virtual row outside the active window.
@@ -342,10 +452,9 @@ also ignored. `rowSelection` is never read or written without the explicit
 `"rowSelection"` opt-in.
 
 The hook returns direct values and TanStack-compatible setters for every
-enhanced slice, a `tableState` object for slices currently supported by
-`DataTableState`, and `clearEnhancedState()`. Grouping is returned separately
-for server-owned state and forward compatibility; first-class table grouping
-is scheduled for Phase 2.
+enhanced slice, a `tableState` object for slices supported by `DataTableState`,
+and `clearEnhancedState()`. Its `grouping` state can be passed directly to the
+table's first-class `grouping` / `onGroupingChange` contract.
 
 ### Basic content props
 
@@ -357,7 +466,7 @@ is scheduled for Phase 2.
 | `className` | `string` | `undefined` | Outer layout wrapper class. |
 | `tableClassName` | `string` | `undefined` | Applied to the `<table>` element in table mode. |
 | `tableContainerClassName` | `string` | `undefined` | Applied to the scroll container in table or card mode. |
-| `cardGridClassName` | `string` | responsive auto-fit grid | Applied to the card grid wrapper in card mode. Use this for explicit card density such as `grid-cols-1 sm:grid-cols-2 xl:grid-cols-3`. |
+| `cardGridClassName` | `string` | responsive auto-fit grid | Applied to the card grid wrapper in card mode. Use named container variants for explicit density, such as `grid-cols-1 @min-[640px]/data-table:grid-cols-2 @min-[1280px]/data-table:grid-cols-3`. |
 | `cardClassName` | `string` | `undefined` | Applied to each card item wrapper in card mode. |
 | `flexGrow` | `boolean` | `true` | Fills the remaining height of a constrained flex parent. |
 | `showToolbar` | `boolean` | `true` | Controls the package toolbar region. |
@@ -402,6 +511,72 @@ One parent requirement remains unavoidable: the nearest containing layout must e
 | `customToolbar` | `React.ReactNode` | `undefined` | Optional secondary toolbar row rendered below the main toolbar. |
 | `compactToolbar` | `React.ReactNode` | `undefined` | Optional mobile compact-toolbar content rendered inline with the collapsed toolbar control strip. Use this for icon-only filter/action controls in narrow container widths. |
 
+Column metadata supports seven built-in filter controls: `text`, `select`,
+`multi`, `faceted`, `boolean`, `numberRange`, and `dateRange`. Range controls store plain
+`{ from, to }` objects so controlled state, URL state, and server requests stay
+serializable. Numeric range bounds are inclusive and accept `min`, `max`, and
+`step`; date bounds are inclusive `YYYY-MM-DD` values. Boolean controls accept
+optional `trueLabel` and `falseLabel` overrides. Text filters accept an
+`operator` of `contains` (the default), `equals`, `startsWith`, or `endsWith`.
+
+`faceted` is a multi-select filter. Without supplied options it reads
+TanStack's faceted unique-value map and displays local option counts. Set
+`faceting.options` when the server owns facet results; its optional `count`
+is displayed unchanged. `faceting.searchable` defaults to `true`.
+Numeric-range filters without configured `min` or `max` derive the missing
+bounds from TanStack's local faceted row model. Explicit bounds always win,
+and manual/server filtering remains server-owned.
+
+```tsx
+meta: {
+  filter: {
+    type: "faceted",
+    faceting: {
+      options: [{ label: "Active", value: "active", count: 42 }],
+      searchable: true,
+    },
+  },
+}
+```
+
+### Grouping and aggregation
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `grouping` | `GroupingState` | internal state | Controlled TanStack grouping state. |
+| `onGroupingChange` | `(grouping: GroupingState) => void` | `undefined` | Receives grouping updates. |
+| `manualGrouping` | `boolean` | `false` | Skips the local grouped row model for server-grouped data. |
+| `enableGrouping` | `boolean` | `false` | Adds accessible group/ungroup controls and a removable grouping bar. |
+| `groupedColumnMode` | `false \| "reorder" \| "remove"` | `"reorder"` | Placement of grouped columns. |
+| `aggregationFns` | `Record<string, AggregationFn<TData>>` | `undefined` | Named aggregation functions for column definitions. |
+
+Use native TanStack `enableGrouping`, `aggregationFn`, and `aggregatedCell`
+on a `DataTableColumnDef`. Grouped cells toggle descendants, aggregated cells
+use `aggregatedCell` when present, and placeholder cells render empty.
+
+```tsx
+const columns = [
+  {
+    accessorKey: "active",
+    meta: {
+      filter: {
+        type: "boolean",
+        trueLabel: "Active",
+        falseLabel: "Inactive",
+      },
+    },
+  },
+  {
+    accessorKey: "score",
+    meta: { filter: { type: "numberRange", min: 0, max: 100, step: 1 } },
+  },
+  {
+    accessorKey: "createdAt",
+    meta: { filter: { type: "dateRange", min: "2020-01-01" } },
+  },
+] satisfies Array<DataTableColumnDef<Row, unknown>>;
+```
+
 Built-in toolbar controls automatically compact in narrow container widths:
 
 - the search input collapses to a search button and can expand inline on demand
@@ -410,8 +585,8 @@ Built-in toolbar controls automatically compact in narrow container widths:
 
 `compactToolbar` behavior:
 
-- it renders inline inside the main toolbar control row until the container reaches the large (`@lg`) breakpoint
-- `customToolbar` renders as the separate desktop toolbar row only from the large (`@lg`) breakpoint upward
+- it renders inline inside the main toolbar control row until the container reaches the package large breakpoint (1024px)
+- `customToolbar` renders as the separate desktop toolbar row only from the package large breakpoint (1024px) upward
 - if `compactToolbar` is omitted but `customToolbar` is provided, the package reuses `customToolbar` in the compact row as a fallback
 - the intended use is icon-only or very compact controls; the package does not automatically convert arbitrary desktop JSX into mobile icon buttons
 
@@ -468,6 +643,81 @@ Removed in `2.0.1`:
 | `onSortingChange` | `(sorting: SortingState) => void` | `undefined` | Sorting change callback. |
 | `manualSorting` | `boolean` | `false` | Disables client-side sorting row model. |
 
+### Interactive grid accessibility
+
+The default table view uses native HTML table semantics and ordinary browser
+tab order. Opt in when the table is a keyboard-navigable data workspace:
+
+```tsx
+<DataTable
+  {...props}
+  accessibility={{ mode: "grid", pageSize: 10 }}
+  // or simply: interactiveGrid
+/>
+```
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `accessibility` | `DataTableAccessibilityOptions` | `undefined` | Use `{ mode: "grid" }` for ARIA grid semantics. `pageSize` supplies the PageUp/PageDown step when the viewport has no measurable layout. |
+| `interactiveGrid` | `boolean \| DataTableInteractiveGridOptions` | `false` | Shorthand for grid mode; the object form accepts `pageSize`. |
+
+Grid mode applies `grid`, `rowgroup`, `row`, `columnheader`, and `gridcell`
+roles while retaining the native table elements. It exposes `aria-rowcount` and
+`aria-colcount`; a supplied `totalRowCount` is used for server-backed or
+virtualized data. Mounted rows and cells receive their corresponding
+`aria-rowindex` and `aria-colindex`, and exactly one cell has roving
+`tabindex="0"`. Arrow keys, Home/End,
+Ctrl/Cmd+Home/End, and PageUp/PageDown move that cell. Buttons, checkboxes,
+links, and edit inputs keep their own keyboard behavior; Escape returns focus
+from an interactive descendant to its grid cell.
+
+### Grid cell and range selection
+
+Cell selection is independent from row-checkbox selection and only activates in
+interactive grid mode. It stores stable row and column IDs rather than row
+positions, so hosts can control it without handing application data to the
+table.
+
+```tsx
+const [cellSelection, setCellSelection] = React.useState<DataTableCellSelection | null>(null);
+
+<DataTable
+  {...props}
+  interactiveGrid
+  enableCellSelection
+  cellSelection={cellSelection}
+  onCellSelectionChange={setCellSelection}
+  clipboard={{ copy: { onCopy: ({ text }) => navigator.clipboard.writeText(text) } }}
+  gridCommands={{
+    undo: ({ cellSelection }) => undoInMyStore(cellSelection),
+    redo: ({ cellSelection }) => redoInMyStore(cellSelection),
+  }}
+/>
+```
+
+| Prop/API | Type | Description |
+| --- | --- | --- |
+| `enableCellSelection` | `boolean` | Enables pointer drag and Shift+keyboard rectangular range selection. |
+| `cellSelection` / `defaultCellSelection` | `DataTableCellSelection \| null` | Controlled or initial `{ anchor, focus }` range, using `{ rowId, columnId }` corners. A controlled value also enables selection. |
+| `onCellSelectionChange` | `(selection) => void` | Receives the complete next range; the host owns controlled state. |
+| `gridCommands` | `DataTableGridCommands<TData>` | Receives Ctrl/Cmd+Z and Ctrl/Cmd+Shift+Z callbacks. The table does not retain an undo stack or application records. |
+| `apiRef.current.getCellSelection()` | `() => DataTableCellSelection \| null` | Reads the current controlled or uncontrolled range. |
+| `apiRef.current.setCellSelection()` / `clearCellSelection()` | command methods | Sets or clears the range without changing row selection. |
+
+Selected cells expose `aria-selected="true"`, `data-dtp-cell-selected`, and the
+optional adapter `classNames.cellSelected` styling hook. With an active range,
+Ctrl/Cmd+C uses the `"cellSelection"` clipboard scope by default and copies its
+rectangular values as TSV (without headers). Set
+`clipboard.copy.scope: "cellSelection"` to request that scope explicitly from
+the imperative copy API; `includeHeaders: true` remains available.
+
+`clipboard.copy` accepts the same `filtered`, `page`, `selected`, and `all`
+scopes as CSV plus `cellSelection`; configure tab or comma delimiters,
+headers, columns, value formatting, formula neutralization, and an app-owned
+`onCopy` destination. `clipboard.paste` is deliberately opt-in and receives
+both the original text and parsed two-dimensional values. The table does not
+mutate application records implicitly.
+
 ### Pagination props
 
 | Prop | Type | Default | Description |
@@ -477,10 +727,17 @@ Removed in `2.0.1`:
 | `hasNextPage` | `boolean` | `false` | Enables the next-page control when manual pagination has no known `totalRowCount` or `pageCount`. |
 | `pageIndex` | `number` | internal state | Controlled zero-based page index. |
 | `pageSize` | `number` | internal state | Controlled page size. |
+| `autoPageSize` | `boolean \| DataTableAutoPageSizeConfig` | `false` | Opt-in viewport-driven page size. It measures the scroll viewport/row height and resets to page 1 before reporting a size change. |
 | `onPageIndexChange` | `(pageIndex: number) => void` | `undefined` | Page-change callback. |
 | `onPageSizeChange` | `(pageSize: number) => void` | `undefined` | Page-size callback. |
 | `pageCount` | `number` | derived for client data | Known total page count in manual mode. Omit with `totalRowCount` to use unknown-total pagination. |
 | `manualPagination` | `boolean` | `false` | Disables client-side pagination row model. |
+
+`autoPageSize` is disabled by default and is safe with controlled pagination:
+when a measurement changes the size it calls `onPageIndexChange(0)` first (if
+needed), then `onPageSizeChange(nextSize)`. The parent remains responsible for
+feeding controlled values back. It uses `ResizeObserver` only after mount and
+falls back to a one-time estimate when the observer is unavailable.
 
 ### Selection props
 
@@ -489,7 +746,18 @@ Removed in `2.0.1`:
 | `rowSelection` | `Record<string, boolean>` | internal state | Controlled selection state keyed by row ID. |
 | `onRowSelectionChange` | `(rowSelection: Record<string, boolean>) => void` | `undefined` | Selection change callback. |
 | `enableRowSelection` | `boolean` | `false` | Enables checkbox selection column and card selection affordances. |
-| `selectionActions` | `Array<DataTableSelectionAction<TData>>` | `[]` | Toolbar actions shown when rows are selected. |
+| `enableMultiRowSelection` | `boolean \| ((row: TData) => boolean)` | `true` | Enables multi-select globally or for individual rows. Set `false` for radio-like single selection. |
+| `enableSubRowSelection` | `boolean \| ((row: TData) => boolean)` | `true` | Controls whether selecting a parent cascades to its sub-rows. |
+| `getRowCanSelect` | `(row: TData) => boolean` | all rows | Disables selection for individual rows. |
+| `rowSelectionSelectAllScope` | `"page" \| "filtered"` | `"page"` | Selects the current page or every loaded row in the filtered client row model. Server-wide selection remains application-owned. |
+| `selectionActions` | `Array<DataTableSelectionAction<TData>>` | `[]` | Toolbar actions shown when row IDs are selected. The callback receives `{ rows, rowIds }`; `rows` contains loaded records while `rowIds` preserves selections across manual/server pages. |
+
+Selection state is keyed by stable row ID and is not discarded merely because
+a server page is no longer loaded. Use `rowIds` in a selection action for
+server-owned bulk operations; the accompanying `rows` array intentionally
+contains only records available to the current client. In manual pagination,
+`"filtered"` select-all can only select loaded records—it does not imply an
+unbounded server query.
 
 ### Row and toolbar actions
 
@@ -499,7 +767,8 @@ Removed in `2.0.1`:
 | `rowActions` | `Array<DataTableRowAction<TData>>` | `[]` | Per-row dropdown actions. |
 | `onRowClick` | `(context: { row: TData; rowId: string }) => void \| Promise<void>` | `undefined` | Row click handler for table and card modes. |
 | `onActionError` | `(context: DataTableActionErrorContext<TData>) => void` | `undefined` | Receives rejected or thrown built-in action callbacks with their source, optional action key, and optional row. |
-| `getRowClassName` | `(row: TData) => string \| undefined` | `undefined` | Row-level styling hook. |
+| `stripedRows` | `boolean` | `false` | Applies virtualization-safe alternate shading to displayed table rows. |
+| `getRowClassName` | `(row: TData, context: DataTableRowClassNameContext<TData>) => string \| undefined` | `undefined` | Row-level styling hook with displayed index and selection/editing/loading state. Existing one-argument callbacks remain compatible. |
 
 When `onRowClick` is present, table rows are focusable and activate on Enter or
 Space. They retain native `<tr>`/row semantics rather than using
@@ -519,16 +788,35 @@ interaction semantics.
 | `cardSizing` | `"fixed" \| "content" \| "fluid"` | `"fixed"` | Selects capped fixed tracks, renderer-sized wrapping items, or responsive stretched tracks. |
 | `cardGridClassName` | `string` | responsive auto-fit grid | Supported grid slot for card mode. Prefer this over app CSS selectors against internal scroll/card wrappers. |
 | `cardClassName` | `string` | `undefined` | Supported item slot for card mode card wrappers. |
-| `expanded` | `ExpandedState` | internal state | Controlled expanded row state. |
-| `onExpandedChange` | `(expanded: ExpandedState) => void` | `undefined` | Expanded state callback. |
-| `getRowCanExpand` | `(row: TData) => boolean` | any row when `renderExpandedRow` exists | Optional per-row expansion gate. |
-| `renderExpandedRow` | `(props: DataTableExpandedRowProps<TData>) => React.ReactNode` | `undefined` | Detail panel rendered below table rows or inside cards. |
+| `expanded` | `ExpandedState` | internal state | Controlled tree expansion state. |
+| `onExpandedChange` | `(expanded: ExpandedState) => void` | `undefined` | Tree expansion state callback. |
+| `getSubRows` | `(row, index) => Array<TData> \| undefined` | `undefined` | Resolves hierarchical child rows. |
+| `manualExpanding` | `boolean` | `false` | Keeps expansion state controlled by the host, for example while children are loaded remotely. |
+| `paginateExpandedRows` | `boolean` | TanStack default | Controls whether expanded descendants participate in pagination. |
+| `filterFromLeafRows` | `boolean` | `false` | Retains a parent when one of its descendants matches filtering. |
+| `maxLeafRowFilterDepth` | `number` | TanStack default | Caps descendant traversal during leaf-row filtering. |
+| `getRowCanExpand` | `(row: TData) => boolean` | child rows only | Optional tree or detail-panel expansion gate. |
+| `detailPanel` | `DataTableDetailPanel<TData>` | `undefined` | Independently controlled application detail panel rendered beneath a row or in cards. |
+| `renderExpandedRow` | `(props: DataTableExpandedRowProps<TData>) => React.ReactNode` | `undefined` | Deprecated compatibility bridge for `detailPanel={{ render }}`; existing usage retains its previous `expanded` state behavior. |
+
+Tree rows receive an accessible expand/collapse button and `data-tree-depth`.
+Nested first data cells are indented by depth. Use `detailPanel` when a table
+also has `getSubRows`; it deliberately has separate `expanded` state so opening
+application details does not expand or collapse the row's children. Card
+renderers receive `depth`, `canExpandSubRows`, `isSubRowsExpanded`, and
+`toggleSubRowsExpanded`, and the built-in card overlay provides tree and detail
+toggles. When deprecated `renderExpandedRow` is combined with `getSubRows`, it
+is treated as an independently controlled detail panel instead of being
+discarded.
 
 ### Empty and loading props
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `emptyState` | `React.ReactNode \| ((context: DataTableEmptyStateContext<TData>) => React.ReactNode)` | built-in empty state | Custom empty state for both table and card modes. |
+| `stateOverlay` | `DataTableStateOverlay<TData>` | `undefined` | Explicit empty/error/retry contract. `empty` supersedes `emptyState`; `error` overlays the current table/card, and `onRetry` is routed through `onActionError`. |
+| `enablePrint` | `boolean` | `false` | Adds a trailing toolbar control for `apiRef.current.print()`. |
+| `enableFullscreen` | `boolean` | `false` | Adds a trailing toolbar control for `apiRef.current.toggleFullscreen()`. |
 | `isLoading` | `boolean` | `false` | Renders initial skeleton rows or cards when `data` is empty and loading. |
 | `loadingRowCount` | `number` | `min(5, pageSize)` | Number of synthetic skeleton rows or cards to render for initial loading. |
 | `getRowLoadingState` | `(row: TData, index: number) => boolean \| DataTableRowLoadingState` | `undefined` | Per-row loading and skeleton override hook for real rows that already exist. |
@@ -557,10 +845,12 @@ interaction semantics.
 type DataTableVirtualizationConfig = {
   enabled?: boolean;
   estimateRowHeight?: number;
+  fallbackRowCount?: number;
   overscan?: number;
   card?: {
     enabled?: boolean;
     estimateCardHeight?: number;
+    fallbackCardCount?: number;
     overscan?: number;
     lanes?: number | "auto";
   };
@@ -570,13 +860,29 @@ type DataTableVirtualizationConfig = {
 `virtualization={true}` enables table-row virtualization with a 48px estimate
 and overscan of 8. Card virtualization is opt-in through
 `virtualization.card.enabled`; its defaults are a 280px estimate, overscan of
-4, and automatic lanes. Until a measurable viewport exists, the complete row
-or card set is rendered so SSR and first paint do not produce an empty table.
+4, and automatic lanes. Until a measurable viewport exists, rendering is
+capped at 20 table rows or 12 cards so SSR and first paint remain useful
+without mounting the complete dataset. Override those caps with
+`fallbackRowCount` and `fallbackCardCount`.
+
+Rendered virtual table rows and card lanes are measured after mount, so wrapped
+cells and variable-height cards correct their estimates while scrolling. Stable,
+unique `getRowId` values are required: they are virtual item keys and let the
+virtualizer retain the scroll anchor when measurements change. Treat `data`,
+row objects, column definitions, and `getRowId` as immutable/memoized inputs.
+Development builds warn about common identity churn and duplicate row ids.
+
+Column virtualization is intentionally not available in 4.4. The table panel
+preserves native table layout, grouped headers, pinned/resized columns, detail
+rows, and accessibility semantics; slicing only body columns would break those
+contracts. Use the included 20/100/500-column benchmark to establish whether
+pagination, responsive visibility, or server projection is the appropriate
+wide-table strategy for an application.
 
 Import behavior:
 
 - a base adapter dynamically loads the virtual panels only after
-  virtualization is enabled; its fallback is the complete non-virtual view
+  virtualization is enabled; its fallback uses the same bounded initial rows
 - a `/virtual` adapter includes TanStack Virtual in its static graph and avoids
   the first-use async boundary
 - switching between the fallback and loaded panel does not remount the parent
@@ -595,6 +901,12 @@ row, current value, draft value, and `setDraftValue`. Numeric columns use
 number inputs, date columns use datetime inputs, and boolean drafts use
 checkboxes by default.
 
+`validateRow` may return a general error string or field-name/error map, either
+synchronously or asynchronously. Editing exposes dirty and pending UI state,
+supports Enter to commit and Escape to cancel by default, and provides
+optimistic update, rollback, success, and failure callbacks without retaining
+an application-owned undo history.
+
 ### Column visibility, sizing, ordering, pinning, and preferences props
 
 | Prop | Type | Default | Description |
@@ -604,18 +916,27 @@ checkboxes by default.
 | `columnOrder` | `ColumnOrderState` | internal state | Controlled column order. |
 | `onColumnOrderChange` | `(order: ColumnOrderState) => void` | `undefined` | Column order callback. |
 | `enableColumnReordering` | `boolean` | `false` | Enables header drag and keyboard column reordering. |
+| `columnGroupHeaderHeight` | `CSSProperties["height"]` | `undefined` | Default height for shared column-group headers; a group `headerHeight` overrides it. |
 | `columnPinning` | `ColumnPinningState` | internal state seeded from `meta.fixed` | Controlled column pinning. |
 | `onColumnPinningChange` | `(pinning: ColumnPinningState) => void` | `undefined` | Column pinning callback. |
 | `enableColumnPinning` | `boolean` | `false` | Adds pin/unpin controls to the table options menu. |
+| `rowPinning` | `RowPinningState` | internal state | Controlled `{ top, bottom }` row-id lists. |
+| `onRowPinningChange` | `(pinning: RowPinningState) => void` | `undefined` | Reports row-pinning changes. |
+| `enableRowPinning` | `boolean \| (row) => boolean` | `false` | Adds top, bottom, and unpin actions to row menus; a predicate receives the original row. |
+| `keepPinnedRows` | `boolean` | `true` | Keeps supplied pinned rows visible when client filtering or pagination would otherwise hide them. |
 | `columnPrefsKey` | `string` | `undefined` | Compatibility shorthand for versioned persistence of uncontrolled visibility, sizing, order, pinning, and density in `localStorage`. |
 | `persistence` | `DataTablePersistenceConfig` | `undefined` | Versioned persistence configuration. Takes precedence over `columnPrefsKey` and supports selected slices, custom storage/serialization, migration, debouncing, and error reporting. |
 | `savedViews` | `DataTableSavedViewsConfig` | `undefined` | Versioned storage and lifecycle callbacks for named state snapshots managed through `apiRef`. |
 | `enableColumnResizing` | `boolean` | `false` | Enables resize handles on resizable columns. |
-| `columnResizeMode` | `"onChange" \| "onEnd"` | `"onChange"` | TanStack Table resize mode. |
+| `columnResizeMode` | `"onChange" \| "onEnd"` | `"onEnd"` | TanStack Table resize mode. `onEnd` avoids rebuilding every visible row on each pointer movement. |
 | `columnSizing` | `ColumnSizingState` | internal state | Controlled column sizing state. |
 | `onColumnSizingChange` | `(sizing: ColumnSizingState) => void` | `undefined` | Controlled sizing callback. |
 | `layoutMode` | `"fill" \| "fit"` | `"fill"` | `fill` stretches the table to the container; `fit` sizes to content width. |
 | `stickyHeader` | `boolean` | `true` | Makes the table header sticky inside the scroll area. |
+
+Pinned regions are rendered in table view only. Card view keeps pinned rows in
+its ordinary card order, and server/manual pagination can render a pinned row
+only when that record is included in the supplied `data` window.
 
 The default persistence envelope is:
 
@@ -639,16 +960,16 @@ Persistence errors are best-effort and do not break rendering.
 Named saved views use a separate
 `data-table-pro:saved-views:${savedViews.key}` payload. By default a saved view
 captures sorting, filtering, column visibility/order/pinning/sizing, density,
-view mode, hidden-row visibility, and the global query. Pagination, row
+grouping, view mode, hidden-row visibility, and the global query. Pagination, row
 selection, and expansion are intentionally transient unless included in
 `savedViews.slices`.
 
 `savedViews` supports `version`, `slices`, `storage`, `serialize`,
 `deserialize`, `migrate`, and `onError` equivalents. `onChange(views,
 operation)` receives `"create"`, `"rename"`, `"delete"`, or `"clear"`;
-`onApply(view)` runs after the selected snapshot is restored. No saved-view UI
-is imposed, so host projects can present these commands in their own toolbar,
-menu, or command palette.
+`onApply(view)` runs after the selected snapshot is restored. Host projects can
+present these commands themselves, or opt into the compact built-in controls
+with `toolbarDataOperations={{ savedViews: true }}`.
 
 ### Export, density, labels, and summary props
 
@@ -658,6 +979,7 @@ menu, or command palette.
 | `density` | `"compact" \| "comfortable" \| "spacious"` | internal state | Controlled row density. |
 | `onDensityChange` | `(density: DataTableDensity) => void` | `undefined` | Density change callback. |
 | `enableDensityToggle` | `boolean` | `false` | Adds density controls to the table options menu. |
+| `toolbarDataOperations` | `boolean \| DataTableToolbarDataOperations` | `false` | Opts into enhanced table-options controls. `true` enables searchable column management, reset layout, and saved-view UI; choose individual `columnChooser`, `resetLayout`, or `savedViews` flags to limit it. |
 | `labels` | `Partial<DataTableLabels>` | English defaults | Overrides built-in UI labels. |
 | `summaryRows` | `Array<DataTableSummaryRow<TData>>` | `[]` | Renders aggregate/footer rows aligned to visible columns. |
 | `dir` | `"ltr" \| "rtl"` | `"ltr"` | Direction used for logical pinned column offsets. |
@@ -742,6 +1064,12 @@ Notes:
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `toolbarVisibility` | `DataTableToolbarVisibility` | all enabled | Selectively hides parts of the toolbar. |
+
+When `toolbarDataOperations.columnChooser` is enabled, the Columns section
+adds search, bulk show/hide, accessible move-earlier/move-later controls, and
+pin actions (when `enableColumnPinning` is also enabled). Active toolbar and
+column filters are shown as removable chips with a count. `resetLayout` uses
+the same initial layout as `apiRef.current.resetColumnLayout()`.
 
 ### Drag-and-drop props
 

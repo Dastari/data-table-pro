@@ -12,6 +12,8 @@ export type DataTableUiClassNames = {
   cardUnselected?: string;
   cardViewport?: string;
   cellBorder?: string;
+  cellSelected?: string;
+  columnGroupHeader?: string;
   dragActive?: string;
   emptyState?: string;
   footer?: string;
@@ -24,6 +26,10 @@ export type DataTableUiClassNames = {
   resizeHandle?: string;
   resizeHandleActive?: string;
   row?: string;
+  rowEven?: string;
+  rowOdd?: string;
+  rowPinnedBottom?: string;
+  rowPinnedTop?: string;
   rowSelected?: string;
   tableContainer?: string;
   tableScrollArea?: string;

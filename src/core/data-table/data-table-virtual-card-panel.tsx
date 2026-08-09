@@ -2,8 +2,8 @@ import * as React from "react";
 import type { Row } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { cn } from "../../lib/utils";
+import { DATA_TABLE_CONTAINER_BREAKPOINT_WIDTHS } from "../types";
 import type { DataTableCardPanelProps } from "./data-table-card-panel-types";
-import { useDataTableContainerWidth } from "./use-data-table-container-width";
 import { useDataTableScrollViewport } from "./use-data-table-scroll-viewport";
 
 export function DataTableVirtualCardPanel<TData>({
@@ -11,7 +11,9 @@ export function DataTableVirtualCardPanel<TData>({
   cardGridClassName,
   cardSizing,
   cardRenderer,
+  containerWidth,
   currentRowSelection,
+  currentDetailExpanded,
   DataTableCardView,
   DataTableEmptyState,
   dragAndDrop,
@@ -26,15 +28,17 @@ export function DataTableVirtualCardPanel<TData>({
   localSearchValue,
   onRowClick,
   renderedRows,
-  renderExpandedRow,
+  detailPanel,
   resolvedLabels,
   resolvedLoadingRowCount,
   rowActions = [],
   ScrollArea,
   sentinelRef,
+  setCurrentDetailExpanded,
   setCurrentRowSelection,
   setEditingRowId,
   shouldRenderInitialLoading,
+  stateOverlayNode,
   tableContainerClassName,
   uiClassNames,
   virtualization,
@@ -45,7 +49,6 @@ export function DataTableVirtualCardPanel<TData>({
     cardScrollContainerRef,
     shouldRenderCards,
   );
-  const containerWidth = useDataTableContainerWidth(cardScrollContainerRef);
   const virtualizationConfig =
     typeof virtualization === "object" ? virtualization.card : undefined;
   const enableCardVirtualization =
@@ -59,11 +62,16 @@ export function DataTableVirtualCardPanel<TData>({
   const virtualRowCount = Math.ceil(renderedRows.length / lanes);
   const shouldUseVirtualCardRows =
     enableCardVirtualization && Boolean(viewportElement) && viewportHeight > 0;
+  const getItemKey = React.useCallback(
+    (index: number) => renderedRows[index * lanes]?.id ?? index,
+    [lanes, renderedRows],
+  );
   // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Virtual owns its instance functions.
   const cardVirtualizer = useVirtualizer({
     count: enableCardVirtualization ? virtualRowCount : 0,
     enabled: shouldUseVirtualCardRows,
     estimateSize: () => virtualizationConfig?.estimateCardHeight ?? 280,
+    getItemKey,
     getScrollElement: () => viewportElement,
     overscan: virtualizationConfig?.overscan ?? 4,
   });
@@ -86,7 +94,9 @@ export function DataTableVirtualCardPanel<TData>({
       cardSizing={cardSizing}
       rowActions={rowActions}
       editableRows={editableRows}
-      renderExpandedRow={renderExpandedRow}
+      detailPanel={detailPanel}
+      detailExpanded={currentDetailExpanded}
+      onDetailExpandedChange={setCurrentDetailExpanded}
       hasCardTitle={hasCardTitle}
       rowSelection={currentRowSelection}
       onRowSelectionChange={setCurrentRowSelection}
@@ -109,7 +119,7 @@ export function DataTableVirtualCardPanel<TData>({
       ref={cardScrollContainerRef}
       data-dtp-slot="data-table-card-shell"
       className={cn(
-        "box-border border-2 border-transparent transition-colors",
+        "relative box-border border-2 border-transparent transition-colors",
         flexGrow ? "flex min-h-0 flex-1 flex-col" : "h-full",
         dragAndDrop?.isDragging &&
           (uiClassNames.dragActive ?? "rounded-md border-dashed"),
@@ -171,7 +181,17 @@ export function DataTableVirtualCardPanel<TData>({
                 })}
               </div>
             ) : (
-              renderCardView(renderedRows)
+              renderCardView(
+                renderedRows.slice(
+                  0,
+                  Math.max(
+                    1,
+                    Math.floor(
+                      virtualizationConfig?.fallbackCardCount ?? 12,
+                    ),
+                  ),
+                ),
+              )
             )
           ) : (
             <div className="flex min-h-0 flex-1 items-center justify-center p-4">
@@ -199,6 +219,7 @@ export function DataTableVirtualCardPanel<TData>({
           ) : null}
         </div>
       </ScrollArea>
+      {stateOverlayNode}
     </div>
   );
 }
@@ -215,16 +236,16 @@ function resolveCardVirtualizationLanes(
     return 1;
   }
 
-  if (containerWidth >= 1536) {
+  if (containerWidth >= DATA_TABLE_CONTAINER_BREAKPOINT_WIDTHS["2xl"]) {
     return 5;
   }
-  if (containerWidth >= 1280) {
+  if (containerWidth >= DATA_TABLE_CONTAINER_BREAKPOINT_WIDTHS.xl) {
     return 4;
   }
-  if (containerWidth >= 1024) {
+  if (containerWidth >= DATA_TABLE_CONTAINER_BREAKPOINT_WIDTHS.lg) {
     return 3;
   }
-  if (containerWidth >= 640) {
+  if (containerWidth >= DATA_TABLE_CONTAINER_BREAKPOINT_WIDTHS.sm) {
     return 2;
   }
   return 1;

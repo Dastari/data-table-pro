@@ -17,6 +17,7 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
+import type { ExpandedState } from "@tanstack/react-table";
 import { createDataTable } from "./create-data-table";
 import * as RootEntry from "../../index";
 import { DataTable as ShadcnDataTable } from "../../index";
@@ -25,7 +26,11 @@ import { DataTable as HeroDataTable } from "../../entries/heroui";
 import * as GridEntry from "../../entries/thegridcn";
 import { DataTable as GridDataTable } from "../../entries/thegridcn";
 import { useDataTableUrlState as useDataTableUrlStateEntry } from "../../entries/url-state";
-import type { DataTableColumnDef, DataTableProps } from "../../index";
+import type {
+  DataTableColumnDef,
+  DataTableColumnGroupDef,
+  DataTableProps,
+} from "../../index";
 import type {
   DataTableEmptyStateContext,
   DataTableProps as DataTablePropsFromEntry,
@@ -613,6 +618,146 @@ for (const suite of suites) {
       expect(screen.getByText("Grace")).not.toBeNull();
     });
 
+    it("applies configured text filter operators", () => {
+      type FilterRow = TestRow & { status: string };
+      const filterColumns: Array<DataTableColumnDef<FilterRow, unknown>> = [
+        { accessorKey: "name", header: "Name" },
+        {
+          accessorKey: "status",
+          header: "Status",
+          meta: {
+            filter: {
+              type: "text",
+              operator: "startsWith",
+            },
+          },
+        },
+      ];
+
+      render(
+        <TooltipProvider>
+          <DataTable
+            columns={filterColumns}
+            data={[
+              { id: "1", name: "Ada", status: "active" },
+              { id: "2", name: "Grace", status: "inactive" },
+            ]}
+            getRowId={(row) => row.id}
+          />
+        </TooltipProvider>,
+      );
+
+      fireEvent.change(screen.getByLabelText("Filters: Status"), {
+        target: { value: "act" },
+      });
+
+      expect(screen.getByText("Ada")).not.toBeNull();
+      expect(screen.queryByText("Grace")).toBeNull();
+    });
+
+    it("filters numeric and date columns with serializable range values", () => {
+      type FilterRow = TestRow & {
+        age: number;
+        joinedAt: string;
+      };
+      const filterColumns: Array<DataTableColumnDef<FilterRow, unknown>> = [
+        { accessorKey: "name", header: "Name" },
+        {
+          accessorKey: "age",
+          header: "Age",
+          meta: { filter: { type: "numberRange", min: 0, step: 1 } },
+        },
+        {
+          accessorKey: "joinedAt",
+          header: "Joined",
+          meta: { filter: { type: "dateRange" } },
+        },
+      ];
+
+      render(
+        <TooltipProvider>
+          <DataTable
+            columns={filterColumns}
+            data={[
+              { id: "1", name: "Ada", age: 24, joinedAt: "2023-06-01" },
+              { id: "2", name: "Grace", age: 36, joinedAt: "2024-02-15" },
+              { id: "3", name: "Linus", age: 52, joinedAt: "2025-01-10" },
+            ]}
+            getRowId={(row) => row.id}
+          />
+        </TooltipProvider>,
+      );
+
+      fireEvent.change(screen.getByLabelText("Age: From"), {
+        target: { value: "30" },
+      });
+      fireEvent.change(screen.getByLabelText("Age: To"), {
+        target: { value: "40" },
+      });
+
+      expect(screen.queryByText("Ada")).toBeNull();
+      expect(screen.getByText("Grace")).not.toBeNull();
+      expect(screen.queryByText("Linus")).toBeNull();
+
+      fireEvent.change(screen.getByLabelText("Age: From"), {
+        target: { value: "" },
+      });
+      fireEvent.change(screen.getByLabelText("Age: To"), {
+        target: { value: "" },
+      });
+      fireEvent.change(screen.getByLabelText("Joined: From"), {
+        target: { value: "2024-01-01" },
+      });
+      fireEvent.change(screen.getByLabelText("Joined: To"), {
+        target: { value: "2024-12-31" },
+      });
+
+      expect(screen.queryByText("Ada")).toBeNull();
+      expect(screen.getByText("Grace")).not.toBeNull();
+      expect(screen.queryByText("Linus")).toBeNull();
+    });
+
+    it("renders localized boolean filters and filters false values", () => {
+      type FilterRow = TestRow & { active: boolean };
+      const filterColumns: Array<DataTableColumnDef<FilterRow, unknown>> = [
+        { accessorKey: "name", header: "Name" },
+        {
+          accessorKey: "active",
+          header: "Active",
+          meta: {
+            filter: {
+              type: "boolean",
+              trueLabel: "Enabled",
+              falseLabel: "Disabled",
+            },
+          },
+        },
+      ];
+
+      const { container } = render(
+        <TooltipProvider>
+          <DataTable
+            columns={filterColumns}
+            data={[
+              { id: "1", name: "Ada", active: true },
+              { id: "2", name: "Grace", active: false },
+            ]}
+            getRowId={(row) => row.id}
+          />
+        </TooltipProvider>,
+      );
+
+      const filterButton = container.querySelector(
+        '[data-dtp-slot="data-table-toolbar-filters"] button',
+      );
+      fireEvent.pointerDown(filterButton!);
+      fireEvent.click(screen.getByText("Disabled"));
+
+      expect(screen.queryByText("Ada")).toBeNull();
+      expect(screen.getByText("Grace")).not.toBeNull();
+      expect(screen.getByRole("button", { name: "Active: Disabled" })).not.toBeNull();
+    });
+
     it("renders expanded table detail rows", () => {
       renderTable({
         renderExpandedRow: ({ row }) => <div>Details for {row.name}</div>,
@@ -621,6 +766,133 @@ for (const suite of suites) {
       fireEvent.click(screen.getByRole("button", { name: "Expand row" }));
 
       expect(screen.getByText("Details for Ada")).not.toBeNull();
+    });
+
+    it("renders nested sub-rows and keeps a detail panel independently controlled", () => {
+      type TreeRow = TestRow & { children?: Array<TreeRow> };
+      const treeColumns: Array<DataTableColumnDef<TreeRow, unknown>> = [
+        { accessorKey: "name", header: "Name" },
+      ];
+
+      render(
+        <TooltipProvider>
+          <DataTable
+            columns={treeColumns}
+            data={[{ id: "parent", name: "Parent", children: [{ id: "child", name: "Child" }] }]}
+            detailPanel={{ render: ({ row }) => <div>Details for {row.name}</div> }}
+            getRowId={(row) => row.id}
+            getSubRows={(row) => row.children}
+          />
+        </TooltipProvider>,
+      );
+
+      expect(screen.getByRole("button", { name: "Expand row" })).not.toBeNull();
+      expect(
+        screen.getByRole("button", { name: "Expand row details" }),
+      ).not.toBeNull();
+      fireEvent.click(screen.getByRole("button", { name: "Expand row" }));
+      expect(screen.getByText("Child")).not.toBeNull();
+      const childRow = screen.getByText("Child").closest("tr");
+      expect(childRow?.getAttribute("data-tree-depth")).toBe("1");
+
+      fireEvent.click(
+        screen.getAllByRole("button", { name: "Expand row details" })[0]!,
+      );
+      expect(
+        screen.getByRole("button", { name: "Collapse row" }),
+      ).not.toBeNull();
+      expect(
+        screen.getByRole("button", { name: "Collapse row details" }),
+      ).not.toBeNull();
+      expect(screen.getByText("Details for Parent")).not.toBeNull();
+    });
+
+    it("supports controlled manual tree expansion without flattening locally", () => {
+      const onExpandedChange = vi.fn();
+      const manualTreeRows: Array<TestRow & { children?: Array<TestRow> }> = [
+        { id: "parent", name: "Parent", children: [{ id: "child", name: "Child" }] },
+      ];
+      renderTable({
+        data: manualTreeRows,
+        expanded: {},
+        getSubRows: (row) => (row as TestRow & { children?: Array<TestRow> }).children,
+        manualExpanding: true,
+        onExpandedChange,
+      });
+
+      fireEvent.click(screen.getByRole("button", { name: "Expand row" }));
+      expect(onExpandedChange).toHaveBeenCalled();
+      expect(screen.queryByText("Child")).toBeNull();
+    });
+
+    it("can collapse one detail panel from an all-expanded state", () => {
+      function DetailTable() {
+        const [detailExpanded, setDetailExpanded] =
+          React.useState<ExpandedState>(true);
+
+        return (
+          <TooltipProvider>
+            <DataTable
+              columns={columns}
+              data={[
+                { id: "1", name: "Ada" },
+                { id: "2", name: "Grace" },
+              ]}
+              detailPanel={{
+                expanded: detailExpanded,
+                onExpandedChange: setDetailExpanded,
+                render: ({ row }) => <div>Details for {row.name}</div>,
+              }}
+              getRowId={(row) => row.id}
+            />
+          </TooltipProvider>
+        );
+      }
+
+      render(<DetailTable />);
+      expect(screen.getByText("Details for Ada")).not.toBeNull();
+      expect(screen.getByText("Details for Grace")).not.toBeNull();
+
+      fireEvent.click(screen.getAllByRole("button", { name: "Collapse row" })[0]!);
+
+      expect(screen.queryByText("Details for Ada")).toBeNull();
+      expect(screen.getByText("Details for Grace")).not.toBeNull();
+    });
+
+    it("expands nested rows from card mode", () => {
+      type TreeRow = TestRow & { children?: Array<TreeRow> };
+      const treeColumns: Array<DataTableColumnDef<TreeRow, unknown>> = [
+        { accessorKey: "name", header: "Name" },
+      ];
+      render(
+        <TooltipProvider>
+          <DataTable
+            columns={treeColumns}
+            data={[{ id: "parent", name: "Parent", children: [{ id: "child", name: "Child" }] }]}
+            cardRenderer={({ row }) => <span>{row.name}</span>}
+            getRowId={(row) => row.id}
+            getSubRows={(row) => row.children}
+            viewMode="card"
+          />
+        </TooltipProvider>,
+      );
+
+      fireEvent.click(screen.getByRole("button", { name: "Expand row" }));
+      expect(screen.getByText("Child")).not.toBeNull();
+    });
+
+    it("opens detail panels from card mode", () => {
+      renderTable({
+        cardRenderer: ({ row }) => <span>{row.name}</span>,
+        detailPanel: {
+          render: ({ row }) => <div>Card details for {row.name}</div>,
+        },
+        viewMode: "card",
+      });
+
+      fireEvent.click(screen.getByRole("button", { name: "Expand row" }));
+
+      expect(screen.getByText("Card details for Ada")).not.toBeNull();
     });
 
     it("exports filtered visible rows to CSV", async () => {
@@ -669,6 +941,37 @@ for (const suite of suites) {
       ).toBe("compact");
     });
 
+    it("supports virtualization-safe striped rows and row styling context", () => {
+      const getRowClassName = vi.fn(
+        (_row: TestRow, context: { rowIndex: number }) =>
+          context.rowIndex === 1 ? "second-row" : undefined,
+      );
+      const { container } = renderTable({
+        data: [
+          { id: "1", name: "Ada" },
+          { id: "2", name: "Grace" },
+        ],
+        getRowClassName,
+        pageSize: 2,
+        stripedRows: true,
+      });
+
+      const root = container.querySelector(
+        '[data-dtp-slot="data-table-root"]',
+      );
+      const firstRow = container.querySelector('tr[data-row-id="1"]');
+      const secondRow = container.querySelector('tr[data-row-id="2"]');
+      expect(root?.getAttribute("data-dtp-striped-rows")).toBe("true");
+      expect(firstRow?.getAttribute("data-row-parity")).toBe("odd");
+      expect(secondRow?.getAttribute("data-row-parity")).toBe("even");
+      expect(secondRow?.className).toContain("second-row");
+      expect(
+        getRowClassName.mock.calls.some(
+          ([, context]) => context.rowIndex === 1,
+        ),
+      ).toBe(true);
+    });
+
     it("activates clickable table rows with the keyboard", () => {
       const onRowClick = vi.fn();
       renderTable({ onRowClick });
@@ -683,6 +986,29 @@ for (const suite of suites) {
       fireEvent.keyDown(row, { key: " " });
 
       expect(onRowClick).toHaveBeenCalledTimes(2);
+    });
+
+    it("does not activate rows from consumer interactive cell content", () => {
+      const onRowClick = vi.fn();
+      const onButtonClick = vi.fn();
+      renderTable({
+        columns: [
+          {
+            accessorKey: "name",
+            header: "Name",
+            cell: () => (
+              <button type="button" onClick={onButtonClick}>
+                Open profile
+              </button>
+            ),
+          },
+        ],
+        onRowClick,
+      });
+
+      fireEvent.click(screen.getByRole("button", { name: "Open profile" }));
+      expect(onButtonClick).toHaveBeenCalledOnce();
+      expect(onRowClick).not.toHaveBeenCalled();
     });
 
     it("does not re-render sibling rows while typing in an edit input", () => {
@@ -745,6 +1071,134 @@ for (const suite of suites) {
       expect(renderCounts.get("2")).toBe(0);
     });
 
+    it("renders nested column groups and keeps leaf-column features working", () => {
+      type GroupedRow = TestRow & { email: string; status: string };
+      const identityGroup: DataTableColumnGroupDef<GroupedRow> = {
+        id: "identity",
+        header: "Identity",
+        description: "Name and email contact details",
+        headerClassName: "identity-group-heading",
+        headerStyle: { color: "rgb(4, 5, 6)" },
+        headerHeight: 44,
+        meta: {
+          align: "center",
+          headerClassName: "custom-group-heading",
+          headerStyle: { backgroundColor: "rgb(1, 2, 3)" },
+        },
+        columns: [
+          {
+            accessorKey: "name",
+            header: "Name",
+          },
+          {
+            accessorKey: "email",
+            header: "Email",
+          },
+        ],
+      };
+      const groupedColumns: Array<
+        DataTableColumnDef<GroupedRow, unknown>
+      > = [
+        {
+          id: "person",
+          header: () => <span>Person</span>,
+          columns: [
+            identityGroup,
+            {
+              accessorKey: "status",
+              header: "Status",
+              meta: {
+                filter: { type: "text" },
+              },
+            },
+          ],
+        },
+      ];
+
+      render(
+        <TooltipProvider>
+          <DataTable
+            columns={groupedColumns}
+            data={[
+              {
+                id: "1",
+                name: "Ada",
+                email: "ada@example.com",
+                status: "active",
+              },
+              {
+                id: "2",
+                name: "Grace",
+                email: "grace@example.com",
+                status: "paused",
+              },
+            ]}
+            getRowId={(row) => row.id}
+            columnVisibility={{ email: false }}
+            enableColumnReordering
+            enableColumnResizing
+            columnGroupHeaderHeight={36}
+            toolbarQueryDebounceMs={100}
+          />
+        </TooltipProvider>,
+      );
+
+      const personHeader = screen.getByRole("columnheader", {
+        name: "Person",
+      });
+      const identityHeader = screen.getByRole("columnheader", {
+        name: "Identity",
+      });
+      const nameHeader = screen.getByRole("columnheader", { name: "Name" });
+
+      expect(personHeader.getAttribute("colspan")).toBe("2");
+      expect(personHeader.getAttribute("scope")).toBe("colgroup");
+      expect(identityHeader.getAttribute("colspan")).toBe("1");
+      expect(identityHeader.getAttribute("scope")).toBe("colgroup");
+      expect(identityHeader.className).toContain("custom-group-heading");
+      expect(identityHeader.className).toContain("identity-group-heading");
+      expect(identityHeader.style.backgroundColor).toBe("rgb(1, 2, 3)");
+      expect(identityHeader.style.color).toBe("rgb(4, 5, 6)");
+      expect(identityHeader.style.height).toBe("44px");
+      expect(identityHeader.getAttribute("title")).toBe(
+        "Name and email contact details",
+      );
+      expect(identityHeader.getAttribute("aria-description")).toBe(
+        "Name and email contact details",
+      );
+      expect(personHeader.style.height).toBe("36px");
+      expect(identityHeader.getAttribute("tabindex")).toBeNull();
+      expect(nameHeader.getAttribute("scope")).toBe("col");
+      expect(screen.queryByRole("columnheader", { name: "Email" })).toBeNull();
+
+      fireEvent.change(screen.getByLabelText("Filters: Status"), {
+        target: { value: "paused" },
+      });
+
+      expect(screen.queryByText("Ada")).toBeNull();
+      expect(screen.getByText("Grace")).not.toBeNull();
+
+      fireEvent.pointerDown(
+        screen.getByRole("button", { name: "Show table options" }),
+      );
+
+      expect(
+        screen.queryByRole("menuitemcheckbox", { name: "Person" }),
+      ).toBeNull();
+      expect(
+        screen.queryByRole("menuitemcheckbox", { name: "Identity" }),
+      ).toBeNull();
+      expect(
+        screen.getByRole("menuitemcheckbox", { name: "Name" }),
+      ).not.toBeNull();
+      expect(
+        screen.getByRole("menuitemcheckbox", { name: "Email" }),
+      ).not.toBeNull();
+      expect(
+        screen.getByRole("menuitemcheckbox", { name: "Status" }),
+      ).not.toBeNull();
+    });
+
     it("supports keyboard column reordering", () => {
       const onColumnOrderChange = vi.fn();
 
@@ -770,6 +1224,98 @@ for (const suite of suites) {
       });
 
       expect(onColumnOrderChange).toHaveBeenCalledWith(["role", "name"]);
+    });
+
+    it("keeps locked group leaves together for pointer and keyboard reordering", () => {
+      const onColumnOrderChange = vi.fn();
+      const groupedColumns: Array<DataTableColumnDef<TestRow, unknown>> = [
+        {
+          id: "identity",
+          header: "Identity",
+          columns: [
+            { id: "name", header: "Name", accessorFn: (row) => row.name },
+            { id: "email", header: "Email", accessorFn: (row) => row.name },
+          ],
+        } as DataTableColumnGroupDef<TestRow>,
+        {
+          id: "work",
+          header: "Work",
+          columns: [
+            { id: "role", header: "Role", accessorFn: (row) => row.name },
+          ],
+        } as DataTableColumnGroupDef<TestRow>,
+      ];
+
+      renderTable({
+        columns: groupedColumns,
+        enableColumnReordering: true,
+        onColumnOrderChange,
+      });
+
+      const nameHeader = screen.getByRole("columnheader", { name: "Name" });
+      const roleHeader = screen.getByRole("columnheader", { name: "Role" });
+      fireEvent.dragStart(nameHeader, {
+        dataTransfer: { effectAllowed: "none" },
+      });
+      fireEvent.drop(roleHeader, { dataTransfer: {} });
+
+      expect(onColumnOrderChange).not.toHaveBeenCalled();
+
+      fireEvent.keyDown(nameHeader, {
+        key: "ArrowRight",
+        altKey: true,
+      });
+
+      expect(onColumnOrderChange).toHaveBeenCalledWith([
+        "email",
+        "name",
+        "role",
+      ]);
+    });
+
+    it("permits crossing group boundaries only when both groups opt in", () => {
+      const onColumnOrderChange = vi.fn();
+      const groupedColumns: Array<DataTableColumnDef<TestRow, unknown>> = [
+        {
+          id: "identity",
+          header: "Identity",
+          freeReordering: true,
+          columns: [
+            { id: "name", header: "Name", accessorFn: (row) => row.name },
+          ],
+        } as DataTableColumnGroupDef<TestRow>,
+        {
+          id: "work",
+          header: "Work",
+          freeReordering: true,
+          columns: [
+            { id: "role", header: "Role", accessorFn: (row) => row.name },
+          ],
+        } as DataTableColumnGroupDef<TestRow>,
+      ];
+
+      renderTable({
+        columns: groupedColumns,
+        enableColumnReordering: true,
+        onColumnOrderChange,
+      });
+
+      fireEvent.keyDown(screen.getByRole("columnheader", { name: "Name" }), {
+        key: "ArrowRight",
+        altKey: true,
+      });
+
+      expect(onColumnOrderChange).toHaveBeenCalledWith(["role", "name"]);
+
+      onColumnOrderChange.mockClear();
+      const nameHeader = screen.getByRole("columnheader", { name: "Name" });
+      const roleHeader = screen.getByRole("columnheader", { name: "Role" });
+      fireEvent.dragStart(roleHeader, {
+        dataTransfer: { effectAllowed: "none" },
+      });
+      fireEvent.drop(nameHeader, { dataTransfer: {} });
+
+      expect(onColumnOrderChange).toHaveBeenCalledWith(["name", "role"]);
     });
 
     it("keeps header sort icons constrained to normal icon size", () => {
@@ -866,7 +1412,7 @@ for (const suite of suites) {
       expect(selectionHeader?.style.minWidth).toBe("50px");
       expect(selectionHeader?.style.maxWidth).toBe("50px");
       expect(recordHeader?.textContent).toContain("Record");
-      expect(recordHeader?.style.insetInlineStart).toBe("50px");
+      expect(recordHeader?.style.left).toBe("50px");
       expect(actionsHeader?.textContent).toContain("Actions");
       expect(actionsHeader?.style.width).toBe("50px");
       expect(actionsHeader?.style.minWidth).toBe("50px");
@@ -888,6 +1434,71 @@ for (const suite of suites) {
       fireEvent.click(getSelectAll());
 
       expect(getSelectAll().getAttribute("aria-checked")).toBe("false");
+    });
+
+    it("supports single-row selection mode", () => {
+      renderTable({
+        data: [
+          { id: "1", name: "Ada" },
+          { id: "2", name: "Grace" },
+        ],
+        enableRowSelection: true,
+        enableMultiRowSelection: false,
+      });
+
+      const rowCheckboxes = screen.getAllByRole("checkbox", {
+        name: "Select row",
+      });
+      expect(
+        screen.queryByRole("checkbox", { name: "Select all visible rows" }),
+      ).toBeNull();
+      fireEvent.click(rowCheckboxes[0]);
+      fireEvent.click(
+        screen.getAllByRole("checkbox", { name: "Select row" })[1],
+      );
+
+      const updatedCheckboxes = screen.getAllByRole("checkbox", {
+        name: "Select row",
+      });
+      expect(updatedCheckboxes[0]?.getAttribute("aria-checked")).toBe("false");
+      expect(updatedCheckboxes[1]?.getAttribute("aria-checked")).toBe("true");
+    });
+
+    it("disables selection for rows rejected by the selectability predicate", () => {
+      renderTable({
+        data: [
+          { id: "1", name: "Ada" },
+          { id: "2", name: "Grace" },
+        ],
+        enableRowSelection: true,
+        getRowCanSelect: (row) => row.name !== "Grace",
+      });
+
+      const rowCheckboxes = screen.getAllByRole("checkbox", {
+        name: "Select row",
+      });
+      expect(rowCheckboxes[0]?.hasAttribute("disabled")).toBe(false);
+      expect(rowCheckboxes[1]?.hasAttribute("disabled")).toBe(true);
+    });
+
+    it("can select every loaded filtered row across client pages", () => {
+      renderTable({
+        data: [
+          { id: "1", name: "Ada" },
+          { id: "2", name: "Grace" },
+          { id: "3", name: "Linus" },
+        ],
+        enableRowSelection: true,
+        pageSize: 1,
+        rowSelectionSelectAllScope: "filtered",
+        rowsPerPageOptions: [1],
+      });
+
+      fireEvent.click(
+        screen.getByRole("checkbox", { name: "Select all filtered rows" }),
+      );
+
+      expect(screen.getByText("3 records selected")).not.toBeNull();
     });
 
     it("keeps icon-only toolbar actions square", () => {
@@ -918,7 +1529,7 @@ for (const suite of suites) {
 
       const primaryButton = screen.getByRole("button", { name: "Export" });
       expect(primaryButton.className).toContain("size-7");
-      expect(primaryButton.className).toContain("@md/data-table:size-8");
+      expect(primaryButton.className).toContain("@min-[768px]/data-table:size-8");
       expect(primaryButton.className).not.toContain("w-fit");
     });
 
@@ -1445,6 +2056,28 @@ for (const suite of suites) {
       expect(onRowSelectionChange).toHaveBeenCalledWith({});
     });
 
+    it("enforces single selection in card mode", () => {
+      const { container } = renderTable({
+        data: [
+          { id: "1", name: "Ada" },
+          { id: "2", name: "Grace" },
+        ],
+        viewMode: "card",
+        cardRenderer: ({ row }) => <div>{row.name}</div>,
+        enableRowSelection: true,
+        enableMultiRowSelection: false,
+      });
+
+      fireEvent.click(screen.getByRole("checkbox", { name: "Select row 1" }));
+      fireEvent.click(screen.getByRole("checkbox", { name: "Select row 2" }));
+
+      const cardItems = container.querySelectorAll(
+        '[data-dtp-slot="data-table-card-item"]',
+      );
+      expect(cardItems[0]?.getAttribute("data-state")).toBeNull();
+      expect(cardItems[1]?.getAttribute("data-state")).toBe("selected");
+    });
+
     it("marks the active view-toggle button as pressed", () => {
       renderTable({
         viewMode: "card",
@@ -1639,7 +2272,7 @@ for (const suite of suites) {
       });
     });
 
-    it("renders table rows when virtualization is enabled before viewport discovery", () => {
+    it("caps table rows while a virtual viewport is being discovered", () => {
       renderTable({
         data: Array.from({ length: 50 }, (_, index) => ({
           id: String(index + 1),
@@ -1651,7 +2284,9 @@ for (const suite of suites) {
       });
 
       expect(screen.getByText("Row 1")).not.toBeNull();
-      expect(screen.getByText("Row 50")).not.toBeNull();
+      expect(screen.getByText("Row 20")).not.toBeNull();
+      expect(screen.queryByText("Row 21")).toBeNull();
+      expect(screen.queryByText("Row 50")).toBeNull();
     });
 
     it("uses the last fixed data column as the fill column before actions", () => {
@@ -1705,6 +2340,27 @@ for (const suite of suites) {
         ],
       });
 
+      expect(screen.getByText("1 record selected")).not.toBeNull();
+    });
+
+    it("passes retained server-page row ids to selection actions", () => {
+      const onArchive = vi.fn();
+
+      renderTable({
+        enableRowSelection: true,
+        rowSelection: { remote: true },
+        selectionActions: [
+          {
+            key: "archive",
+            label: "Archive",
+            onClick: onArchive,
+          },
+        ],
+      });
+
+      fireEvent.click(screen.getByRole("button", { name: "Archive" }));
+
+      expect(onArchive).toHaveBeenCalledWith({ rows: [], rowIds: ["remote"] });
       expect(screen.getByText("1 record selected")).not.toBeNull();
     });
 
@@ -1808,11 +2464,11 @@ for (const suite of suites) {
       expect(
         container.querySelector('[data-dtp-slot="data-table-toolbar-compact-custom"]')
           ?.className,
-      ).toContain("@lg/data-table:hidden");
+      ).toContain("@min-[1024px]/data-table:hidden");
       expect(
         container.querySelector('[data-dtp-slot="data-table-toolbar-desktop-custom"]')
           ?.className,
-      ).toContain("@lg/data-table:flex");
+      ).toContain("@min-[1024px]/data-table:flex");
     });
   });
 }

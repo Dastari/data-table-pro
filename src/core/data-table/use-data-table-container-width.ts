@@ -17,9 +17,8 @@ export function useDataTableContainerWidth(
       return;
     }
 
-    let frameId: number | null = null;
-    const updateWidth = () => {
-      const nextWidth = quantizeContainerWidth(element.clientWidth);
+    const updateWidth = (inlineSize = element.clientWidth) => {
+      const nextWidth = quantizeDataTableContainerWidth(inlineSize);
       if (nextWidth === widthRef.current) {
         return;
       }
@@ -34,23 +33,14 @@ export function useDataTableContainerWidth(
       return;
     }
 
-    const observer = new ResizeObserver(() => {
-      if (frameId !== null) {
-        window.cancelAnimationFrame(frameId);
-      }
-
-      frameId = window.requestAnimationFrame(() => {
-        frameId = null;
-        updateWidth();
-      });
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      updateWidth(entry ? getResizeObserverInlineSize(entry) : undefined);
     });
 
     observer.observe(element);
 
     return () => {
-      if (frameId !== null) {
-        window.cancelAnimationFrame(frameId);
-      }
       observer.disconnect();
     };
   }, [containerRef]);
@@ -58,7 +48,7 @@ export function useDataTableContainerWidth(
   return width;
 }
 
-function quantizeContainerWidth(width: number) {
+export function quantizeDataTableContainerWidth(width: number) {
   if (width <= 0) {
     return 0;
   }
@@ -72,4 +62,23 @@ function quantizeContainerWidth(width: number) {
   }
 
   return bucket;
+}
+
+function getResizeObserverInlineSize(entry: ResizeObserverEntry) {
+  const contentBoxSize: unknown = entry.contentBoxSize;
+  const size: unknown = Array.isArray(contentBoxSize)
+    ? contentBoxSize[0]
+    : contentBoxSize;
+  const inlineSize = getInlineSize(size);
+
+  return inlineSize ?? entry.contentRect.width;
+}
+
+function getInlineSize(value: unknown) {
+  if (typeof value !== "object" || value === null) {
+    return undefined;
+  }
+
+  const inlineSize = (value as { inlineSize?: unknown }).inlineSize;
+  return typeof inlineSize === "number" ? inlineSize : undefined;
 }

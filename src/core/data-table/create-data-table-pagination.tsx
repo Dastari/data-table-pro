@@ -62,7 +62,7 @@ export function createDataTablePagination(ui: DataTableUiKit) {
         <div
           className={`flex flex-1 items-center gap-3 text-sm ${uiClassNames.mutedText ?? "opacity-70"}`}
         >
-          <span className="hidden @md/data-table:inline">
+          <span className="hidden @min-[768px]/data-table:inline">
             {labels.recordsPerPage}
           </span>
           <Select
@@ -96,8 +96,8 @@ export function createDataTablePagination(ui: DataTableUiKit) {
               aria-label={labels.totalRecords(totalRowCount)}
             >
               <IconDatabase className="size-4" />
-              <span className="@md/data-table:hidden">{totalRowCount}</span>
-              <span className="hidden @md/data-table:inline">
+              <span className="@min-[768px]/data-table:hidden">{totalRowCount}</span>
+              <span className="hidden @min-[768px]/data-table:inline">
                 {labels.totalRecords(totalRowCount)}
               </span>
             </div>
@@ -106,7 +106,7 @@ export function createDataTablePagination(ui: DataTableUiKit) {
 
         <div className="flex flex-1 items-center justify-end gap-4">
           <div
-            className={`hidden text-sm @md/data-table:inline ${uiClassNames.mutedText ?? "opacity-70"}`}
+            className={`hidden text-sm @min-[768px]/data-table:inline ${uiClassNames.mutedText ?? "opacity-70"}`}
           >
             {pageCountKnown
               ? labels.pageStatus(pageIndex, Math.max(1, pageCount))
@@ -122,7 +122,7 @@ export function createDataTablePagination(ui: DataTableUiKit) {
             className="mx-0 w-auto justify-end"
           >
             <PaginationContent>
-              <PaginationItem className="@md/data-table:hidden">
+              <PaginationItem className="@min-[768px]/data-table:hidden">
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <PaginationFirst
@@ -167,7 +167,7 @@ export function createDataTablePagination(ui: DataTableUiKit) {
               {pages.map((item, index) => (
                 <PaginationItem
                   key={`${item}-${index}`}
-                  className="hidden @md/data-table:block"
+                  className="hidden @min-[768px]/data-table:block"
                 >
                   {item === "ellipsis" ? (
                     <PaginationEllipsis
@@ -213,7 +213,7 @@ export function createDataTablePagination(ui: DataTableUiKit) {
                 </Tooltip>
               </PaginationItem>
               {pageCountKnown ? (
-                <PaginationItem className="@md/data-table:hidden">
+                <PaginationItem className="@min-[768px]/data-table:hidden">
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <PaginationLast

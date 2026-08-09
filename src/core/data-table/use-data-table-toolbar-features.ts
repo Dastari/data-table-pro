@@ -16,6 +16,7 @@ import {
   exportDataTableCsv,
   getAccessorKey,
   getColumnId,
+  getDataTableLeafColumns,
   hasFilterValue,
   normalizeColumnFilterOptions,
   startCase,
@@ -49,7 +50,7 @@ export function useDataTableToolbarFeatures<TData>({
   csvExport: DataTableProps<TData>["csvExport"];
 }) {
   const columnVisibilityOptions = React.useMemo(() => {
-    return columns.map((column, index) => {
+    return getDataTableLeafColumns(columns).map(({ column, index }) => {
       const id = getColumnId(column, index);
       const header = column.header;
       const accessorKey = getAccessorKey(column);
@@ -82,7 +83,7 @@ export function useDataTableToolbarFeatures<TData>({
       return [];
     }
 
-    return columns.flatMap((column, index) => {
+    return getDataTableLeafColumns(columns).flatMap(({ column, index }) => {
       const filter = column.meta?.filter;
       if (!filter) {
         return [];
@@ -99,10 +100,29 @@ export function useDataTableToolbarFeatures<TData>({
             ? startCase(accessorKey)
             : startCase(id));
       const state = currentColumnFilters.find((item) => item.id === id);
+      const configuredFacetOptions = filter.faceting?.options;
+      const facetedMinMax =
+        filter.type === "numberRange"
+          ? table.getColumn(id)?.getFacetedMinMaxValues()
+          : undefined;
       const rawOptions =
-        typeof filter.options === "function"
-          ? filter.options({ rows: visibleData })
-          : (filter.options ?? []);
+        filter.type === "faceted" && configuredFacetOptions
+          ? typeof configuredFacetOptions === "function"
+            ? configuredFacetOptions({ rows: visibleData })
+            : configuredFacetOptions
+          : filter.type === "faceted"
+            ? Array.from(table.getColumn(id)?.getFacetedUniqueValues() ?? []).map(
+                ([value, count]) => ({
+                  label:
+                    filter.faceting?.getOptionLabel?.(value as never) ??
+                    String(value),
+                  value: String(value),
+                  count,
+                }),
+              )
+            : typeof filter.options === "function"
+              ? filter.options({ rows: visibleData })
+              : (filter.options ?? []);
 
       return [
         {
@@ -112,10 +132,23 @@ export function useDataTableToolbarFeatures<TData>({
           value: state?.value,
           placeholder: filter.placeholder,
           options: normalizeColumnFilterOptions(rawOptions),
+          searchable: filter.faceting?.searchable,
+          searchPlaceholder: filter.faceting?.searchPlaceholder,
+          trueLabel: filter.trueLabel,
+          falseLabel: filter.falseLabel,
+          min: filter.min ?? facetedMinMax?.[0],
+          max: filter.max ?? facetedMinMax?.[1],
+          step: filter.step,
         },
       ];
     });
-  }, [columns, currentColumnFilters, enableColumnFilters, visibleData]);
+  }, [
+    columns,
+    currentColumnFilters,
+    enableColumnFilters,
+    table,
+    visibleData,
+  ]);
 
   const handleToolbarColumnFilterChange = React.useCallback(
     (columnId: string, value: unknown) => {

@@ -2,6 +2,7 @@ import type {
   Column,
   ColumnDef,
   ColumnPinningState,
+  ExpandedState,
   Row,
   Table as TanStackTable,
 } from "@tanstack/react-table";
@@ -19,6 +20,28 @@ import { cn } from "../../lib/utils";
 const DATA_TABLE_LOADING_ROW = Symbol("data-table-loading-row");
 
 export const UTILITY_COLUMN_SIZE = 50;
+
+export function toggleDataTableExpandedState(
+  current: ExpandedState,
+  rowId: string,
+  loadedRowIds: Array<string>,
+): ExpandedState {
+  if (current === true) {
+    return Object.fromEntries(
+      loadedRowIds.flatMap((loadedRowId) =>
+        loadedRowId === rowId ? [] : [[loadedRowId, true]],
+      ),
+    );
+  }
+
+  const next = { ...current };
+  if (next[rowId]) {
+    delete next[rowId];
+  } else {
+    next[rowId] = true;
+  }
+  return next;
+}
 
 type DataTableLoadingRow = {
   [DATA_TABLE_LOADING_ROW]: true;
@@ -97,7 +120,7 @@ export function decorateFilterableColumn<TData>(
         filter.getOptionValue?.(value, row.original) ??
         normalizeFilterValue(value);
 
-      if (filter.type === "multi") {
+      if (filter.type === "multi" || filter.type === "faceted") {
         return Array.isArray(filterValue)
           ? filterValue.map(String).includes(optionValue)
           : true;
@@ -107,11 +130,158 @@ export function decorateFilterableColumn<TData>(
         return optionValue === String(filterValue);
       }
 
-      return normalizeFilterValue(value)
-        .toLowerCase()
-        .includes(String(filterValue).toLowerCase());
+      if (filter.type === "boolean") {
+        return optionValue === String(filterValue);
+      }
+
+      if (filter.type === "numberRange") {
+        const range = normalizeRangeFilterValue(filterValue);
+        const numericValue = Number(optionValue);
+        const from = range.from === "" ? undefined : Number(range.from);
+        const to = range.to === "" ? undefined : Number(range.to);
+
+        if (Number.isNaN(numericValue)) {
+          return false;
+        }
+
+        return (
+          (from === undefined || Number.isNaN(from) || numericValue >= from) &&
+          (to === undefined || Number.isNaN(to) || numericValue <= to)
+        );
+      }
+
+      if (filter.type === "dateRange") {
+        const range = normalizeRangeFilterValue(filterValue);
+        const dateValue = normalizeDateFilterValue(optionValue);
+
+        if (!dateValue) {
+          return false;
+        }
+
+        return (
+          (!range.from || dateValue >= String(range.from)) &&
+          (!range.to || dateValue <= String(range.to))
+        );
+      }
+
+      const normalizedValue = optionValue.toLowerCase();
+      const normalizedQuery = String(filterValue).toLowerCase();
+
+      switch (filter.operator ?? "contains") {
+        case "equals":
+          return normalizedValue === normalizedQuery;
+        case "startsWith":
+          return normalizedValue.startsWith(normalizedQuery);
+        case "endsWith":
+          return normalizedValue.endsWith(normalizedQuery);
+        default:
+          return normalizedValue.includes(normalizedQuery);
+      }
     },
   };
+}
+
+export type DataTableLeafColumn<TData> = {
+  column: DataTableColumnDef<TData, unknown>;
+  index: number;
+};
+
+export type DataTableColumnGroupPathSegment = {
+  id: string;
+  freeReordering: boolean;
+};
+
+export type DataTableColumnGroupPaths = ReadonlyMap<
+  string,
+  ReadonlyArray<DataTableColumnGroupPathSegment>
+>;
+
+/**
+ * Returns the nested shared-header path for every leaf. The path deliberately
+ * uses stable column ids rather than header text so it also works with custom
+ * header render functions.
+ */
+export function getDataTableColumnGroupPaths<TData>(
+  columns: Array<DataTableColumnDef<TData, unknown>>,
+): DataTableColumnGroupPaths {
+  const paths = new Map<
+    string,
+    ReadonlyArray<DataTableColumnGroupPathSegment>
+  >();
+
+  const visit = (
+    currentColumns: Array<DataTableColumnDef<TData, unknown>>,
+    parentPath: ReadonlyArray<DataTableColumnGroupPathSegment>,
+  ) => {
+    currentColumns.forEach((column, index) => {
+      if ("columns" in column && column.columns?.length) {
+        const group = column as DataTableColumnDef<TData, unknown> & {
+          freeReordering?: boolean;
+        };
+        visit(column.columns, [
+          ...parentPath,
+          {
+            id: getColumnId(column, index),
+            freeReordering: group.freeReordering === true,
+          },
+        ]);
+        return;
+      }
+
+      paths.set(getColumnId(column, index), parentPath);
+    });
+  };
+
+  visit(columns, []);
+  return paths;
+}
+
+/**
+ * Locked groups preserve their shared heading by default. Reordering within a
+ * common group path is always allowed; leaving or entering a group requires
+ * each crossed group to explicitly opt into `freeReordering`.
+ */
+export function canReorderDataTableColumn(
+  sourceColumnId: string,
+  targetColumnId: string,
+  groupPaths: DataTableColumnGroupPaths,
+) {
+  const sourcePath = groupPaths.get(sourceColumnId) ?? [];
+  const targetPath = groupPaths.get(targetColumnId) ?? [];
+  let commonLength = 0;
+
+  while (
+    commonLength < sourcePath.length &&
+    commonLength < targetPath.length &&
+    sourcePath[commonLength]?.id === targetPath[commonLength]?.id
+  ) {
+    commonLength += 1;
+  }
+
+  return [
+    ...sourcePath.slice(commonLength),
+    ...targetPath.slice(commonLength),
+  ].every((group) => group.freeReordering);
+}
+
+export function getDataTableLeafColumns<TData>(
+  columns: Array<DataTableColumnDef<TData, unknown>>,
+) {
+  const leaves: Array<DataTableLeafColumn<TData>> = [];
+
+  const visit = (currentColumns: Array<DataTableColumnDef<TData, unknown>>) => {
+    currentColumns.forEach((column, index) => {
+      if ("columns" in column && column.columns?.length) {
+        visit(column.columns);
+        return;
+      }
+
+      leaves.push({ column, index });
+    });
+  };
+
+  visit(columns);
+  return leaves;
 }
 
 export function normalizeColumnFilterOptions(
@@ -159,7 +329,50 @@ export function hasFilterValue(value: unknown) {
     return value.length > 0;
   }
 
+  if (value && typeof value === "object") {
+    if ("from" in value || "to" in value) {
+      return Object.values(value).some(hasFilterValue);
+    }
+
+    return true;
+  }
+
   return value !== undefined && value !== null && value !== "";
+}
+
+function normalizeRangeFilterValue(value: unknown): {
+  from?: string | number;
+  to?: string | number;
+} {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+
+  const range = value as { from?: unknown; to?: unknown };
+  return {
+    ...(typeof range.from === "string" || typeof range.from === "number"
+      ? { from: range.from }
+      : {}),
+    ...(typeof range.to === "string" || typeof range.to === "number"
+      ? { to: range.to }
+      : {}),
+  };
+}
+
+function normalizeDateFilterValue(value: unknown) {
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return value.toISOString().slice(0, 10);
+  }
+
+  const normalized = normalizeFilterValue(value);
+  if (/^\d{4}-\d{2}-\d{2}/.test(normalized)) {
+    return normalized.slice(0, 10);
+  }
+
+  const timestamp = Date.parse(normalized);
+  return Number.isNaN(timestamp)
+    ? ""
+    : new Date(timestamp).toISOString().slice(0, 10);
 }
 
 export function dataTableGlobalFilterFn<TData>(
@@ -178,6 +391,10 @@ export function dataTableGlobalFilterFn<TData>(
   return normalizeFilterValue(row.getValue(columnId))
     .toLowerCase()
     .includes(normalizedQuery);
+}
+
+export function normalizeDataTableSearchText(value: unknown) {
+  return normalizeFilterValue(value).trim().toLowerCase();
 }
 
 export async function exportDataTableCsv<TData>({
@@ -207,7 +424,7 @@ export async function exportDataTableCsv<TData>({
         column.id !== "__spacer__" &&
         (!exportColumnIds || exportColumnIds.has(column.id)),
     );
-  const rows = getCsvExportRows(table, scope);
+  const rows = getDataTableExportRows(table, scope);
   const csvRows: Array<Array<unknown>> = [];
 
   if (options.includeHeaders ?? true) {
@@ -269,7 +486,7 @@ export async function exportDataTableCsv<TData>({
   window.URL.revokeObjectURL(url);
 }
 
-function getCsvExportRows<TData>(
+export function getDataTableExportRows<TData>(
   table: TanStackTable<TData>,
   scope: DataTableCsvExportScope,
 ) {
@@ -308,7 +525,7 @@ export function getInitialColumnPinning<TData>(
   const left: Array<string> = [];
   const right: Array<string> = [];
 
-  for (const [index, column] of columns.entries()) {
+  for (const { column, index } of getDataTableLeafColumns(columns)) {
     const columnId = getColumnId(column, index);
     if (column.meta?.fixed === "left") {
       left.push(columnId);
@@ -323,7 +540,7 @@ export function getInitialColumnPinning<TData>(
 
 export function getColumnId<TData>(
   column: DataTableColumnDef<TData, unknown>,
-  index: number,
+  _index?: number,
 ) {
   if (column.id) {
     return column.id;
@@ -331,10 +548,50 @@ export function getColumnId<TData>(
 
   const accessorKey = getAccessorKey(column);
   if (accessorKey) {
-    return accessorKey;
+    return accessorKey.replace(/\./g, "_");
   }
 
-  return `column-${index}`;
+  if (typeof column.header === "string") {
+    return column.header;
+  }
+
+  throw new Error(
+    "Data table columns using an accessor function or non-string header must define a unique id.",
+  );
+}
+
+const RESERVED_DATA_TABLE_COLUMN_IDS = new Set([
+  "__select__",
+  "__expand__",
+  "__actions__",
+  "__spacer__",
+]);
+
+export function validateDataTableColumnIds<TData>(
+  columns: Array<DataTableColumnDef<TData, unknown>>,
+) {
+  const ids = new Set<string>();
+
+  const visit = (currentColumns: Array<DataTableColumnDef<TData, unknown>>) => {
+    currentColumns.forEach((column, index) => {
+      const id = getColumnId(column, index);
+      if (RESERVED_DATA_TABLE_COLUMN_IDS.has(id)) {
+        throw new Error(
+          `Data table column id "${id}" is reserved for an internal column.`,
+        );
+      }
+      if (ids.has(id)) {
+        throw new Error(`Duplicate data table column id "${id}".`);
+      }
+      ids.add(id);
+
+      if ("columns" in column && column.columns?.length) {
+        visit(column.columns);
+      }
+    });
+  };
+
+  visit(columns);
 }
 
 export function getAccessorKey<TData>(
@@ -389,6 +646,37 @@ export function isUtilityColumnId(columnId: string) {
     columnId === "__select__" ||
     columnId === "__expand__" ||
     columnId === "__actions__"
+  );
+}
+
+const DATA_TABLE_INTERACTIVE_TARGET_SELECTOR = [
+  "[data-row-click-ignore='true']",
+  "a[href]",
+  "button",
+  "input",
+  "select",
+  "summary",
+  "textarea",
+  "[contenteditable='true']",
+  "[role='button']",
+  "[role='link']",
+].join(",");
+
+export function isDataTableInteractiveTarget(
+  target: EventTarget | null,
+  boundary: Element,
+) {
+  if (!(target instanceof Element)) {
+    return false;
+  }
+
+  const interactiveTarget = target.closest(
+    DATA_TABLE_INTERACTIVE_TARGET_SELECTOR,
+  );
+  return Boolean(
+    interactiveTarget &&
+      interactiveTarget !== boundary &&
+      boundary.contains(interactiveTarget),
   );
 }
 

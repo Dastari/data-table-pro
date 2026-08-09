@@ -1,5 +1,6 @@
 import * as React from "react";
-import type { Cell, Row } from "@tanstack/react-table";
+import { flexRender, type Cell, type Row } from "@tanstack/react-table";
+import type { RowPinningPosition } from "@tanstack/react-table";
 import type {
   DataTableColumnDef,
   DataTableDensity,
@@ -12,10 +13,23 @@ import { renderDataTableCellContent } from "./data-table-cell-content";
 import type { DataTableColumnLayout } from "./use-column-layout";
 import {
   getDensityCellClassName,
+  isDataTableInteractiveTarget,
   isDataTableLoadingRow,
 } from "./data-table-utils";
 import { renderEditableCell } from "./use-row-editing";
+import { useDataTableVirtualRowMeasurement } from "./data-table-virtual-row-measurement";
 import { cellAlignClassName, hideOnClassName } from "../types";
+
+export type DataTableRowEditingContext<TData> = {
+  cancel: () => void;
+  clearError: (columnId: string) => void;
+  commit: (row: TData) => void;
+  errors: Record<string, string>;
+  isDirty: boolean;
+  isPending: boolean;
+  cancelOnEscape: boolean;
+  commitOnEnter: boolean;
+};
 
 type DataTableBodyRowProps<TData> = {
   columnLayouts: ReadonlyMap<string, DataTableColumnLayout>;
@@ -25,21 +39,48 @@ type DataTableBodyRowProps<TData> = {
   >;
   currentDensity: DataTableDensity;
   draftValues: Record<string, unknown>;
+  editingContext?: DataTableRowEditingContext<TData>;
   dragAndDrop: DataTableProps<TData>["dragAndDrop"];
   explicitCustomCellColumnIds: ReadonlySet<string>;
   getRowClassName: DataTableProps<TData>["getRowClassName"];
+  groupToggleLabel: string;
+  gridMode: boolean;
+  gridRowAriaIndex: number;
+  gridRowIndex: number;
+  activeGridCell: { row: number; column: number };
+  cellSelectionEnabled: boolean;
+  isGridCellSelected: (row: number, column: number) => boolean;
+  onGridCellFocus: (cell: { row: number; column: number }) => void;
+  onGridCellKeyDown: (
+    event: React.KeyboardEvent<HTMLElement>,
+    row: number,
+    column: number,
+  ) => void;
+  onGridCellPointerDown: (
+    event: React.PointerEvent<HTMLElement>,
+    row: number,
+    column: number,
+  ) => void;
+  onGridCellPointerEnter: (
+    event: React.PointerEvent<HTMLElement>,
+    row: number,
+    column: number,
+  ) => void;
   isDraggable: boolean;
+  isDetailExpanded: boolean;
   isEditing: boolean;
   isExpanded: boolean;
   isInitialLoadingRow: boolean;
   isSelected: boolean;
   loadingState: DataTableRowLoadingState | undefined;
   onRowClick: DataTableProps<TData>["onRowClick"];
+  pinnedPosition?: Exclude<RowPinningPosition, false>;
   originalRow: TData;
-  renderExpandedRow: DataTableProps<TData>["renderExpandedRow"];
+  detailPanel: DataTableProps<TData>["detailPanel"];
   row: Row<TData>;
   rowIndex: number;
   setDraftValues: React.Dispatch<React.SetStateAction<Record<string, unknown>>>;
+  stripedRows: boolean;
   uiClassNames: DataTableUiClassNames;
   visibleCells: Array<Cell<TData, unknown>>;
   visibleLeafColumnCount: number;
@@ -50,39 +91,101 @@ function DataTableBodyRowInner<TData>({
   components,
   currentDensity,
   draftValues,
+  editingContext,
   dragAndDrop,
   explicitCustomCellColumnIds,
   getRowClassName,
+  groupToggleLabel,
+  gridMode,
+  gridRowAriaIndex,
+  gridRowIndex,
+  activeGridCell,
+  cellSelectionEnabled,
+  isGridCellSelected,
+  onGridCellFocus,
+  onGridCellKeyDown,
+  onGridCellPointerDown,
+  onGridCellPointerEnter,
   isDraggable,
+  isDetailExpanded,
   isEditing,
   isExpanded,
   isInitialLoadingRow,
   isSelected,
   loadingState,
   onRowClick,
+  pinnedPosition,
   originalRow,
-  renderExpandedRow,
+  detailPanel,
   row,
+  rowIndex,
   setDraftValues,
+  stripedRows,
   uiClassNames,
   visibleCells,
   visibleLeafColumnCount,
 }: DataTableBodyRowProps<TData>) {
   const { Checkbox, Input, Skeleton, TableCell, TableRow } = components;
+  const virtualRowMeasurement = useDataTableVirtualRowMeasurement();
+  const measureElement = pinnedPosition ? undefined : virtualRowMeasurement;
+  const firstDataColumnId = visibleCells.find(
+    (cell) => !columnLayouts.get(cell.column.id)?.isUtilityColumn,
+  )?.column.id;
 
   return (
     <React.Fragment>
       <TableRow
+        ref={measureElement}
         data-row-id={row.id}
+        data-index={measureElement ? rowIndex : undefined}
+        data-tree-depth={
+          !isInitialLoadingRow && row.depth > 0 ? row.depth : undefined
+        }
+        data-dtp-slot={
+          pinnedPosition ? "data-table-pinned-row" : "data-table-row"
+        }
+        data-row-pinned={pinnedPosition}
+        data-row-grouped={row.getIsGrouped() || undefined}
         draggable={isInitialLoadingRow ? false : isDraggable}
         data-loading={loadingState?.isLoading || undefined}
+        data-row-index={isInitialLoadingRow ? undefined : rowIndex}
+        data-row-parity={
+          stripedRows && !isInitialLoadingRow
+            ? rowIndex % 2 === 0
+              ? "odd"
+              : "even"
+            : undefined
+        }
         data-state={
           isInitialLoadingRow ? undefined : isSelected ? "selected" : undefined
         }
-        tabIndex={onRowClick && !isInitialLoadingRow ? 0 : undefined}
+        role={gridMode ? "row" : undefined}
+        aria-rowindex={gridMode ? gridRowAriaIndex : undefined}
+        tabIndex={
+          !gridMode && onRowClick && !isInitialLoadingRow ? 0 : undefined
+        }
         className={cn(
-          !isInitialLoadingRow && getRowClassName?.(originalRow),
+          !isInitialLoadingRow &&
+            getRowClassName?.(originalRow, {
+              row: originalRow,
+              rowId: row.id,
+              rowIndex,
+              isEditing,
+              isExpanded,
+              isLoading: Boolean(loadingState?.isLoading),
+              isSelected,
+              pinnedPosition: pinnedPosition ?? false,
+            }),
           uiClassNames.row,
+          pinnedPosition === "top" &&
+            cn("border-b-2", uiClassNames.rowPinnedTop),
+          pinnedPosition === "bottom" &&
+            cn("border-t-2", uiClassNames.rowPinnedBottom),
+          stripedRows &&
+            !isInitialLoadingRow &&
+            (rowIndex % 2 === 0
+              ? uiClassNames.rowOdd
+              : uiClassNames.rowEven),
           isSelected && !isInitialLoadingRow && uiClassNames.rowSelected,
           onRowClick && !isInitialLoadingRow && "cursor-pointer",
           isInitialLoadingRow && "pointer-events-none",
@@ -92,10 +195,11 @@ function DataTableBodyRowInner<TData>({
             return;
           }
 
-          const target = event.target as HTMLElement | null;
-          if (target?.closest("[data-row-click-ignore='true']")) {
+          if (isDataTableInteractiveTarget(event.target, event.currentTarget)) {
             return;
           }
+
+          if (gridMode && cellSelectionEnabled) return;
 
           void onRowClick?.({ row: originalRow, rowId: row.id });
         }}
@@ -108,8 +212,7 @@ function DataTableBodyRowInner<TData>({
             return;
           }
 
-          const target = event.target as HTMLElement | null;
-          if (target?.closest("[data-row-click-ignore='true']")) {
+          if (isDataTableInteractiveTarget(event.target, event.currentTarget)) {
             return;
           }
 
@@ -139,7 +242,7 @@ function DataTableBodyRowInner<TData>({
           });
         }}
       >
-        {visibleCells.map((cell) => {
+        {visibleCells.map((cell, columnIndex) => {
           const meta = (
             cell.column.columnDef as DataTableColumnDef<TData, unknown>
           ).meta;
@@ -160,14 +263,82 @@ function DataTableBodyRowInner<TData>({
                     value,
                   })
                 : meta?.cellClassName;
+          const isCellSelected =
+            gridMode && cellSelectionEnabled &&
+            !isInitialLoadingRow &&
+            isGridCellSelected(gridRowIndex, columnIndex);
 
           return (
             <TableCell
               key={cell.id}
+              role={gridMode ? "gridcell" : undefined}
+              aria-colindex={gridMode ? columnIndex + 1 : undefined}
+              aria-selected={
+                gridMode && !isInitialLoadingRow
+                  ? cellSelectionEnabled
+                    ? isCellSelected
+                    : isSelected
+                  : undefined
+              }
+              data-dtp-cell-selected={isCellSelected || undefined}
+              data-dtp-grid-cell={gridMode ? "true" : undefined}
+              data-grid-row-index={gridMode ? gridRowIndex : undefined}
+              data-grid-column-index={gridMode ? columnIndex : undefined}
+              tabIndex={
+                gridMode && !isInitialLoadingRow
+                  ? activeGridCell.row === gridRowIndex &&
+                    activeGridCell.column === columnIndex
+                    ? 0
+                    : -1
+                  : undefined
+              }
+              onFocus={
+                gridMode
+                  ? () => onGridCellFocus({ row: gridRowIndex, column: columnIndex })
+                  : undefined
+              }
+              onKeyDown={
+                gridMode
+                  ? (event: React.KeyboardEvent<HTMLTableCellElement>) => {
+                      if (event.target !== event.currentTarget) {
+                        if (event.key === "Escape") {
+                          event.preventDefault();
+                          event.currentTarget.focus();
+                        }
+                        return;
+                      }
+                      onGridCellKeyDown(event, gridRowIndex, columnIndex);
+                    }
+                  : undefined
+              }
+              onPointerDown={
+                gridMode &&
+                cellSelectionEnabled &&
+                !layout?.isUtilityColumn &&
+                !isSpacerColumn
+                  ? (event: React.PointerEvent<HTMLTableCellElement>) => {
+                      if (isDataTableInteractiveTarget(event.target, event.currentTarget)) return;
+                      event.currentTarget.focus();
+                      onGridCellPointerDown(event, gridRowIndex, columnIndex);
+                    }
+                  : undefined
+              }
+              onPointerEnter={
+                gridMode &&
+                cellSelectionEnabled &&
+                !layout?.isUtilityColumn &&
+                !isSpacerColumn
+                  ? (event: React.PointerEvent<HTMLTableCellElement>) => {
+                      if (isDataTableInteractiveTarget(event.target, event.currentTarget)) return;
+                      onGridCellPointerEnter(event, gridRowIndex, columnIndex);
+                    }
+                  : undefined
+              }
               className={cn(
                 "border-b",
                 getDensityCellClassName(currentDensity),
                 uiClassNames.cellBorder,
+                isCellSelected && uiClassNames.cellSelected,
                 layout?.utilityClassName,
                 layout?.isSpacerColumn && "border-b-0 bg-transparent p-0",
                 layout?.pinnedClassName,
@@ -185,6 +356,11 @@ function DataTableBodyRowInner<TData>({
                     : undefined
                 }
                 className="min-w-0 max-w-full"
+                style={
+                  row.depth > 0 && cell.column.id === firstDataColumnId
+                    ? { paddingInlineStart: `${row.depth}rem` }
+                    : undefined
+                }
               >
                 {loadingState?.isLoading ? (
                   (meta?.skeleton?.(cellContext) ??
@@ -204,10 +380,54 @@ function DataTableBodyRowInner<TData>({
                   cell.column.id !== "__select__" &&
                   cell.column.id !== "__expand__" &&
                   cell.column.id !== "__actions__" ? (
-                  renderEditableCell(cellContext, draftValues, setDraftValues, {
-                    Checkbox,
-                    Input,
-                  })
+                  renderEditableCell(
+                    cellContext,
+                    draftValues,
+                    setDraftValues,
+                    {
+                      Checkbox,
+                      Input,
+                    },
+                    editingContext
+                      ? {
+                          cancel: editingContext.cancel,
+                          cancelOnEscape: editingContext.cancelOnEscape,
+                          commit: () => editingContext.commit(originalRow),
+                          commitOnEnter: editingContext.commitOnEnter,
+                          errors: editingContext.errors,
+                          isDirty: editingContext.isDirty,
+                          isPending: editingContext.isPending,
+                          onValueChange: editingContext.clearError,
+                        }
+                      : undefined,
+                  )
+                ) : row.getIsGrouped() && cell.getIsPlaceholder() ? null : row.getIsGrouped() && cell.getIsGrouped() ? (
+                  <button
+                    type="button"
+                    className="inline-flex min-w-0 items-center gap-1 text-left font-medium"
+                    onClick={() => row.toggleExpanded()}
+                    aria-expanded={row.getIsExpanded()}
+                    aria-label={groupToggleLabel}
+                  >
+                    <span aria-hidden="true">
+                      {renderDataTableCellContent(cellContext, uiClassNames, {
+                        hasCustomCell:
+                          explicitCustomCellColumnIds.has(cell.column.id),
+                        useCustomOverflowDefaults:
+                          explicitCustomCellColumnIds.has(cell.column.id),
+                      })}
+                    </span>
+                    <span className="shrink-0 opacity-70">
+                      ({row.subRows.length})
+                    </span>
+                  </button>
+                ) : row.getIsGrouped() && cell.getIsAggregated() ? (
+                  cell.column.columnDef.aggregatedCell
+                    ? flexRender(cell.column.columnDef.aggregatedCell, cellContext)
+                    : renderDataTableCellContent(cellContext, uiClassNames, {
+                        hasCustomCell: false,
+                        useCustomOverflowDefaults: false,
+                      })
                 ) : (
                   renderDataTableCellContent(cellContext, uiClassNames, {
                     hasCustomCell:
@@ -229,8 +449,11 @@ function DataTableBodyRowInner<TData>({
           );
         })}
       </TableRow>
-      {!isInitialLoadingRow && renderExpandedRow && isExpanded ? (
-        <TableRow>
+      {!isInitialLoadingRow && detailPanel && isDetailExpanded ? (
+        <TableRow
+          data-dtp-slot="data-table-detail-panel-row"
+          data-row-pinned={pinnedPosition}
+        >
           <TableCell
             colSpan={Math.max(1, visibleLeafColumnCount)}
             className={cn(
@@ -239,7 +462,7 @@ function DataTableBodyRowInner<TData>({
               uiClassNames.cellBorder,
             )}
           >
-            {renderExpandedRow({
+            {detailPanel.render({
               row: originalRow,
               rowId: row.id,
               tableRow: row,
@@ -262,6 +485,7 @@ function areDataTableBodyRowsEqual<TData>(
     previous.isSelected === next.isSelected &&
     previous.isInitialLoadingRow === next.isInitialLoadingRow &&
     previous.isEditing === next.isEditing &&
+    (!previous.isEditing || previous.editingContext === next.editingContext) &&
     previous.isExpanded === next.isExpanded &&
     previous.isDraggable === next.isDraggable &&
     sameLoadingState(previous.loadingState, next.loadingState) &&
@@ -273,10 +497,26 @@ function areDataTableBodyRowsEqual<TData>(
       next.visibleCells,
     ) &&
     previous.currentDensity === next.currentDensity &&
-    previous.renderExpandedRow === next.renderExpandedRow &&
+    previous.detailPanel === next.detailPanel &&
+    previous.isDetailExpanded === next.isDetailExpanded &&
+    previous.pinnedPosition === next.pinnedPosition &&
     previous.onRowClick === next.onRowClick &&
     previous.dragAndDrop === next.dragAndDrop &&
     previous.getRowClassName === next.getRowClassName &&
+    previous.groupToggleLabel === next.groupToggleLabel &&
+    previous.gridMode === next.gridMode &&
+    (!next.gridMode ||
+      (previous.gridRowAriaIndex === next.gridRowAriaIndex &&
+        previous.gridRowIndex === next.gridRowIndex &&
+        previous.activeGridCell.row === next.activeGridCell.row &&
+        previous.activeGridCell.column === next.activeGridCell.column &&
+        previous.cellSelectionEnabled === next.cellSelectionEnabled &&
+        previous.isGridCellSelected === next.isGridCellSelected &&
+        previous.onGridCellFocus === next.onGridCellFocus &&
+        previous.onGridCellKeyDown === next.onGridCellKeyDown &&
+        previous.onGridCellPointerDown === next.onGridCellPointerDown &&
+        previous.onGridCellPointerEnter === next.onGridCellPointerEnter)) &&
+    previous.stripedRows === next.stripedRows &&
     previous.uiClassNames === next.uiClassNames &&
     previous.explicitCustomCellColumnIds === next.explicitCustomCellColumnIds &&
     (!previous.isEditing || previous.draftValues === next.draftValues)
@@ -337,8 +577,8 @@ function sameCellStyle(
     previous?.width === next?.width &&
     previous?.minWidth === next?.minWidth &&
     previous?.maxWidth === next?.maxWidth &&
-    previous?.insetInlineStart === next?.insetInlineStart &&
-    previous?.insetInlineEnd === next?.insetInlineEnd
+    previous?.left === next?.left &&
+    previous?.right === next?.right
   );
 }
 

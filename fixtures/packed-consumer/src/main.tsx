@@ -23,6 +23,10 @@ import {
   useDataTableUrlState,
   type UseDataTableUrlStateOptions,
 } from "data-table-pro/url-state";
+import {
+  useDataTableDataSource,
+  type DataTableDataSource,
+} from "data-table-pro/data-source";
 import type { DataTableState } from "data-table-pro/types";
 import "data-table-pro/styles.css";
 import "./styles.css";
@@ -50,28 +54,43 @@ const urlOptions: UseDataTableUrlStateOptions = {
   keyPrefix: "people-",
   enabled: ["columnVisibility"],
 };
+const dataSource: DataTableDataSource<Person> = () => ({
+  rows,
+  rowCount: rows.length,
+});
 
 function App() {
   const shadcnApi = React.useRef<DataTableApi<Person>>(null);
+  const serverRows = useDataTableDataSource<Person>({
+    columnFilters: [],
+    enabled: false,
+    initialData: rows,
+    mode: "offset",
+    pagination: { pageIndex: 0, pageSize: 10 },
+    sorting: [],
+    source: dataSource,
+  });
 
   React.useEffect(() => {
     if (
       typeof useDataTableUrlState !== "function" ||
+      typeof useDataTableDataSource !== "function" ||
+      !serverRows.tableProps.manualPagination ||
       !urlOptions.keyPrefix ||
       !advancedUiKit.Button
     ) {
       throw new Error("A public package entrypoint was not packaged");
     }
-  }, []);
+  }, [serverRows.tableProps.manualPagination]);
 
   return (
     <main>
       <ShadcnDataTable
         apiRef={shadcnApi}
         columns={columns}
-        data={rows}
         getRowId={(row) => row.id}
         initialState={initialState}
+        {...serverRows.tableProps}
       />
       <HeroDataTable
         columns={columns}

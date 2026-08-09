@@ -1,4 +1,5 @@
 import * as React from "react";
+import type { Table as TanStackTable } from "@tanstack/react-table";
 import {
   IconAdjustmentsHorizontal,
   IconLayoutGrid,
@@ -12,6 +13,7 @@ import type {
   DataTableColumnVisibilityOption,
   DataTableDensity,
   DataTableLabels,
+  DataTableSavedView,
   DataTableSelectionAction,
   DataTableToolbarAction,
   DataTableToolbarVisibility,
@@ -20,18 +22,31 @@ import type {
 import type { DataTableUiKit } from "../ui-kit";
 import { DATA_TABLE_DEFAULT_LABELS } from "./data-table-labels";
 
+const LazyToolbarDataOperations = React.lazy(
+  () => import("./data-table-toolbar-operations"),
+);
+
 export type DataTableToolbarColumnFilter = {
   id: string;
   label: string;
   type: DataTableColumnFilterType;
   value: unknown;
   placeholder?: string;
-  options: Array<{ label: string; value: string }>;
+  options: Array<{ label: string; value: string; count?: number; disabled?: boolean }>;
+  searchable?: boolean;
+  searchPlaceholder?: string;
+  trueLabel?: string;
+  falseLabel?: string;
+  min?: number | string;
+  max?: number | string;
+  step?: number;
 };
 
 type DataTableToolbarProps<TData> = {
   title?: string;
+  titleId?: string;
   description?: string;
+  descriptionId?: string;
   toolbarQueryValue: string;
   toolbarQueryPlaceholder: string;
   onToolbarQueryValueChange: (value: string) => void;
@@ -43,6 +58,7 @@ type DataTableToolbarProps<TData> = {
   toolbarActions: Array<DataTableToolbarAction<TData>>;
   selectionActions: Array<DataTableSelectionAction<TData>>;
   selectedRows: Array<TData>;
+  selectedRowIds: Array<string>;
   showHiddenRows: boolean;
   hiddenRowsLabel?: string;
   onShowHiddenRowsChange?: (showHiddenRows: boolean) => void;
@@ -57,9 +73,22 @@ type DataTableToolbarProps<TData> = {
   density: DataTableDensity;
   onDensityChange: (density: DataTableDensity) => void;
   enableDensityToggle: boolean;
-  labels: DataTableLabels;
+  labels: Required<DataTableLabels>;
   toolbarVisibility?: DataTableToolbarVisibility;
   openFileDialog?: () => void;
+  enableGrouping: boolean;
+  enableToolbarColumnChooser: boolean;
+  enableToolbarFilterChips: boolean;
+  enableToolbarResetLayout: boolean;
+  enableToolbarSavedViews: boolean;
+  savedViews: Array<DataTableSavedView>;
+  onResetColumnLayout: () => void;
+  onCreateSavedView: (name: string) => DataTableSavedView | undefined;
+  onApplySavedView: (id: string) => boolean;
+  onRenameSavedView: (id: string, name: string) => DataTableSavedView | undefined;
+  onDeleteSavedView: (id: string) => boolean;
+  reorderColumn: (sourceColumnId: string, targetColumnId: string) => void;
+  table: TanStackTable<TData>;
 };
 
 export function createDataTableToolbar(ui: DataTableUiKit) {
@@ -85,7 +114,9 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
 
   return function DataTableToolbar<TData>({
     title,
+    titleId,
     description,
+    descriptionId,
     toolbarQueryValue,
     toolbarQueryPlaceholder,
     onToolbarQueryValueChange,
@@ -97,6 +128,7 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
     toolbarActions,
     selectionActions,
     selectedRows,
+    selectedRowIds,
     showHiddenRows,
     hiddenRowsLabel,
     onShowHiddenRowsChange,
@@ -114,6 +146,19 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
     labels,
     toolbarVisibility,
     openFileDialog,
+    enableGrouping,
+    enableToolbarColumnChooser,
+    enableToolbarFilterChips,
+    enableToolbarResetLayout,
+    enableToolbarSavedViews,
+    savedViews,
+    onResetColumnLayout,
+    onCreateSavedView,
+    onApplySavedView,
+    onRenameSavedView,
+    onDeleteSavedView,
+    reorderColumn,
+    table,
   }: DataTableToolbarProps<TData>) {
     const compactSearchInputRef = React.useRef<HTMLInputElement | null>(null);
     const [isCompactSearchVisible, setIsCompactSearchVisible] =
@@ -137,13 +182,76 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
     const hasVisibleSearch = showSearch;
     const hasVisiblePrimaryActions = showActions && primaryActions.length > 0;
     const hasVisibleSelectionActions =
-      selectedRows.length > 0 && selectionActions.length > 0;
+      selectedRowIds.length > 0 && selectionActions.length > 0;
     const hasVisibleOptions =
       showOptions &&
       (columnVisibilityOptions.some((column) => column.canHide) ||
         Boolean(onShowHiddenRowsChange && hiddenRowsLabel) ||
         enableColumnPinning ||
-        enableDensityToggle);
+        enableDensityToggle ||
+        enableGrouping ||
+        enableToolbarColumnChooser ||
+        enableToolbarResetLayout ||
+        enableToolbarSavedViews);
+    const hasToolbarOperationsMenu =
+      enableToolbarColumnChooser ||
+      enableToolbarResetLayout ||
+      enableToolbarSavedViews;
+    const activeColumnFilters = columnFilters.filter((filter) =>
+      hasColumnFilterValue(filter.value),
+    );
+    const toolbarOperationsUi = {
+      Button,
+      DropdownMenuCheckboxItem,
+      DropdownMenuGroup,
+      DropdownMenuItem,
+      DropdownMenuLabel,
+      DropdownMenuSeparator,
+      InputGroup,
+      InputGroupAddon,
+      InputGroupInput,
+    };
+    const renderToolbarDataOperations = (placement: "menu" | "chips") => (
+      <React.Suspense fallback={null}>
+        <LazyToolbarDataOperations
+          placement={placement}
+          ui={toolbarOperationsUi}
+          labels={labels}
+          enableColumnChooser={enableToolbarColumnChooser}
+          enableFilterChips={enableToolbarFilterChips}
+          enableResetLayout={enableToolbarResetLayout}
+          enableSavedViews={enableToolbarSavedViews}
+          enableColumnPinning={enableColumnPinning}
+          columnVisibilityOptions={columnVisibilityOptions}
+          onColumnVisibilityChange={onColumnVisibilityChange}
+          onColumnPinningChange={onColumnPinningChange}
+          reorderColumn={reorderColumn}
+          table={table as unknown as TanStackTable<unknown>}
+          onResetColumnLayout={onResetColumnLayout}
+          savedViews={savedViews}
+          onCreateSavedView={onCreateSavedView}
+          onApplySavedView={onApplySavedView}
+          onRenameSavedView={onRenameSavedView}
+          onDeleteSavedView={onDeleteSavedView}
+          toolbarQueryValue={toolbarQueryValue}
+          onToolbarQueryValueChange={onToolbarQueryValueChange}
+          activeColumnFilters={activeColumnFilters}
+          onColumnFilterChange={onColumnFilterChange}
+          onClearColumnFilters={onClearColumnFilters}
+        />
+      </React.Suspense>
+    );
+    const groupableColumns = table
+      .getAllLeafColumns()
+      .filter(
+        (column) =>
+          !column.id.startsWith("__") &&
+          column.getCanGroup(),
+      );
+    const groupedColumns = table.getState().grouping.flatMap((id) => {
+      const column = table.getColumn(id);
+      return column ? [column] : [];
+    });
     const hasVisibleViewToggle =
       showViewToggle && enableViewToggle && Boolean(onViewModeChange);
     const hasVisibleTrailingActions =
@@ -151,7 +259,7 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
     const hasVisibleCustomToolbar = showCustomToolbar && Boolean(customToolbar);
     const hasVisibleCompactToolbar =
       showCustomToolbar && Boolean(compactToolbar ?? customToolbar);
-    const selectedRowCountLabel = labels.selectedRows(selectedRows.length);
+    const selectedRowCountLabel = labels.selectedRows(selectedRowIds.length);
 
     React.useEffect(() => {
       if (!isCompactSearchVisible) {
@@ -180,10 +288,16 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
         {showTitle && (title || description) ? (
           <div className="flex flex-col gap-1">
             {title ? (
-              <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
+              <h2
+                id={titleId}
+                className="text-lg font-semibold tracking-tight"
+              >
+                {title}
+              </h2>
             ) : null}
             {description ? (
               <p
+                id={descriptionId}
                 className={`max-w-3xl text-sm ${uiClassNames.mutedText ?? "opacity-70"}`}
               >
                 {description}
@@ -195,11 +309,11 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
         <div className="flex flex-col gap-3">
           <div
             data-dtp-slot="data-table-toolbar-controls"
-            className="flex items-center gap-2 overflow-x-auto px-1 @md/data-table:gap-3 @md/data-table:overflow-visible"
+            className="flex items-center gap-2 overflow-x-auto px-1 @min-[768px]/data-table:gap-3 @min-[768px]/data-table:overflow-visible"
           >
             {showSearch ? (
               <>
-                <div className="hidden min-w-0 grow max-w-md @md/data-table:block">
+                <div className="hidden min-w-0 grow max-w-md @min-[768px]/data-table:block">
                   <InputGroup className="min-w-0">
                     <InputGroupInput
                       value={toolbarQueryValue}
@@ -240,7 +354,7 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
                       size="icon-sm"
                       aria-label={labels.searchTable}
                       aria-pressed={isCompactSearchVisible}
-                      className={`shrink-0 @md/data-table:hidden ${compactToolbarIconButtonClassName} ${uiClassNames.toolbarInputButton ?? ""}`}
+                      className={`shrink-0 @min-[768px]/data-table:hidden ${compactToolbarIconButtonClassName} ${uiClassNames.toolbarInputButton ?? ""}`}
                       onClick={() => {
                         setIsCompactSearchVisible((current) => !current);
                       }}
@@ -265,10 +379,10 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
                       type="button"
                       className={
                         collapsesToIcon
-                          ? `size-7 shrink-0 px-0 @md/data-table:h-8 @md/data-table:w-fit @md/data-table:px-2.5 ${compactToolbarIconButtonClassName}`
+                          ? `size-7 shrink-0 px-0 @min-[768px]/data-table:h-8 @min-[768px]/data-table:w-fit @min-[768px]/data-table:px-2.5 ${compactToolbarIconButtonClassName}`
                           : action.iconOnly
-                            ? `size-7 shrink-0 @md/data-table:size-8 ${compactToolbarIconButtonClassName}`
-                            : "size-7 shrink-0 @md/data-table:h-8 @md/data-table:w-fit"
+                            ? `size-7 shrink-0 @min-[768px]/data-table:size-8 ${compactToolbarIconButtonClassName}`
+                            : "size-7 shrink-0 @min-[768px]/data-table:h-8 @min-[768px]/data-table:w-fit"
                       }
                       variant={action.variant ?? "outline"}
                       size={action.iconOnly ? "icon" : "default"}
@@ -286,7 +400,7 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
                       {action.iconOnly ? (
                         <span className="sr-only">{action.label}</span>
                       ) : collapsesToIcon ? (
-                        <span className="hidden @md/data-table:inline">
+                        <span className="hidden @min-[768px]/data-table:inline">
                           {action.label}
                         </span>
                       ) : (
@@ -310,7 +424,7 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
             {hasVisibleCompactToolbar ? (
               <div
                 data-dtp-slot="data-table-toolbar-compact-custom"
-                className="flex shrink-0 items-center gap-2 @lg/data-table:hidden"
+                className="flex shrink-0 items-center gap-2 @min-[1024px]/data-table:hidden"
               >
                 {compactToolbar ?? customToolbar}
               </div>
@@ -322,19 +436,23 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
               data-dtp-slot="data-table-toolbar-end-controls"
               className="flex shrink-0 items-center gap-2"
             >
-              {selectedRows.length ? (
+              {selectedRowIds.length ? (
                 <div
-                  className={`hidden text-sm @md/data-table:block ${uiClassNames.mutedText ?? "opacity-70"}`}
+                  className={`hidden text-sm @min-[768px]/data-table:block ${uiClassNames.mutedText ?? "opacity-70"}`}
                 >
                   {selectedRowCountLabel}
                 </div>
               ) : null}
-              {selectedRows.length
+              {selectedRowIds.length
                 ? selectionActions.map((action) => {
                     const Icon = action.icon;
+                    const context = {
+                      rows: selectedRows,
+                      rowIds: selectedRowIds,
+                    };
                     const disabled =
                       typeof action.disabled === "function"
-                        ? action.disabled(selectedRows)
+                        ? action.disabled(selectedRows, context)
                         : action.disabled;
 
                     return (
@@ -347,7 +465,7 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
                             className={compactToolbarIconButtonClassName}
                             disabled={disabled}
                             onClick={() => {
-                              void action.onClick({ rows: selectedRows });
+                              void action.onClick(context);
                             }}
                             aria-label={action.label}
                           >
@@ -417,7 +535,11 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
                         </DropdownMenuGroup>
                       </>
                     ) : null}
-                    {columnVisibilityOptions.some((column) => column.canHide) ? (
+                    {hasToolbarOperationsMenu
+                      ? renderToolbarDataOperations("menu")
+                      : null}
+                    {!enableToolbarColumnChooser &&
+                    columnVisibilityOptions.some((column) => column.canHide) ? (
                       <>
                         <DropdownMenuSeparator />
                         <DropdownMenuLabel>{labels.columns}</DropdownMenuLabel>
@@ -443,7 +565,7 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
                         </DropdownMenuGroup>
                       </>
                     ) : null}
-                    {enableColumnPinning ? (
+                    {enableColumnPinning && !enableToolbarColumnChooser ? (
                       <>
                         <DropdownMenuSeparator />
                         <DropdownMenuLabel>
@@ -495,6 +617,34 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
                               </button>
                             </DropdownMenuItem>
                           ))}
+                        </DropdownMenuGroup>
+                      </>
+                    ) : null}
+                    {enableGrouping && groupableColumns.length ? (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuLabel>{labels.grouping}</DropdownMenuLabel>
+                        <DropdownMenuGroup>
+                          {groupableColumns.map((column) => {
+                            const columnLabel =
+                              typeof column.columnDef.header === "string"
+                                ? column.columnDef.header
+                                : column.id;
+                            const isGrouped = column.getIsGrouped();
+                            return (
+                              <DropdownMenuCheckboxItem
+                                key={`group-${column.id}`}
+                                checked={isGrouped}
+                                onCheckedChange={() => {
+                                  column.toggleGrouping();
+                                }}
+                              >
+                                {isGrouped
+                                  ? labels.ungroup(columnLabel)
+                                  : labels.groupBy(columnLabel)}
+                              </DropdownMenuCheckboxItem>
+                            );
+                          })}
                         </DropdownMenuGroup>
                       </>
                     ) : null}
@@ -582,7 +732,7 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
                         disabled={action.disabled}
                         aria-label={action.label}
                         title={action.iconOnly ? undefined : action.label}
-                        className={`size-7 shrink-0 ${action.iconOnly ? "" : `${collapsesToIcon ? "px-0 @md/data-table:px-2.5" : ""} @md/data-table:h-8 @md/data-table:w-fit`} ${action.iconOnly || collapsesToIcon ? compactToolbarIconButtonClassName : ""} ${uiClassNames.toolbarInputButton ?? ""}`}
+                        className={`size-7 shrink-0 ${action.iconOnly ? "" : `${collapsesToIcon ? "px-0 @min-[768px]/data-table:px-2.5" : ""} @min-[768px]/data-table:h-8 @min-[768px]/data-table:w-fit`} ${action.iconOnly || collapsesToIcon ? compactToolbarIconButtonClassName : ""} ${uiClassNames.toolbarInputButton ?? ""}`}
                       >
                         {action.icon ? (
                           <action.icon
@@ -594,7 +744,7 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
                         {action.iconOnly ? (
                           <span className="sr-only">{action.label}</span>
                         ) : collapsesToIcon ? (
-                          <span className="hidden @md/data-table:inline">
+                          <span className="hidden @min-[768px]/data-table:inline">
                             {action.label}
                           </span>
                         ) : (
@@ -619,7 +769,7 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
           {showSearch && isCompactSearchVisible ? (
             <div
               data-dtp-slot="data-table-toolbar-compact-search"
-              className="min-w-0 @md/data-table:hidden"
+              className="min-w-0 @min-[768px]/data-table:hidden"
             >
               <InputGroup>
                 <InputGroupInput
@@ -680,12 +830,75 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
             </div>
           ) : null}
 
+          {enableToolbarFilterChips
+            ? renderToolbarDataOperations("chips")
+            : null}
+
+          {enableGrouping && groupedColumns.length ? (
+            <div
+              data-dtp-slot="data-table-grouping-bar"
+              aria-label={labels.grouping}
+              className="flex flex-wrap items-center gap-2"
+            >
+              <span className="text-sm opacity-70">{labels.grouping}:</span>
+              {groupedColumns.map((column, groupingIndex) => {
+                const columnLabel =
+                  typeof column.columnDef.header === "string"
+                    ? column.columnDef.header
+                    : column.id;
+                const moveGrouping = (nextIndex: number) => {
+                  const nextGrouping = [...table.getState().grouping];
+                  const [groupingId] = nextGrouping.splice(groupingIndex, 1);
+                  if (groupingId === undefined) return;
+                  nextGrouping.splice(nextIndex, 0, groupingId);
+                  table.setGrouping(nextGrouping);
+                };
+                return (
+                  <div
+                    key={`grouping-bar-${column.id}`}
+                    className="inline-flex items-center rounded-md border"
+                  >
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      disabled={groupingIndex === 0}
+                      onClick={() => moveGrouping(groupingIndex - 1)}
+                      aria-label={labels.moveGroupingEarlier(columnLabel)}
+                    >
+                      <span aria-hidden="true">←</span>
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => column.toggleGrouping()}
+                      aria-label={labels.removeGrouping(columnLabel)}
+                    >
+                      {columnLabel} <span aria-hidden="true">×</span>
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      disabled={groupingIndex === groupedColumns.length - 1}
+                      onClick={() => moveGrouping(groupingIndex + 1)}
+                      aria-label={labels.moveGroupingLater(columnLabel)}
+                    >
+                      <span aria-hidden="true">→</span>
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          ) : null}
+
         </div>
 
         {showCustomToolbar && customToolbar ? (
           <div
             data-dtp-slot="data-table-toolbar-desktop-custom"
-            className="hidden flex-row items-center gap-3 @lg/data-table:flex"
+            className="hidden flex-row items-center gap-3 @min-[1024px]/data-table:flex"
           >
             {customToolbar}
           </div>
@@ -700,9 +913,10 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
     onColumnFilterChange,
   }: {
     filter: DataTableToolbarColumnFilter;
-    labels: DataTableLabels;
+    labels: Required<DataTableLabels>;
     onColumnFilterChange: (columnId: string, value: unknown) => void;
   }) {
+    const [facetQuery, setFacetQuery] = React.useState("");
     if (filter.type === "text") {
       return (
         <InputGroup className="min-w-48 max-w-64">
@@ -721,18 +935,102 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
       );
     }
 
+    if (filter.type === "numberRange" || filter.type === "dateRange") {
+      const range = normalizeToolbarRangeValue(filter.value);
+      const inputType = filter.type === "numberRange" ? "number" : "date";
+      const fromLabel =
+        labels.filterFrom ?? DATA_TABLE_DEFAULT_LABELS.filterFrom;
+      const toLabel = labels.filterTo ?? DATA_TABLE_DEFAULT_LABELS.filterTo;
+
+      return (
+        <div
+          role="group"
+          aria-label={`${labels.filters}: ${filter.label}`}
+          className="flex min-w-0 items-center gap-1.5"
+        >
+          <InputGroup className="min-w-32 max-w-44">
+            <InputGroupInput
+              type={inputType}
+              inputMode={inputType === "number" ? "decimal" : undefined}
+              value={range.from ?? ""}
+              min={filter.min}
+              max={filter.max}
+              step={inputType === "number" ? filter.step : undefined}
+              onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                onColumnFilterChange(filter.id, {
+                  ...range,
+                  from: parseRangeInputValue(event.target.value, inputType),
+                });
+              }}
+              aria-label={`${filter.label}: ${fromLabel}`}
+            />
+            <InputGroupAddon align="inline-start">{fromLabel}</InputGroupAddon>
+          </InputGroup>
+          <InputGroup className="min-w-32 max-w-44">
+            <InputGroupInput
+              type={inputType}
+              inputMode={inputType === "number" ? "decimal" : undefined}
+              value={range.to ?? ""}
+              min={filter.min}
+              max={filter.max}
+              step={inputType === "number" ? filter.step : undefined}
+              onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                onColumnFilterChange(filter.id, {
+                  ...range,
+                  to: parseRangeInputValue(event.target.value, inputType),
+                });
+              }}
+              aria-label={`${filter.label}: ${toLabel}`}
+            />
+            <InputGroupAddon align="inline-start">{toLabel}</InputGroupAddon>
+          </InputGroup>
+        </div>
+      );
+    }
+
+    const isBoolean = filter.type === "boolean";
+    const isFaceted = filter.type === "faceted";
+    const booleanOptions = [
+      {
+        label:
+          filter.trueLabel ??
+          labels.filterTrue ??
+          DATA_TABLE_DEFAULT_LABELS.filterTrue,
+        value: "true",
+      },
+      {
+        label:
+          filter.falseLabel ??
+          labels.filterFalse ??
+          DATA_TABLE_DEFAULT_LABELS.filterFalse,
+        value: "false",
+      },
+    ];
+    const options: DataTableToolbarColumnFilter["options"] = isBoolean
+      ? booleanOptions
+      : filter.options;
+    const visibleOptions =
+      isFaceted && facetQuery
+        ? options.filter((option) =>
+            option.label.toLocaleLowerCase().includes(facetQuery.toLocaleLowerCase()),
+          )
+        : options;
+    const selectedValue =
+      typeof filter.value === "string" || typeof filter.value === "boolean"
+        ? String(filter.value)
+        : "";
     const selectedValues = Array.isArray(filter.value)
       ? filter.value.map(String)
-      : typeof filter.value === "string" && filter.value
-        ? [filter.value]
+      : selectedValue
+        ? [selectedValue]
         : [];
     const selectedLabel =
       selectedValues.length === 0
         ? filter.label
         : `${filter.label}: ${
             selectedValues.length === 1
-              ? (filter.options.find(
-                  (option) => option.value === selectedValues[0],
+              ? (options.find(
+                  (option) => option.value === String(selectedValues[0]),
                 )?.label ?? selectedValues[0])
               : selectedValues.length
           }`;
@@ -746,8 +1044,25 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-56">
           <DropdownMenuLabel>{filter.label}</DropdownMenuLabel>
+          {isFaceted && filter.searchable !== false ? (
+            <div className="px-2 pb-2">
+              <InputGroup>
+                <InputGroupInput
+                  value={facetQuery}
+                  onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                    setFacetQuery(event.target.value);
+                  }}
+                  placeholder={filter.searchPlaceholder ?? labels.facetSearch(filter.label)}
+                  aria-label={labels.facetSearch(filter.label)}
+                />
+                <InputGroupAddon align="inline-start" aria-hidden="true">
+                  <IconSearch />
+                </InputGroupAddon>
+              </InputGroup>
+            </div>
+          ) : null}
           <DropdownMenuGroup>
-            {filter.type === "select" ? (
+            {filter.type === "select" || isBoolean || isFaceted ? (
               <DropdownMenuItem
                 onClick={() => {
                   onColumnFilterChange(filter.id, "");
@@ -757,12 +1072,13 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
                   DATA_TABLE_DEFAULT_LABELS.allFilterOptions}
               </DropdownMenuItem>
             ) : null}
-            {filter.options.map((option) => (
+            {visibleOptions.map((option) => (
               <DropdownMenuCheckboxItem
                 key={option.value}
                 checked={selectedValues.includes(option.value)}
+                disabled={option.disabled}
                 onCheckedChange={(checked: boolean | "indeterminate") => {
-                  if (filter.type === "select") {
+                  if (filter.type === "select" || isBoolean) {
                     onColumnFilterChange(
                       filter.id,
                       checked === true ? option.value : "",
@@ -779,7 +1095,10 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
                   onColumnFilterChange(filter.id, Array.from(nextValues));
                 }}
               >
-                {option.label}
+                <span className="min-w-0 flex-1 truncate">{option.label}</span>
+                {option.count !== undefined ? (
+                  <span className="ml-3 tabular-nums opacity-70">{option.count}</span>
+                ) : null}
               </DropdownMenuCheckboxItem>
             ))}
           </DropdownMenuGroup>
@@ -794,5 +1113,40 @@ function hasColumnFilterValue(value: unknown) {
     return value.length > 0;
   }
 
+  if (value && typeof value === "object") {
+    if ("from" in value || "to" in value) {
+      return Object.values(value).some(hasColumnFilterValue);
+    }
+
+    return true;
+  }
+
   return value !== undefined && value !== null && value !== "";
+}
+
+function normalizeToolbarRangeValue(value: unknown): {
+  from?: number | string;
+  to?: number | string;
+} {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+
+  const range = value as { from?: unknown; to?: unknown };
+  return {
+    ...(typeof range.from === "number" || typeof range.from === "string"
+      ? { from: range.from }
+      : {}),
+    ...(typeof range.to === "number" || typeof range.to === "string"
+      ? { to: range.to }
+      : {}),
+  };
+}
+
+function parseRangeInputValue(value: string, inputType: "number" | "date") {
+  if (!value) {
+    return undefined;
+  }
+
+  return inputType === "number" ? Number(value) : value;
 }

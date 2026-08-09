@@ -4,6 +4,172 @@
 
 No changes yet.
 
+## 4.4.0 - 2026-08-09
+
+Version 4.4.0 completes the core Phase 2–4 modernization work with additive,
+opt-in APIs. It removes no public prop, type, or package entrypoint.
+
+### Features
+
+- Added local faceted option counts, searchable faceted multi-select filters,
+  server-supplied facet options, and automatically derived numeric facet
+  bounds when range limits are not configured.
+- Added controlled and manual grouping, grouped-column modes, built-in and
+  custom aggregation functions, grouped/aggregated/placeholder rendering,
+  accessible group/ungroup controls, and a reorderable grouping bar.
+- Expanded `data-table-pro/data-source` requests with global filtering,
+  grouping, aggregation, and expansion paths, and results with stable row IDs,
+  aggregates, facets, and metadata. The generated `tableProps` now wires the
+  corresponding manual table contracts.
+- Added opt-in ARIA grid semantics with one roving cell tab stop, complete
+  arrow/Home/End/Page navigation, virtual/server row and column metadata, and
+  focus restoration from interactive descendants.
+- Added controlled or uncontrolled rectangular cell-range selection through
+  pointer drag and Shift+keyboard navigation, selection styling/ARIA state,
+  imperative selection commands, app-owned undo/redo command hooks, and
+  suppression of native text dragging while a pointer range is active.
+- Added formula-safe TSV/CSV clipboard copy, selected-range copy, opt-in parsed
+  paste callbacks, and flattened expanded-row ordering.
+- Added asynchronous row validation, field/general errors, dirty and pending
+  states, Enter/Escape commit policy, optimistic updates, rollback, and save
+  lifecycle callbacks to row editing.
+- Added opt-in toolbar data operations: a searchable column chooser, bulk
+  visibility, group-safe reordering, pinning, layout reset, active-filter
+  chips/counts, and create/apply/rename/delete controls for named saved views.
+- Added opt-in viewport-driven automatic page sizing, explicit
+  empty/error/retry state handling, and print/fullscreen toolbar controls and
+  API commands.
+
+### Performance and accessibility
+
+- Cached normalized search values by immutable row/column identity and
+  deferred only client-owned filtering, leaving controlled server callbacks
+  immediate.
+- Dynamically measured variable-height virtual table rows and retained stable
+  row keys and scroll anchors.
+- Added development diagnostics for actual array-wrapper identity churn and a
+  reproducible 1k–100k row / 20–500 column benchmark matrix.
+- Moved clipboard handling, enhanced toolbar operations, automatic page-size
+  observation, and error overlays behind first-use chunks. Default tables do
+  not request those opt-in implementations.
+- Added real-browser interactive-grid navigation and pointer range-selection
+  coverage alongside the existing adapter/theme screenshots and axe audits.
+- Pinned patched transitive releases of brace-expansion, fast-uri, Hono,
+  js-yaml, and nanoid after newly published advisories; `pnpm audit` reports no
+  known vulnerabilities.
+
+### Compatibility
+
+- No public prop, type, package entrypoint, default semantic mode, or default
+  toolbar behavior was removed or changed.
+- `DataTableState.grouping` is optional so existing complete state object
+  literals remain source-compatible. All new behaviors are disabled unless
+  their corresponding prop or controlled state is supplied.
+- `DataTableApi.copyToClipboard()` already returned a promise; loading its
+  implementation asynchronously does not change that contract.
+- Column virtualization remains intentionally deferred. A partial body-only
+  implementation would break native grouped headers, pinned/resized columns,
+  detail rows, and screen-reader geometry; the wide-column benchmark remains
+  the supported decision tool for responsive visibility/server projection.
+- A standalone per-cell commit model, built-in runtime filter-operator builder,
+  and XLSX plugin remain optional future work. Existing row editing exposes
+  per-cell editors and app-owned validation/commit hooks.
+
+### Validation
+
+- 310 unit/integration tests with enforced coverage
+- lint and package/demo typechecks
+- deterministic package build and public API snapshot
+- packed-consumer and demo production builds
+- clean `pnpm audit`
+- base, adapter, URL-state, data-source, demo JavaScript, and CSS budgets
+- browser keyboard/range tests plus six adapter/theme screenshot and axe cases
+- The measured base static graph is 46.1 KiB gzip. The ceiling moves from
+  42 KiB to 48 KiB to cover the grouping, grid-navigation, range-selection,
+  editing, and state coordination that must remain in the shared runtime while
+  retaining 1.9 KiB of regression headroom. Clipboard (2.04 KB minified),
+  toolbar operations (4.60 KB), auto sizing (1.34 KB), error overlays
+  (1.01 KB), virtualization, and the data source remain separately loaded or
+  independently importable.
+
+## 4.3.0 - 2026-08-09
+
+### Features
+
+- Added boolean, numeric-range, and date-range column filters with inclusive
+  client filtering, serializable values, operators, bounds, steps, and
+  localized labels.
+- Added the optional `data-table-pro/data-source` entrypoint with typed offset
+  and cursor requests, manual-table props, cancellation, stale-response
+  protection, in-flight deduplication, cache policies, retry, refresh, and
+  invalidation.
+- Added true hierarchical rows through `getSubRows`, manual expansion,
+  expanded-row pagination policy, leaf-first/depth-limited filtering, tree
+  indentation, accessible expand controls, and card-renderer tree context.
+- Added independent `detailPanel` state while retaining
+  `renderExpandedRow` as a deprecated compatibility bridge.
+- Added controlled/uncontrolled row pinning, top/bottom regions, per-row pin
+  predicates, filtering/pagination visibility policy, row-menu actions,
+  imperative API methods, persistence, saved views, and styling slots.
+- Added explicit single/multi/sub-row selection policies, per-row
+  selectability, page/filtered select-all scope, and cross-page selected IDs
+  for manual/server data.
+- Added package-owned container-responsive toolbar primitives and filter
+  layouts, using the table's allocated inline size rather than viewport media
+  queries.
+
+### Column groups
+
+- Groups now remain intact during pointer and keyboard reordering by default;
+  `freeReordering` explicitly opts both boundaries into cross-group moves.
+- Added group descriptions, table-wide and per-group header heights, and
+  group-specific class and inline-style hooks.
+
+### Fixes
+
+- Kept utility controls, striped-row indexes, detail rows, nested selections,
+  and expanded child IDs coherent when tree expansion and row pinning are
+  enabled together.
+- Prevented a disabled data-source hook from reporting an obsolete active
+  request as fetching.
+- Quantized JavaScript container-width observation to the same fixed
+  breakpoints used by the package CSS container queries.
+
+### Compatibility
+
+- No public prop or existing entrypoint was removed.
+- Card view keeps ordinary card ordering when row pinning is configured;
+  separate pinned regions are a table-view feature.
+- Server/manual tables must include a pinned record in the current `data`
+  window for it to render.
+
+### Validation
+
+- 281 unit/integration tests
+- lint, package/demo typechecks, coverage, deterministic build, public API
+  snapshot, packed-consumer build, demo build, and bundle budgets
+- The measured base graph is 39.3 KiB gzip, up from 33.7 KiB for the added
+  filter, tree/detail, selection, grouping, and row-pinning runtime. The base
+  CI ceiling is now 42 KiB; the 2.0 KiB data-source entry has its own 3 KiB
+  ceiling and neither graph statically imports TanStack Virtual.
+
+## 4.2.0 - 2026-08-08
+
+### Features
+
+- Added first-class nested column groups with multi-row shared headings,
+  visible-leaf spans, nested custom renderers, group class/inline-style hooks,
+  proportional group resizing, and semantic `colgroup`/`col` header scopes.
+
+### Fixes
+
+- Made visibility controls, column filters, responsive hiding, ordering,
+  pinning, sizing, editing defaults, card-title detection, and custom-cell
+  handling resolve nested leaf definitions instead of assuming every
+  top-level definition is a data column.
+- Prevented placeholder and group headings from being individually reordered,
+  while retaining leaf reordering and group splitting behavior.
+
 ## 4.1.0 - 2026-07-29
 
 ### Fixes

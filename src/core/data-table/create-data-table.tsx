@@ -6,8 +6,11 @@ import type {
 import type {
   DataTableActionErrorContext,
   DataTableApi,
+  DataTableCellSelection,
+  DataTableLabels,
   DataTableProps,
   DataTableState,
+  DataTableStateOverlay as DataTableStateOverlayConfig,
 } from "../types";
 import type { DataTableUiKit } from "../ui-kit";
 import { cn } from "../../lib/utils";
@@ -29,18 +32,27 @@ import {
 } from "./data-table-saved-views";
 import { resolveDataTableLabels } from "./data-table-labels";
 import { useDataTableColumns } from "./use-data-table-columns";
+import { useControllableState } from "./use-controllable-state";
 import { useDataTableInstance } from "./use-data-table-instance";
 import { useDataTableScrollViewport } from "./use-data-table-scroll-viewport";
 import {
   exportDataTableCsv,
   getColumnId,
+  getDataTableColumnGroupPaths,
+  getDataTableLeafColumns,
   getInitialColumnPinning,
+  validateDataTableColumnIds,
 } from "./data-table-utils";
 import { useDataTableState } from "./use-data-table-state";
 import { clearDataTableColumnPrefs } from "./use-data-table-column-prefs";
 import { useDataTableToolbarFeatures } from "./use-data-table-toolbar-features";
 import { useColumnLayout } from "./use-column-layout";
 import { useRowEditing } from "./use-row-editing";
+import { useDataTablePerformanceDiagnostics } from "./use-data-table-performance-diagnostics";
+
+const DataTableAutoPageSize = React.lazy(
+  () => import("./data-table-auto-page-size"),
+);
 
 type CreateDataTableOptions = {
   CardPanel?: typeof DefaultDataTableCardPanel;
@@ -85,6 +97,17 @@ export function createDataTableWithPanels(
   const { DataTableFooter } = createDataTablePagination(ui);
   const DataTableToolbar = createDataTableToolbar(ui);
   const DataTableCardView = createDataTableCardView(ui, DataTableRowActions);
+  const DataTableStateOverlay = React.lazy(async () => {
+    const { createDataTableStateOverlay } = await import(
+      "./data-table-state-overlay"
+    );
+    return { default: createDataTableStateOverlay(ui) };
+  }) as unknown as <TOverlayData>(props: {
+    labels: DataTableLabels;
+    overlay: DataTableStateOverlayConfig<TOverlayData>;
+    rows: Array<TOverlayData>;
+    toolbarQueryValue: string;
+  }) => React.ReactElement | null;
   const defaultColumn = {
     minSize: 80,
     size: 180,
@@ -116,8 +139,15 @@ export function createDataTableWithPanels(
     sorting,
     onSortingChange,
     manualSorting = false,
+    grouping,
+    onGroupingChange,
+    manualGrouping = false,
+    enableGrouping = false,
+    groupedColumnMode = "reorder",
+    aggregationFns,
     pageIndex,
     pageSize,
+    autoPageSize = false,
     onPageIndexChange,
     onPageSizeChange,
     pageCount,
@@ -125,26 +155,48 @@ export function createDataTableWithPanels(
     rowSelection,
     onRowSelectionChange,
     enableRowSelection = false,
+    enableMultiRowSelection = true,
+    enableSubRowSelection = true,
+    getRowCanSelect,
+    rowSelectionSelectAllScope = "page",
     expanded,
     onExpandedChange,
+    getSubRows,
+    manualExpanding = false,
+    paginateExpandedRows,
+    filterFromLeafRows,
+    maxLeafRowFilterDepth,
+    detailPanel,
     getRowCanExpand,
     renderExpandedRow,
     columnOrder,
     onColumnOrderChange,
     enableColumnReordering = false,
+    columnGroupHeaderHeight,
     columnPinning,
     onColumnPinningChange,
     enableColumnPinning = false,
+    rowPinning,
+    onRowPinningChange,
+    enableRowPinning = false,
+    keepPinnedRows = true,
     toolbarActions = [],
     selectionActions = [],
     rowActions = [],
     csvExport,
+    clipboard,
+    enableCellSelection = false,
+    cellSelection,
+    defaultCellSelection,
+    onCellSelectionChange,
+    gridCommands,
     density,
     onDensityChange,
     enableDensityToggle = false,
     columnPrefsKey,
     persistence,
     savedViews,
+    toolbarDataOperations,
     initialState,
     state: unifiedState,
     onStateChange,
@@ -158,7 +210,10 @@ export function createDataTableWithPanels(
     viewMode,
     onViewModeChange,
     enableViewToggle = false,
+    enablePrint = false,
+    enableFullscreen = false,
     emptyState,
+    stateOverlay,
     isLoading = false,
     loadingRowCount,
     getRowLoadingState,
@@ -172,7 +227,7 @@ export function createDataTableWithPanels(
     columnSizing,
     onColumnSizingChange,
     enableColumnResizing = false,
-    columnResizeMode = "onChange",
+    columnResizeMode = "onEnd",
     layoutMode = "fill",
     stickyHeader = true,
     showFooter = true,
@@ -183,12 +238,15 @@ export function createDataTableWithPanels(
     className,
     tableClassName,
     tableContainerClassName,
+    stripedRows = false,
     getRowClassName,
     onRowClick,
     onActionError,
     dragAndDrop,
     fileUpload,
     virtualization,
+    accessibility,
+    interactiveGrid,
   }: DataTableProps<TData>) {
     const containerRef = React.useRef<HTMLDivElement | null>(null);
     const fileInputRef = React.useRef<HTMLInputElement | null>(null);
@@ -196,13 +254,36 @@ export function createDataTableWithPanels(
     const draggedColumnIdRef = React.useRef<string | null>(null);
     const tableRef = React.useRef<TanStackTable<TData> | null>(null);
     const lastSelectedRowIdRef = React.useRef<string | null>(null);
+    const [toolbarSavedViewsVersion, setToolbarSavedViewsVersion] =
+      React.useState(0);
+    const generatedTitleId = React.useId();
+    const generatedDescriptionId = React.useId();
+    useDataTablePerformanceDiagnostics({ columns, data, getRowId });
+    React.useMemo(() => validateDataTableColumnIds(columns), [columns]);
     const resolvedLabels = React.useMemo(
       () => resolveDataTableLabels(labels),
       [labels],
     );
+    const toolbarOperations =
+      toolbarDataOperations === true
+        ? { columnChooser: true, savedViews: true, resetLayout: true }
+        : toolbarDataOperations === false
+          ? {}
+          : (toolbarDataOperations ?? {});
+    const gridMode =
+      accessibility?.mode === "grid" ||
+      interactiveGrid === true ||
+      typeof interactiveGrid === "object";
+    const [currentCellSelection, setCurrentCellSelection] =
+      useControllableState<DataTableCellSelection | null>({
+        defaultValue: defaultCellSelection ?? null,
+        onChange: onCellSelectionChange,
+         value: cellSelection,
+       });
     const resolvedToolbarQueryValue =
       toolbarQueryValue ?? unifiedState?.globalFilter;
     const resolvedSorting = sorting ?? unifiedState?.sorting;
+    const resolvedGrouping = grouping ?? unifiedState?.grouping;
     const resolvedPageIndex =
       pageIndex ?? unifiedState?.pagination?.pageIndex;
     const resolvedPageSize = pageSize ?? unifiedState?.pagination?.pageSize;
@@ -217,20 +298,28 @@ export function createDataTableWithPanels(
       columnOrder ?? unifiedState?.columnOrder;
     const resolvedColumnPinning =
       columnPinning ?? unifiedState?.columnPinning;
+    const resolvedRowPinning = rowPinning ?? unifiedState?.rowPinning;
     const resolvedColumnSizing =
       columnSizing ?? unifiedState?.columnSizing;
     const resolvedDensity = density ?? unifiedState?.density;
     const resolvedViewMode = viewMode ?? unifiedState?.viewMode;
     const resolvedShowHiddenRows =
       showHiddenRows ?? unifiedState?.showHiddenRows;
+    const showTableHeading =
+      showToolbar && (toolbarVisibility?.title ?? true);
+    const titleId = showTableHeading && title ? generatedTitleId : undefined;
+    const descriptionId =
+      showTableHeading && description ? generatedDescriptionId : undefined;
     useDataTableStateConflictWarnings(unifiedState, {
       columnFilters: columnFilters !== undefined,
       columnOrder: columnOrder !== undefined,
       columnPinning: columnPinning !== undefined,
+      rowPinning: rowPinning !== undefined,
       columnSizing: columnSizing !== undefined,
       columnVisibility: columnVisibility !== undefined,
       density: density !== undefined,
       expanded: expanded !== undefined,
+      grouping: grouping !== undefined,
       globalFilter: toolbarQueryValue !== undefined,
       pagination: pageIndex !== undefined || pageSize !== undefined,
       rowSelection: rowSelection !== undefined,
@@ -246,6 +335,11 @@ export function createDataTableWithPanels(
     const handleSortingPropChange = useDataTableStateSliceChange(
       "sorting",
       onSortingChange,
+      onStateChange,
+    );
+    const handleGroupingPropChange = useDataTableStateSliceChange(
+      "grouping",
+      onGroupingChange,
       onStateChange,
     );
     const handleRowSelectionPropChange = useDataTableStateSliceChange(
@@ -276,6 +370,11 @@ export function createDataTableWithPanels(
     const handleColumnPinningPropChange = useDataTableStateSliceChange(
       "columnPinning",
       onColumnPinningChange,
+      onStateChange,
+    );
+    const handleRowPinningPropChange = useDataTableStateSliceChange(
+      "rowPinning",
+      onRowPinningChange,
       onStateChange,
     );
     const handleColumnSizingPropChange = useDataTableStateSliceChange(
@@ -380,13 +479,16 @@ export function createDataTableWithPanels(
       [onActionError],
     );
     const {
+      containerWidth,
       currentColumnFilters,
       currentColumnOrder,
       currentColumnPinning,
+      currentRowPinning,
       currentColumnSizing,
       currentColumnVisibility,
       currentDensity,
       currentExpanded,
+      currentGrouping,
       currentPagination,
       currentRowSelection,
       currentShowHiddenRows,
@@ -400,12 +502,15 @@ export function createDataTableWithPanels(
       localSearchValue,
       resolvedLoadingRowCount,
       resolvedToolbarQueryPlaceholder,
+      selectedRowIds,
       selectedRows,
       setCurrentColumnFilters,
       setCurrentColumnOrder,
       setCurrentColumnPinning,
+      setCurrentRowPinning,
       setCurrentColumnVisibility,
       setCurrentExpanded,
+      setCurrentGrouping,
       setCurrentRowSelection,
       setCurrentSorting,
       setLocalColumnSizing,
@@ -419,6 +524,7 @@ export function createDataTableWithPanels(
       columnFilters: resolvedColumnFilters,
       columnOrder: resolvedColumnOrder,
       columnPinning: resolvedColumnPinning,
+      rowPinning: resolvedRowPinning,
       columnSizing: resolvedColumnSizing,
       columnPrefsKey,
       persistence,
@@ -430,6 +536,8 @@ export function createDataTableWithPanels(
       enableRowSelection,
       enableToolbarQueryFiltering,
       expanded: resolvedExpanded,
+      grouping: resolvedGrouping,
+      getSubRows,
       getRowId,
       hiddenRows,
       isLoading,
@@ -439,10 +547,12 @@ export function createDataTableWithPanels(
       onColumnFiltersChange: handleColumnFiltersPropChange,
       onColumnOrderChange: handleColumnOrderPropChange,
       onColumnPinningChange: handleColumnPinningPropChange,
+      onRowPinningChange: handleRowPinningPropChange,
       onColumnSizingChange: handleColumnSizingPropChange,
       onColumnVisibilityChange: handleColumnVisibilityPropChange,
       onDensityChange: handleDensityPropChange,
       onExpandedChange: handleExpandedPropChange,
+      onGroupingChange: handleGroupingPropChange,
       onPageIndexChange: handlePageIndexPropChange,
       onRowSelectionChange: handleRowSelectionPropChange,
       onShowHiddenRowsChange: handleShowHiddenRowsPropChange,
@@ -462,10 +572,35 @@ export function createDataTableWithPanels(
       toolbarQueryValue: resolvedToolbarQueryValue,
       viewMode: resolvedViewMode,
     });
+    const usesLegacyDetailPanelState = Boolean(
+      renderExpandedRow && !detailPanel && !getSubRows,
+    );
+    const resolvedDetailPanel =
+      detailPanel ??
+      (renderExpandedRow
+        ? {
+            getRowCanExpand: getSubRows ? undefined : getRowCanExpand,
+            render: renderExpandedRow,
+          }
+        : undefined);
+    const [currentDetailExpanded, setCurrentDetailExpanded] =
+      useControllableState({
+        defaultValue: () =>
+          usesLegacyDetailPanelState ? (initialState?.expanded ?? {}) : {},
+        onChange: usesLegacyDetailPanelState
+          ? setCurrentExpanded
+          : resolvedDetailPanel?.onExpandedChange,
+        value: usesLegacyDetailPanelState
+          ? currentExpanded
+          : resolvedDetailPanel?.expanded,
+      });
     const {
       cancelEditing,
+      clearEditError,
       draftValues,
+      editErrors,
       editingRowId,
+      isEditDirty,
       isSavingEdit,
       saveEdit,
       setDraftValues,
@@ -476,8 +611,89 @@ export function createDataTableWithPanels(
       editableRows,
       onError: handleEditError,
     });
+    const rowEditingContext = React.useMemo(
+      () => ({
+        cancel: cancelEditing,
+        cancelOnEscape: editableRows?.cancelOnEscape !== false,
+        clearError: clearEditError,
+        commit: (row: TData) => {
+          void saveEdit(row);
+        },
+        commitOnEnter: editableRows?.commitOnEnter !== false,
+        errors: editErrors,
+        isDirty: isEditDirty,
+        isPending: isSavingEdit,
+      }),
+      [
+        cancelEditing,
+        clearEditError,
+        editableRows?.cancelOnEscape,
+        editableRows?.commitOnEnter,
+        editErrors,
+        isEditDirty,
+        isSavingEdit,
+        saveEdit,
+      ],
+    );
     const { viewportElement: tableScrollElement, viewportHeight } =
       useDataTableScrollViewport(tableScrollContainerRef, currentViewMode);
+    const autoPageSizeConfig =
+      typeof autoPageSize === "object" ? autoPageSize : undefined;
+    const handleAutoPageSizeChange = React.useCallback(
+      (nextPageSize: number) => {
+        if (nextPageSize === currentPagination.pageSize) {
+          return;
+        }
+        if (currentPagination.pageIndex !== 0) {
+          handlePageIndexPropChange(0);
+        }
+        handlePageSizePropChange(nextPageSize);
+        if (resolvedPageSize === undefined) {
+          setLocalPagination({ pageIndex: 0, pageSize: nextPageSize });
+        }
+      },
+      [
+        currentPagination.pageIndex,
+        currentPagination.pageSize,
+        handlePageIndexPropChange,
+        handlePageSizePropChange,
+        resolvedPageSize,
+        setLocalPagination,
+      ],
+    );
+    const autoPageSizeEnabled =
+      autoPageSize === true || autoPageSizeConfig !== undefined;
+    const print = React.useCallback(() => {
+      if (typeof window === "undefined" || typeof window.print !== "function") {
+        return false;
+      }
+      window.print();
+      return true;
+    }, []);
+    const toggleFullscreen = React.useCallback(async () => {
+      const element = containerRef.current;
+      if (!element || typeof document === "undefined") {
+        return false;
+      }
+      if (document.fullscreenElement) {
+        if (typeof document.exitFullscreen !== "function") return false;
+        await document.exitFullscreen();
+        return true;
+      }
+      if (typeof element.requestFullscreen !== "function") return false;
+      await element.requestFullscreen();
+      return true;
+    }, []);
+    const [isFullscreen, setIsFullscreen] = React.useState(false);
+    React.useEffect(() => {
+      if (!enableFullscreen || typeof document === "undefined") return;
+      const update = () => {
+        setIsFullscreen(document.fullscreenElement === containerRef.current);
+      };
+      update();
+      document.addEventListener("fullscreenchange", update);
+      return () => document.removeEventListener("fullscreenchange", update);
+    }, [enableFullscreen]);
     const openFileDialog = React.useCallback(() => {
       if (fileUpload?.disabled) {
         return;
@@ -507,18 +723,28 @@ export function createDataTableWithPanels(
       cancelEditing,
       columns,
       editableRows,
+      editErrors,
       editingRowId,
       enableRowSelection,
-      getRowCanExpand,
+      enableRowPinning,
+      hasTreeExpansion: Boolean(getSubRows),
       isSavingEdit,
+      isEditDirty,
       labels: resolvedLabels,
       lastSelectedRowIdRef,
-      renderExpandedRow,
+      detailPanel: resolvedDetailPanel,
+      detailExpanded: currentDetailExpanded,
+      onDetailExpandedChange: setCurrentDetailExpanded,
+      rowSelectionSelectAllScope,
       rowActions: guardedRowActions,
       saveEdit,
       startEditingRow,
       tableRef,
     });
+    const columnGroupPaths = React.useMemo(
+      () => getDataTableColumnGroupPaths(columns),
+      [columns],
+    );
 
     const {
       effectivePageCount,
@@ -527,6 +753,8 @@ export function createDataTableWithPanels(
       handleFooterPageSizeChange,
       isPageCountKnown,
       renderedRows,
+      topPinnedRows,
+      bottomPinnedRows,
       reorderColumn,
       rowsToRender,
       sentinelRef,
@@ -536,12 +764,16 @@ export function createDataTableWithPanels(
       visibleLeafColumns,
     } = useDataTableInstance({
       autoResetPageIndex: false,
+      columnGroupPaths,
       columnResizeMode,
+      dir,
       currentColumnFilters,
       currentColumnOrder,
       currentColumnPinning,
+      currentRowPinning,
       currentColumnSizing,
       currentExpanded,
+      currentGrouping,
       currentPagination,
       currentRowSelection,
       currentSorting,
@@ -549,18 +781,30 @@ export function createDataTableWithPanels(
       defaultColumn,
       effectiveColumnVisibility,
       enableColumnResizing,
+      enableRowPinning,
       enableRowSelection,
+      enableMultiRowSelection,
+      enableSubRowSelection,
+      getRowCanSelect,
       getRowCanExpand,
+      getSubRows,
+      aggregationFns,
+      groupedColumnMode,
       globalFilterFn,
       globalFilterValue,
       hasNextPage,
       handleColumnFiltersChange: setCurrentColumnFilters,
       handleColumnOrderChange: setCurrentColumnOrder,
       handleColumnPinningChange: setCurrentColumnPinning,
+      handleRowPinningChange: setCurrentRowPinning,
       handleColumnVisibilityChange: setCurrentColumnVisibility,
       handleExpandedChange: setCurrentExpanded,
+      handleGroupingChange: setCurrentGrouping,
       infiniteScroll,
+      keepPinnedRows,
       manualFiltering,
+      manualGrouping,
+      manualExpanding,
       manualPagination,
       manualSorting,
       onActionError,
@@ -569,7 +813,9 @@ export function createDataTableWithPanels(
       pageCount,
       pageIndex: resolvedPageIndex,
       pageSize: resolvedPageSize,
-      renderExpandedRow,
+      paginateExpandedRows,
+      filterFromLeafRows,
+      maxLeafRowFilterDepth,
       setCurrentRowSelection,
       setCurrentSorting,
       setLocalColumnSizing,
@@ -590,7 +836,7 @@ export function createDataTableWithPanels(
       editableRows: Boolean(editableRows),
       enableRowSelection,
       hasRowActions: rowActions.length > 0,
-      hasRowExpansion: Boolean(renderExpandedRow),
+      hasRowExpansion: Boolean(getSubRows || resolvedDetailPanel),
       layoutMode,
       uiClassNames,
       visibleLeafColumns,
@@ -599,7 +845,7 @@ export function createDataTableWithPanels(
       columnLayout;
     const explicitCustomCellColumnIds = React.useMemo(() => {
       return new Set(
-        columns.flatMap((column, index) => {
+        getDataTableLeafColumns(columns).flatMap(({ column, index }) => {
           return Object.prototype.hasOwnProperty.call(column, "cell") &&
             typeof column.cell === "function"
             ? [getColumnId(column, index)]
@@ -619,7 +865,10 @@ export function createDataTableWithPanels(
       [],
     );
     const hasCardTitle = React.useMemo(
-      () => columns.some((column) => column.meta?.cardTitle),
+      () =>
+        getDataTableLeafColumns(columns).some(
+          ({ column }) => column.meta?.cardTitle,
+        ),
       [columns],
     );
     const primeColumnForResize = React.useCallback(
@@ -666,13 +915,40 @@ export function createDataTableWithPanels(
     const filteredData = table
       .getFilteredRowModel()
       .rows.map((row) => row.original);
+    const configuredEmptyState = stateOverlay?.empty ?? emptyState;
     const emptyNode =
-      typeof emptyState === "function"
-      ? emptyState({
+      typeof configuredEmptyState === "function"
+      ? configuredEmptyState({
           rows: filteredData,
           toolbarQueryValue: localSearchValue,
         })
-        : emptyState;
+        : configuredEmptyState;
+    const guardedStateOverlay = React.useMemo(
+      () =>
+        stateOverlay
+          ? {
+              ...stateOverlay,
+              onRetry: stateOverlay.onRetry
+                ? () =>
+                    runAction(
+                      { source: "retry" },
+                      stateOverlay.onRetry!,
+                    )
+                : undefined,
+            }
+          : undefined,
+      [runAction, stateOverlay],
+    );
+    const stateOverlayNode = guardedStateOverlay?.error != null ? (
+      <React.Suspense fallback={null}>
+        <DataTableStateOverlay
+          labels={resolvedLabels}
+          overlay={guardedStateOverlay}
+          rows={filteredData}
+          toolbarQueryValue={localSearchValue}
+        />
+      </React.Suspense>
+    ) : undefined;
     const {
       columnVisibilityOptions,
       effectiveToolbarActions,
@@ -696,7 +972,33 @@ export function createDataTableWithPanels(
     });
     const guardedToolbarActions = React.useMemo(
       () =>
-        effectiveToolbarActions.map((action) => ({
+        [
+          ...effectiveToolbarActions,
+          ...(enablePrint
+            ? [
+                {
+                  key: "__print__",
+                  label: resolvedLabels.print,
+                  placement: "trailing" as const,
+                  onClick: () => {
+                    print();
+                  },
+                },
+              ]
+            : []),
+          ...(enableFullscreen
+            ? [
+                {
+                  key: "__fullscreen__",
+                  label: isFullscreen
+                    ? resolvedLabels.exitFullscreen
+                    : resolvedLabels.enterFullscreen,
+                  placement: "trailing" as const,
+                  onClick: () => toggleFullscreen(),
+                },
+              ]
+            : []),
+        ].map((action) => ({
           ...action,
           onClick: (context: {
             rows: Array<TData>;
@@ -711,7 +1013,18 @@ export function createDataTableWithPanels(
             );
           },
         })),
-      [effectiveToolbarActions, runAction],
+      [
+        effectiveToolbarActions,
+        enableFullscreen,
+        enablePrint,
+        isFullscreen,
+        print,
+        resolvedLabels.enterFullscreen,
+        resolvedLabels.exitFullscreen,
+        resolvedLabels.print,
+        runAction,
+        toggleFullscreen,
+      ],
     );
     const guardedSelectionActions = React.useMemo(
       () =>
@@ -737,8 +1050,10 @@ export function createDataTableWithPanels(
         columnVisibility: currentColumnVisibility,
         columnFilters: currentColumnFilters,
         expanded: currentExpanded,
+        grouping: currentGrouping,
         columnOrder: currentColumnOrder,
         columnPinning: currentColumnPinning,
+        rowPinning: currentRowPinning,
         columnSizing: currentColumnSizing,
         density: currentDensity,
         viewMode: currentViewMode,
@@ -749,10 +1064,12 @@ export function createDataTableWithPanels(
         currentColumnFilters,
         currentColumnOrder,
         currentColumnPinning,
+        currentRowPinning,
         currentColumnSizing,
         currentColumnVisibility,
         currentDensity,
         currentExpanded,
+        currentGrouping,
         currentPagination,
         currentRowSelection,
         currentShowHiddenRows,
@@ -785,11 +1102,17 @@ export function createDataTableWithPanels(
         if (nextState.expanded !== undefined) {
           table.setExpanded(nextState.expanded);
         }
+        if (nextState.grouping !== undefined) {
+          table.setGrouping(nextState.grouping);
+        }
         if (nextState.columnOrder !== undefined) {
           table.setColumnOrder(nextState.columnOrder);
         }
         if (nextState.columnPinning !== undefined) {
           table.setColumnPinning(nextState.columnPinning);
+        }
+        if (nextState.rowPinning !== undefined) {
+          table.setRowPinning(nextState.rowPinning);
         }
         if (nextState.columnSizing !== undefined) {
           table.setColumnSizing(nextState.columnSizing);
@@ -831,6 +1154,7 @@ export function createDataTableWithPanels(
           columnOrder: initialState?.columnOrder ?? [],
           columnPinning:
             initialState?.columnPinning ?? getInitialColumnPinning(columns),
+          rowPinning: initialState?.rowPinning ?? { top: [], bottom: [] },
           columnSizing: initialState?.columnSizing ?? {},
         });
       },
@@ -856,9 +1180,11 @@ export function createDataTableWithPanels(
           columnVisibility: initialState?.columnVisibility ?? {},
           columnFilters: initialState?.columnFilters ?? [],
           expanded: initialState?.expanded ?? {},
+          grouping: initialState?.grouping ?? [],
           columnOrder: initialState?.columnOrder ?? [],
           columnPinning:
             initialState?.columnPinning ?? getInitialColumnPinning(columns),
+          rowPinning: initialState?.rowPinning ?? { top: [], bottom: [] },
           columnSizing: initialState?.columnSizing ?? {},
           density: initialState?.density ?? "comfortable",
           viewMode: initialState?.viewMode ?? "table",
@@ -917,6 +1243,40 @@ export function createDataTableWithPanels(
       () => clearDataTableSavedViews(savedViews),
       [savedViews],
     );
+    const toolbarSavedViews = React.useMemo(() => {
+      void toolbarSavedViewsVersion;
+      return readDataTableSavedViews(savedViews);
+    }, [savedViews, toolbarSavedViewsVersion]);
+    const handleToolbarCreateSavedView = React.useCallback(
+      (name: string) => {
+        const view = createSavedView(name);
+        if (view) {
+          setToolbarSavedViewsVersion((current) => current + 1);
+        }
+        return view;
+      },
+      [createSavedView],
+    );
+    const handleToolbarRenameSavedView = React.useCallback(
+      (id: string, name: string) => {
+        const view = renameSavedView(id, name);
+        if (view) {
+          setToolbarSavedViewsVersion((current) => current + 1);
+        }
+        return view;
+      },
+      [renameSavedView],
+    );
+    const handleToolbarDeleteSavedView = React.useCallback(
+      (id: string) => {
+        const deleted = deleteSavedView(id);
+        if (deleted) {
+          setToolbarSavedViewsVersion((current) => current + 1);
+        }
+        return deleted;
+      },
+      [deleteSavedView],
+    );
     const exportCsvFromApi = React.useCallback<
       DataTableApi<TData>["exportCsv"]
     >(
@@ -927,6 +1287,60 @@ export function createDataTableWithPanels(
           table,
         }),
       [csvExport, resolvedLabels, table],
+    );
+    const copyToClipboard = React.useCallback<
+      DataTableApi<TData>["copyToClipboard"]
+    >(
+      async (options) => {
+        const { copyDataTableToClipboard } = await import(
+          "./data-table-clipboard"
+        );
+        return copyDataTableToClipboard({
+          clipboard:
+            options ??
+            (clipboard?.copy === false
+              ? false
+              : currentCellSelection
+                ? {
+                    ...(clipboard?.copy === true ? {} : clipboard?.copy),
+                    scope: "cellSelection",
+                  }
+                : clipboard?.copy ?? true),
+          cellSelection: currentCellSelection,
+          table,
+        });
+      },
+      [clipboard?.copy, currentCellSelection, table],
+    );
+    const pinRow = React.useCallback<DataTableApi<TData>["pinRow"]>(
+      (rowId, position = "top") => {
+        try {
+          const row = table.getRow(rowId, true);
+          if (!row.getCanPin()) {
+            return false;
+          }
+          row.pin(position);
+          return true;
+        } catch {
+          return false;
+        }
+      },
+      [table],
+    );
+    const unpinRow = React.useCallback<DataTableApi<TData>["unpinRow"]>(
+      (rowId) => {
+        try {
+          const row = table.getRow(rowId, true);
+          if (!row.getCanPin()) {
+            return false;
+          }
+          row.pin(false);
+          return true;
+        } catch {
+          return false;
+        }
+      },
+      [table],
     );
     React.useImperativeHandle(
       apiRef,
@@ -944,6 +1358,8 @@ export function createDataTableWithPanels(
         renameSavedView,
         deleteSavedView,
         clearSavedViews,
+        pinRow,
+        unpinRow,
         focus: () => {
           containerRef.current?.focus();
         },
@@ -956,11 +1372,19 @@ export function createDataTableWithPanels(
             columnId,
           ),
         exportCsv: exportCsvFromApi,
+        copyToClipboard,
+        getCellSelection: () => currentCellSelection,
+        setCellSelection: setCurrentCellSelection,
+        clearCellSelection: () => setCurrentCellSelection(null),
+        print,
+        toggleFullscreen,
       }),
       [
         applySavedView,
         clearPersistedState,
         clearSavedViews,
+        copyToClipboard,
+        currentCellSelection,
         createSavedView,
         deleteSavedView,
         exportCsvFromApi,
@@ -970,6 +1394,11 @@ export function createDataTableWithPanels(
         resetColumnLayout,
         resetState,
         restoreState,
+        pinRow,
+        print,
+        setCurrentCellSelection,
+        unpinRow,
+        toggleFullscreen,
       ],
     );
 
@@ -979,10 +1408,12 @@ export function createDataTableWithPanels(
           ref={containerRef}
           data-dtp-slot="data-table-root"
           data-density={currentDensity}
+          data-dtp-striped-rows={stripedRows || undefined}
+          aria-busy={isLoading || undefined}
           dir={dir}
           tabIndex={-1}
           className={cn(
-            "@container/data-table data-table-container-query flex flex-col",
+            "@container/data-table data-table-container-query flex w-full min-w-0 flex-col",
             flexGrow ? "h-full min-h-0 flex-1" : "grow",
             rootClassName,
           )}
@@ -990,7 +1421,91 @@ export function createDataTableWithPanels(
           onDragOver={dragAndDrop?.onDragOver}
           onDragLeave={dragAndDrop?.onDragLeave}
           onDrop={dragAndDrop?.onDrop}
+          onKeyDown={(event) => {
+            if (
+              gridMode &&
+              gridCommands &&
+              (event.ctrlKey || event.metaKey) &&
+              event.key.toLowerCase() === "z" &&
+              !isDataTableEditableClipboardTarget(event.target)
+            ) {
+              const command = event.shiftKey ? gridCommands.redo : gridCommands.undo;
+              if (command) {
+                event.preventDefault();
+                runAction(
+                  { source: event.shiftKey ? "redo" : "undo" },
+                  () => command({ cellSelection: currentCellSelection, table }),
+                );
+              }
+              return;
+            }
+            if (
+              !clipboard?.copy ||
+              !(event.ctrlKey || event.metaKey) ||
+              event.key.toLowerCase() !== "c" ||
+              isDataTableEditableClipboardTarget(event.target)
+            ) {
+              return;
+            }
+            event.preventDefault();
+            runAction(
+              { source: "clipboardCopy" },
+              async () => {
+                await copyToClipboard(
+                  clipboard.copy === true
+                    ? undefined
+                    : currentCellSelection &&
+                        typeof clipboard.copy === "object" &&
+                        !clipboard.copy.scope
+                      ? { ...clipboard.copy, scope: "cellSelection" }
+                      : clipboard.copy,
+                );
+              },
+            );
+          }}
+          onPaste={(event) => {
+            const paste = clipboard?.paste;
+            if (
+              !paste ||
+              paste.enabled === false ||
+              isDataTableEditableClipboardTarget(event.target)
+            ) {
+              return;
+            }
+            const text = event.clipboardData.getData("text/plain");
+            if (!text) {
+              return;
+            }
+            if (paste.preventDefault ?? true) {
+              event.preventDefault();
+            }
+            runAction(
+              { source: "clipboardPaste" },
+              async () => {
+                const { parseDataTableClipboardText } = await import(
+                  "./data-table-clipboard"
+                );
+                return paste.onPaste({
+                  table,
+                  text,
+                  values: parseDataTableClipboardText(text),
+                });
+              },
+            );
+          }}
         >
+          {autoPageSizeEnabled ? (
+            <React.Suspense fallback={null}>
+              <DataTableAutoPageSize
+                config={autoPageSizeConfig}
+                currentPageSize={currentPagination.pageSize}
+                enabled
+                onPageSizeChange={handleAutoPageSizeChange}
+                viewportElement={tableScrollElement}
+                viewportHeight={viewportHeight}
+              />
+            </React.Suspense>
+          ) : null}
           {fileUpload ? (
             <input
               ref={fileInputRef}
@@ -1033,8 +1548,16 @@ export function createDataTableWithPanels(
                   DataTableToolbar={DataTableToolbar}
                   density={currentDensity}
                   description={description}
+                  descriptionId={descriptionId}
                   effectiveToolbarActions={guardedToolbarActions}
                   enableColumnPinning={enableColumnPinning}
+                  enableGrouping={enableGrouping}
+                  enableToolbarColumnChooser={toolbarOperations.columnChooser === true}
+                  enableToolbarFilterChips={Boolean(toolbarDataOperations)}
+                  enableToolbarResetLayout={toolbarOperations.resetLayout === true}
+                  enableToolbarSavedViews={
+                    toolbarOperations.savedViews === true && Boolean(savedViews)
+                  }
                   enableDensityToggle={enableDensityToggle}
                   enableViewToggle={enableViewToggle && Boolean(cardRenderer)}
                   hiddenRowsLabel={hiddenRows?.label}
@@ -1045,13 +1568,22 @@ export function createDataTableWithPanels(
                   onDensityChange={handleDensityChange}
                   onShowHiddenRowsChange={handleShowHiddenRowsChange}
                   onToolbarQueryValueChange={setLocalSearchValue}
+                  reorderColumn={reorderColumn}
+                  onResetColumnLayout={resetColumnLayout}
+                  onCreateSavedView={handleToolbarCreateSavedView}
+                  onApplySavedView={applySavedView}
+                  onRenameSavedView={handleToolbarRenameSavedView}
+                  onDeleteSavedView={handleToolbarDeleteSavedView}
                   onViewModeChange={handleViewModeChange}
                   openFileDialog={fileUpload ? openFileDialog : undefined}
+                  selectedRowIds={selectedRowIds}
                   selectedRows={selectedRows}
                   selectionActions={guardedSelectionActions}
+                  savedViews={toolbarSavedViews}
                   showHiddenRows={currentShowHiddenRows}
                   table={table}
                   title={title}
+                  titleId={titleId}
                   toolbarQueryPlaceholder={resolvedToolbarQueryPlaceholder}
                   toolbarQueryValue={localSearchValue}
                   toolbarVisibility={toolbarVisibility}
@@ -1069,6 +1601,8 @@ export function createDataTableWithPanels(
                   cardGridClassName={cardGridClassName}
                   cardSizing={cardSizing}
                   cardRenderer={cardRenderer}
+                  containerWidth={containerWidth}
+                  currentDetailExpanded={currentDetailExpanded}
                   currentRowSelection={currentRowSelection}
                   DataTableCardView={DataTableCardView}
                   DataTableEmptyState={DataTableEmptyState}
@@ -1076,6 +1610,7 @@ export function createDataTableWithPanels(
                   editableRows={editableRows}
                   editingRowId={editingRowId}
                   emptyNode={emptyNode}
+                  stateOverlayNode={stateOverlayNode}
                   enableRowSelection={enableRowSelection}
                   flexGrow={flexGrow}
                   getRowClassName={getRowClassName}
@@ -1084,12 +1619,13 @@ export function createDataTableWithPanels(
                   localSearchValue={localSearchValue}
                   onRowClick={guardedOnRowClick}
                   renderedRows={renderedRows}
-                  renderExpandedRow={renderExpandedRow}
+                  detailPanel={resolvedDetailPanel}
                   resolvedLabels={resolvedLabels}
                   resolvedLoadingRowCount={resolvedLoadingRowCount}
                   rowActions={guardedRowActions}
                   ScrollArea={ScrollArea}
                   sentinelRef={sentinelRef}
+                  setCurrentDetailExpanded={setCurrentDetailExpanded}
                   setCurrentRowSelection={setCurrentRowSelection}
                   setEditingRowId={setEditingRowId}
                   shouldRenderInitialLoading={shouldRenderInitialLoading}
@@ -1099,16 +1635,23 @@ export function createDataTableWithPanels(
                 />
               ) : (
                 <DataTableTablePanel
+                  ariaDescribedBy={descriptionId}
+                  ariaLabelledBy={titleId}
                   bodyRowComponents={bodyRowComponents}
                   columnLayouts={columnLayout.columnLayouts}
                   currentDensity={currentDensity}
+                  columnGroupHeaderHeight={columnGroupHeaderHeight}
+                  currentDetailExpanded={currentDetailExpanded}
                   currentSorting={currentSorting}
+                  dir={dir}
                   DataTableEmptyState={DataTableEmptyState}
                   dragAndDrop={dragAndDrop}
                   draggedColumnIdRef={draggedColumnIdRef}
                   draftValues={draftValues}
                   editingRowId={editingRowId}
+                  editingContext={rowEditingContext}
                   emptyNode={emptyNode}
+                  stateOverlayNode={stateOverlayNode}
                   enableColumnReordering={enableColumnReordering}
                   enableColumnResizing={enableColumnResizing}
                   explicitCustomCellColumnIds={explicitCustomCellColumnIds}
@@ -1123,7 +1666,9 @@ export function createDataTableWithPanels(
                   onRowClick={guardedOnRowClick}
                   primeColumnForResize={primeColumnForResize}
                   renderedRows={renderedRows}
-                  renderExpandedRow={renderExpandedRow}
+                  detailPanel={resolvedDetailPanel}
+                  topPinnedRows={topPinnedRows}
+                  bottomPinnedRows={bottomPinnedRows}
                   reorderColumn={reorderColumn}
                   resetColumnSize={resetColumnSize}
                   resolvedLabels={resolvedLabels}
@@ -1134,6 +1679,7 @@ export function createDataTableWithPanels(
                   setDraftValues={setDraftValues}
                   shouldRenderInitialLoading={shouldRenderInitialLoading}
                   stickyHeader={stickyHeader}
+                  stripedRows={stripedRows}
                   summaryRows={summaryRows}
                   table={table}
                   tableClassName={tableClassName}
@@ -1150,6 +1696,27 @@ export function createDataTableWithPanels(
                   uiClassNames={uiClassNames}
                   viewportHeight={viewportHeight}
                   virtualization={virtualization}
+                  gridMode={gridMode}
+                  gridPageSize={
+                    accessibility?.pageSize ??
+                    (typeof interactiveGrid === "object"
+                      ? interactiveGrid.pageSize
+                      : undefined)
+                  }
+                  cellSelectionEnabled={
+                    gridMode &&
+                    (enableCellSelection ||
+                    cellSelection !== undefined ||
+                    defaultCellSelection !== undefined)
+                  }
+                  cellSelection={currentCellSelection}
+                  onCellSelectionChange={setCurrentCellSelection}
+                  gridRowOffset={
+                    manualPagination
+                      ? currentPagination.pageIndex * currentPagination.pageSize
+                      : 0
+                  }
+                  totalRowCount={totalRowCount}
                   virtualPaddingBottom={virtualPaddingBottom}
                   virtualPaddingTop={virtualPaddingTop}
                   visibleLeafColumnCount={visibleLeafColumnCount}
@@ -1199,11 +1766,13 @@ function runDataTableAction<TData>(
 
 function useDataTableStateSliceChange<K extends keyof DataTableState>(
   key: K,
-  onLegacyChange: ((value: DataTableState[K]) => void) | undefined,
+  onLegacyChange:
+    | ((value: Exclude<DataTableState[K], undefined>) => void)
+    | undefined,
   onStateChange: DataTableProps<unknown>["onStateChange"],
 ) {
   const handleChange = React.useCallback(
-    (value: DataTableState[K]) => {
+    (value: Exclude<DataTableState[K], undefined>) => {
       onLegacyChange?.(value);
       onStateChange?.((current) => ({
         ...current,
@@ -1267,6 +1836,7 @@ function cloneDataTableState(state: DataTableState): DataTableState {
       typeof state.expanded === "boolean"
         ? state.expanded
         : { ...state.expanded },
+    grouping: [...(state.grouping ?? [])],
     columnOrder: [...state.columnOrder],
     columnPinning: {
       left: state.columnPinning.left
@@ -1275,6 +1845,10 @@ function cloneDataTableState(state: DataTableState): DataTableState {
       right: state.columnPinning.right
         ? [...state.columnPinning.right]
         : undefined,
+    },
+    rowPinning: {
+      top: state.rowPinning.top ? [...state.rowPinning.top] : undefined,
+      bottom: state.rowPinning.bottom ? [...state.rowPinning.bottom] : undefined,
     },
     columnSizing: { ...state.columnSizing },
     density: state.density,
@@ -1303,4 +1877,16 @@ function scrollDataTableElementIntoView(
 
   element.scrollIntoView?.({ block: "nearest", inline: "nearest" });
   return true;
+}
+
+function isDataTableEditableClipboardTarget(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) {
+    return false;
+  }
+  return (
+    target.isContentEditable ||
+    target instanceof HTMLInputElement ||
+    target instanceof HTMLTextAreaElement ||
+    target instanceof HTMLSelectElement
+  );
 }

@@ -1,5 +1,66 @@
 # Migration Guide
 
+## 4.4.0 additive modernization release
+
+Version 4.4.0 removes no public prop, type, or package entrypoint. A 4.3 table
+keeps native table semantics and its existing toolbar, paging, editing, and
+server behavior until a new option is enabled.
+
+- Use `enableGrouping`, `grouping` / `onGroupingChange`, or
+  `initialState.grouping` to adopt grouping. `DataTableState.grouping` remains
+  optional so existing complete state object literals compile unchanged.
+- Use `interactiveGrid` (or `accessibility={{ mode: "grid" }}`) only for an
+  application-style keyboard grid. Add `enableCellSelection` separately when
+  rectangular range selection is wanted; ordinary row selection is
+  independent.
+- Use `clipboard` for opt-in copy/paste behavior. `copyToClipboard()` remains
+  asynchronous and now loads its implementation on first use. Setting
+  `clipboard={{ copy: false }}` continues to disable imperative/default range
+  copy.
+- Use `toolbarDataOperations` for the searchable column manager, filter chips,
+  reset, and saved-view UI. Existing `savedViews` API-ref commands still work
+  without built-in controls. Newly created saved views include grouping by
+  default; an explicit `savedViews.slices` list remains authoritative.
+- Use `autoPageSize`, `stateOverlay`, `enablePrint`, and `enableFullscreen`
+  independently. Their optional implementations load only when requested.
+- Data-source callbacks may consume the new `globalFilter`, `grouping`,
+  `aggregations`, and `expansionPath` request fields and return `rowIds`,
+  `facets`, `aggregates`, and `metadata`. Existing sources can ignore all new
+  fields and keep returning their prior result shape.
+- Numeric range filters without explicit `min` / `max` now expose bounds from
+  TanStack's local faceted row model. Set explicit limits to retain fixed
+  application-defined bounds; manual/server filters remain server-owned.
+
+The base gzip budget rises from 42 KiB to 48 KiB with a measured 46.1 KiB
+static graph. Clipboard, enhanced toolbar operations, auto sizing, error
+overlays, virtualization, and the data-source hook are not added to that
+default static path when unused.
+
+Column virtualization is not part of 4.4. The package keeps native table
+layout and grouped-header, pinning, resizing, detail-row, and accessibility
+correctness instead of shipping a partial body-only virtualizer.
+
+## 4.3.0 additive feature release
+
+Version 4.3.0 removes no prop, type, or entrypoint. Existing flat-row tables,
+detail panels based on `renderExpandedRow`, manual server data, and column
+reordering continue to work.
+
+- New server integrations can import `useDataTableDataSource` from
+  `data-table-pro/data-source`; existing `data` plus manual flags remain
+  supported.
+- `renderExpandedRow` remains a deprecated detail-panel bridge. Use
+  `detailPanel={{ render, getRowCanExpand }}` when adopting `getSubRows` so
+  application details and hierarchical expansion have independent state.
+- Nested column groups are now locked during reordering by default. Add
+  `freeReordering: true` to every group boundary that intentionally permits a
+  leaf to cross it.
+- Row pinning is opt-in through `enableRowPinning`. Add `rowPinning` to custom
+  persistence/saved-view slice lists if those lists override the defaults.
+- Responsive presentation is owned by `data-table-pro/styles.css` container
+  queries. Consumers should not add viewport media-query copies of the table
+  breakpoints.
+
 ## 4.0.0 code-splitting entrypoints
 
 No existing import or prop needs to change. The base adapter entrypoints still
@@ -22,9 +83,10 @@ import { DataTable } from "data-table-pro/virtual";
 
 Equivalent eager entrypoints are `data-table-pro/heroui/virtual` and
 `data-table-pro/thegridcn/virtual`. Props, types, styling, state, and adapter
-behavior are unchanged. During on-demand loading, the base entry renders the
-complete non-virtual rows/cards as its Suspense fallback, so table state stays
-in the parent component.
+behavior are unchanged. During on-demand loading, the base entry keeps table
+state in the parent component and renders a bounded initial fallback (20 rows
+or 12 cards by default). Use `fallbackRowCount` or `fallbackCardCount` when a
+different first-paint cap is appropriate.
 
 Adapter authors can move from the broad compatibility surface to:
 
@@ -251,7 +313,9 @@ Projects upgrading to `3.0.0` should review these changes:
 2. React peers are now `react@^19.2.0` and `react-dom@^19.2.0`.
 3. `nuqs` is an optional peer required only when importing `data-table-pro/url-state`.
 4. Toolbar search filters local rows by default. Use `manualFiltering` for server-side tables or `enableToolbarQueryFiltering={false}` when the toolbar input should be display-only.
-5. `column.meta.filter` now renders built-in toolbar filters for text, select, and multi-select filter controls.
+5. `column.meta.filter` renders built-in toolbar filters for text, select,
+   multi-select, boolean, numeric-range, and date-range controls. Range filter
+   state uses serializable `{ from, to }` objects with inclusive bounds.
 6. New optional APIs cover row expansion, column ordering/pinning, CSV export, density, labels, summary rows, RTL direction, and column preference persistence.
 
 ## 2.0.1 Breaking Changes

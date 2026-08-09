@@ -21,17 +21,22 @@ All adapter entrypoints export the same table runtime API:
 Dedicated subpath exports are also available:
 
 - `data-table-pro/url-state`: `useDataTableUrlState`
+- `data-table-pro/data-source`: typed server data source hook with manual table props
 - `data-table-pro/adapter`: stable non-virtual adapter-authoring factory
 - `data-table-pro/adapter/virtual`: virtual adapter-authoring factory
 - `data-table-pro/advanced`: advanced composition hooks, panels, and adapter helpers
 - `data-table-pro/types`: public TypeScript types
 
-The current 4.0 feature set includes client/manual filtering, sorting and
-pagination, unknown-total pagination, selection, detail panels, table/card
-views, row/card virtualization, column sizing/order/pinning/visibility,
-versioned persistence, named saved views, versioned URL state, CSV export,
-inline row editing, density controls, loading/empty states, summary rows,
-infinite loading, and host-owned drag/upload integrations. See
+The current feature set includes client/manual filtering with local or
+server-provided facets, grouping and aggregation, sorting and pagination,
+unknown-total and automatic page sizing, row and cell-range selection,
+interactive-grid keyboard navigation, detail panels, table/card views,
+row/card virtualization, nested column groups, column
+sizing/order/pinning/visibility, versioned persistence, named saved views,
+versioned URL state, CSV and clipboard export, inline row editing, density
+controls, loading/empty/error states, summary rows, alternate row shading,
+infinite loading, typed server data sources, and host-owned drag/upload
+integrations. See
 [`docs/API.md`](./docs/API.md) for the complete contract.
 
 ## Breaking Changes In 3.0.0
@@ -40,7 +45,7 @@ infinite loading, and host-owned drag/upload integrations. See
 - React peers are now `react@^19.2.0` and `react-dom@^19.2.0`
 - `nuqs` is an optional peer used only by `data-table-pro/url-state`
 - toolbar search now filters client-side tables by default; disable with `manualFiltering` or `enableToolbarQueryFiltering={false}`
-- column filters, CSV export, row expansion, density, column pinning/reordering, labels, and column preference persistence were added
+- column filters, CSV export, row expansion, density, column pinning/reordering, selection policies, labels, and column preference persistence were added
 
 ## 4.0.0 Compatibility
 
@@ -49,14 +54,22 @@ compatibility-first major that releases the accumulated state, persistence,
 quality, dependency, accessibility, and package-splitting work after 3.0.9.
 The previously planned API cleanup is deferred to a future 5.0 release.
 
+## 4.4.0 Compatibility
+
+Version 4.4.0 is an additive minor release. Native table semantics and the
+existing toolbar remain the defaults; grouping, interactive-grid navigation,
+cell ranges, clipboard/paste, enhanced data operations, auto page sizing,
+print/fullscreen controls, and error overlays are individually opt-in. No
+public prop, type, or entrypoint was removed.
+
 ## Installation
 
 ```bash
-pnpm add github:Dastari/data-table-pro#v4.0.0
+pnpm add github:Dastari/data-table-pro#v4.4.0
 ```
 
 This package is installed from GitHub refs. It is not published to npm.
-Release tags such as `v4.0.0` include committed `dist/` output, so consumers
+Release tags such as `v4.4.0` include committed `dist/` output, so consumers
 do not need to allow package build scripts during install.
 
 Peer dependencies:
@@ -116,9 +129,9 @@ import { DataTable } from "data-table-pro/virtual";
 
 The existing base entrypoints remain source-compatible with
 `virtualization`. They load the virtual row/card implementation only when the
-prop enables it and render the complete non-virtual view as the Suspense
-fallback. Applications that never enable virtualization do not statically
-load `@tanstack/react-virtual`.
+prop enables it and render a bounded initial set as the Suspense fallback
+(20 rows or 12 cards by default). Applications that never enable
+virtualization do not statically load `@tanstack/react-virtual`.
 
 Custom adapter authors should use `createDataTable` from
 `data-table-pro/adapter`, or `createVirtualDataTable` from
@@ -162,8 +175,14 @@ Always import:
 
 `data-table-pro/styles.css` provides:
 
-- Tailwind package scanning for the built output
-- the package-owned container query helpers used by column `hideOn`
+- Tailwind package scanning for built JavaScript output
+- package-owned inline-size container queries used by column `hideOn` and the toolbar
+
+Responsive behavior is based on the table's allocated width, not the browser
+viewport. The package uses fixed `sm`/`md`/`lg`/`xl`/`2xl` thresholds of
+640/768/1024/1280/1536px for both CSS presentation and TanStack column state;
+host Tailwind breakpoint customization and root font-size changes do not alter
+these thresholds.
 
 It does not provide:
 
@@ -215,6 +234,7 @@ Card mode can virtualize large card sets:
     card: {
       enabled: true,
       estimateCardHeight: 280,
+      fallbackCardCount: 12,
       overscan: 4,
       lanes: "auto",
     },
@@ -222,7 +242,16 @@ Card mode can virtualize large card sets:
 />
 ```
 
-`virtualization.card.lanes` accepts a positive number or `"auto"`. `"auto"` derives lanes from the card viewport width, and the table renders the full card set until the scroll viewport is measurable so first paint is never blank.
+`virtualization.card.lanes` accepts a positive number or `"auto"`. `"auto"` derives lanes from the card viewport width. Before the scroll viewport is measurable, `fallbackCardCount` bounds first-paint work so large card collections do not mount in full.
+
+Virtual rows are measured after mount, including variable-height wrapped table
+cells and card lanes. Keep `getRowId`, row objects, and column definitions
+stable and immutable: row ids are the virtual scroll keys and built-in search
+indexes values by row/column identity. Development builds warn about duplicate
+row ids and common identity churn. See [the benchmark harness](benchmarks/README.md)
+for repeatable row- and column-scale measurements. Column virtualization is not
+currently offered because it would compromise the native table's grouped-header,
+pinned-column, resize, detail-row, and accessibility contracts.
 
 ## Adapter Requirements
 
@@ -280,6 +309,51 @@ export function PeopleTable({ rows }: { rows: Array<Person> }) {
 }
 ```
 
+### Grouped column headers
+
+Define a group with an `id`, a `header`, and nested `columns`. Groups can be
+nested to any depth and use the same TanStack-compatible definition shape as
+leaf columns:
+
+```tsx
+import type {
+  DataTableColumnDef,
+  DataTableColumnGroupDef,
+} from "data-table-pro";
+
+const contactGroup: DataTableColumnGroupDef<Person> = {
+  id: "contact",
+  header: "Contact",
+  meta: {
+    align: "center",
+    headerClassName: "bg-muted/50 font-semibold",
+  },
+  columns: [
+    { accessorKey: "name", header: "Name" },
+    { accessorKey: "email", header: "Email" },
+  ],
+};
+
+const columns: Array<DataTableColumnDef<Person>> = [contactGroup];
+```
+
+The table creates one header row per nesting level and gives every group
+header the span of its visible leaf columns. `header` may be a string or a
+TanStack header render function. Use `meta.headerClassName`,
+`meta.headerStyle`, and `meta.align` for group styling, or the group-specific
+`headerClassName`, `headerStyle`, and `headerHeight` fields. `description`
+provides an accessible description and native tooltip for the group heading.
+Set `columnGroupHeaderHeight` to establish a table-wide group-heading height;
+a group's `headerHeight` takes precedence.
+
+Visibility, filters, ordering, pinning, sizing, editing, responsive hiding,
+and CSV export continue to operate on leaf columns. Groups preserve their
+shared headings during drag and keyboard reordering: by default a leaf may move
+only within the same nested group. Set `freeReordering: true` on every group
+boundary that a leaf should be able to cross (both groups when moving between
+groups) to permit splitting or joining groups. A group resize handle resizes its
+visible descendants proportionally.
+
 ### Controlled toolbar query
 
 ```tsx
@@ -291,6 +365,40 @@ export function PeopleTable({ rows }: { rows: Array<Person> }) {
   onToolbarQueryValueChange={setQuery}
 />
 ```
+
+### Row pinning
+
+Enable first-class row pinning to keep important records at the top or bottom
+of the table. `rowPinning` and `onRowPinningChange` follow TanStack's
+`{ top: string[]; bottom: string[] }` state shape and also participate in
+`initialState`, unified `state`, persistence, saved views, and `apiRef`.
+
+```tsx
+const apiRef = React.createRef<DataTableApi<Person>>();
+
+<DataTable
+  apiRef={apiRef}
+  columns={columns}
+  data={rows}
+  getRowId={(row) => row.id}
+  enableRowPinning
+  initialState={{ rowPinning: { top: ["important-id"], bottom: [] } }}
+/>;
+
+apiRef.current?.pinRow("important-id", "top");
+apiRef.current?.unpinRow("important-id");
+```
+
+When enabled, each row's action menu includes top, bottom, and unpin actions.
+Pinned rows render outside the virtualized center list and receive
+`data-dtp-slot="data-table-pinned-row"` plus `data-row-pinned="top"` or
+`"bottom"`; use `classNames.rowPinnedTop` and `classNames.rowPinnedBottom`
+for adapter styling. `keepPinnedRows` defaults to `true`, keeping supplied rows
+visible after client filtering or pagination; set it to `false` to hide pinned
+rows that are not in the current model. For server/manual pagination, the
+caller must still provide a pinned row in `data` for it to render. Card view
+preserves the ordinary card order; it does not provide separate top/bottom
+pinned regions.
 
 Toolbar search filters local/client-side data by default. Server-side tables can keep filtering consumer-owned:
 
@@ -400,7 +508,8 @@ const url = useDataTableUrlState({
 Grouping and row selection are also available as URL slices, but selection is
 never written unless `"rowSelection"` is explicitly enabled.
 
-Named saved views use versioned storage without imposing toolbar UI:
+Named saved views use versioned storage. Applications can keep their own UI,
+or opt into the built-in table-options controls:
 
 ```tsx
 <DataTable
@@ -413,12 +522,22 @@ Named saved views use versioned storage without imposing toolbar UI:
     version: 1,
     onChange: (views) => setSavedViews(views),
   }}
+  toolbarDataOperations={{
+    columnChooser: true,
+    resetLayout: true,
+    savedViews: true,
+  }}
 />;
 
 const saved = apiRef.current?.createSavedView("My view");
 apiRef.current?.applySavedView(saved?.id ?? "");
 apiRef.current?.resetState({ clearPersistence: true });
 ```
+
+The enhanced column chooser is searchable and includes bulk show/hide,
+keyboard-accessible move-earlier/move-later actions, and pin controls when
+`enableColumnPinning` is enabled. Active search and column filters are also
+shown as removable chips.
 
 ### Column filters
 
@@ -438,6 +557,70 @@ const columns: Array<DataTableColumnDef<Person>> = [
   },
 ];
 ```
+
+### Facets, grouping, and aggregation
+
+Use `type: "faceted"` for a searchable multi-select filter with local
+TanStack option counts. Supply `faceting.options` when counts come from the
+server. Grouping is controlled with `grouping` / `onGroupingChange` (or stored
+in `initialState.grouping`); set `enableGrouping` to expose the accessible
+group/ungroup menu and removable grouping bar.
+
+```tsx
+const columns: Array<DataTableColumnDef<Person>> = [
+  {
+    accessorKey: "team",
+    header: "Team",
+    enableGrouping: true,
+    meta: { filter: { type: "faceted" } },
+  },
+  {
+    accessorKey: "hours",
+    header: "Hours",
+    aggregationFn: "sum",
+  },
+];
+
+<DataTable
+  columns={columns}
+  data={people}
+  getRowId={(person) => person.id}
+  enableGrouping
+  initialState={{ grouping: ["team"] }}
+/>;
+```
+
+### Interactive grid, ranges, and data operations
+
+Keep the default native table for reading/browsing. Opt into grid mode for a
+keyboard-operated data workspace, then enable rectangular selection and
+clipboard handling independently:
+
+```tsx
+<DataTable
+  columns={columns}
+  data={rows}
+  getRowId={(row) => row.id}
+  interactiveGrid
+  enableCellSelection
+  clipboard={{
+    copy: true,
+    paste: {
+      onPaste: ({ values }) => applyPastedValues(values),
+    },
+  }}
+  toolbarDataOperations
+  autoPageSize
+  enablePrint
+  enableFullscreen
+  stateOverlay={{ error, onRetry: reload }}
+/>
+```
+
+Grid mode provides roving cell focus and arrow/Home/End/Page navigation. Shift
+extends the cell range, Ctrl/Cmd+C copies the range as formula-safe TSV, and
+optional undo/redo callbacks remain application-owned. Enhanced toolbar,
+clipboard, auto-size, and error-overlay implementations are first-use chunks.
 
 ## Demo App
 
@@ -483,9 +666,9 @@ pnpm test:browser
 with layout assertions, axe audits, and screenshot baselines.
 `test:consumer` packs the repository and builds a clean consumer fixture
 against the resulting tarball, including every supported adapter and subpath.
-`bundle:check` enforces the base/adapter/URL-state/demo gzip budgets and fails
-if a base or stable adapter-authoring entrypoint statically reaches TanStack
-Virtual.
+`bundle:check` enforces the base/adapter/URL-state/data-source/demo gzip budgets
+and fails if a base, stable adapter-authoring, or data-source entrypoint
+statically reaches TanStack Virtual.
 `api-snapshots/public-api.md` is the generated, reviewable declaration
 reference for this TypeScript package; the repository does not contain a Rust
 crate or Rustdoc output. When a reviewed public declaration change is
@@ -496,7 +679,7 @@ intentional, regenerate the snapshot with
 Toolbar query note:
 
 - `toolbarQueryValue` and `onToolbarQueryValueChange` control the toolbar search input only
-- toolbar query and `column.meta.filter` controls filter client-side rows by default
+- toolbar query and `column.meta.filter` controls filter client-side rows by default, including text, option, boolean, numeric-range, and date-range filters
 - use `manualFiltering` for server-side filtering
 
 Cell overflow note:

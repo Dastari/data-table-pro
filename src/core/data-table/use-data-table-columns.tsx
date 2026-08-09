@@ -1,8 +1,15 @@
 import * as React from "react";
-import type { ColumnDef, Table as TanStackTable } from "@tanstack/react-table";
+import type {
+  ColumnDef,
+  ExpandedState,
+  OnChangeFn,
+  RowPinningPosition,
+  Table as TanStackTable,
+} from "@tanstack/react-table";
 import { IconChevronDown } from "../icons";
 import type {
   DataTableEditableRowsConfig,
+  DataTableDetailPanel,
   DataTableLabels,
   DataTableProps,
   DataTableRowAction,
@@ -13,6 +20,7 @@ import {
   UTILITY_COLUMN_SIZE,
   decorateFilterableColumn,
   isDataTableLoadingRow,
+  toggleDataTableExpandedState,
 } from "./data-table-utils";
 import { DATA_TABLE_DEFAULT_LABELS } from "./data-table-labels";
 
@@ -24,6 +32,11 @@ type DataTableRowActionsComponentProps<TData> = {
   onStartEditing: () => void;
   row: TData;
   rowActions: Array<DataTableRowAction<TData>>;
+  rowPinning?: {
+    canPin: boolean;
+    position: RowPinningPosition;
+    pin: (position: RowPinningPosition) => void;
+  };
 };
 
 export function useDataTableColumns<TData>({
@@ -37,12 +50,18 @@ export function useDataTableColumns<TData>({
   columns,
   editableRows,
   editingRowId,
+  editErrors,
   enableRowSelection,
-  getRowCanExpand,
+  enableRowPinning,
+  hasTreeExpansion,
   isSavingEdit,
+  isEditDirty,
   labels,
   lastSelectedRowIdRef,
-  renderExpandedRow,
+  detailPanel,
+  detailExpanded,
+  onDetailExpandedChange,
+  rowSelectionSelectAllScope,
   rowActions,
   saveEdit,
   startEditingRow,
@@ -60,14 +79,22 @@ export function useDataTableColumns<TData>({
   columns: DataTableProps<TData>["columns"];
   editableRows: DataTableProps<TData>["editableRows"];
   editingRowId: string | null;
+  editErrors: Record<string, string>;
   enableRowSelection: boolean;
-  getRowCanExpand: DataTableProps<TData>["getRowCanExpand"];
+  enableRowPinning: DataTableProps<TData>["enableRowPinning"];
+  hasTreeExpansion: boolean;
   isSavingEdit: boolean;
+  isEditDirty: boolean;
   labels: DataTableLabels;
   lastSelectedRowIdRef: React.MutableRefObject<string | null>;
-  renderExpandedRow: DataTableProps<TData>["renderExpandedRow"];
+  detailPanel: DataTableDetailPanel<TData> | undefined;
+  detailExpanded: ExpandedState;
+  onDetailExpandedChange: OnChangeFn<ExpandedState>;
+  rowSelectionSelectAllScope: NonNullable<
+    DataTableProps<TData>["rowSelectionSelectAllScope"]
+  >;
   rowActions: Array<DataTableRowAction<TData>>;
-  saveEdit: (row: TData) => Promise<void>;
+  saveEdit: (row: TData) => Promise<boolean>;
   startEditingRow: (row: TData, rowId: string) => void;
   tableRef: React.RefObject<TanStackTable<TData> | null>;
 }) {
@@ -94,7 +121,11 @@ export function useDataTableColumns<TData>({
       const to = Math.max(startIndex, endIndex);
       tableInstance.setRowSelection((current) => {
         const next = { ...current };
-        for (const row of rows.slice(from, to + 1)) {
+        for (const row of rows
+          .slice(from, to + 1)
+          .filter(
+            (item) => item.getCanSelect() && item.getCanMultiSelect(),
+          )) {
           if (selected) {
             next[row.id] = true;
           } else {
@@ -110,43 +141,88 @@ export function useDataTableColumns<TData>({
   return React.useMemo<Array<ColumnDef<TData, unknown>>>(() => {
     const defs: Array<ColumnDef<TData, unknown>> = [];
 
-    if (renderExpandedRow) {
+    if (hasTreeExpansion || detailPanel) {
+      const expansionColumnSize =
+        hasTreeExpansion && detailPanel ? 80 : UTILITY_COLUMN_SIZE;
       defs.push({
         id: "__expand__",
         enableResizing: false,
         enableSorting: false,
         enableHiding: false,
-        size: UTILITY_COLUMN_SIZE,
-        minSize: UTILITY_COLUMN_SIZE,
-        maxSize: UTILITY_COLUMN_SIZE,
+        size: expansionColumnSize,
+        minSize: expansionColumnSize,
+        maxSize: expansionColumnSize,
         header: () => <span className="sr-only">{labels.expandRow}</span>,
-        cell: ({ row }) => {
-          const canExpand =
-            getRowCanExpand?.(row.original) ?? Boolean(renderExpandedRow);
-          if (!canExpand) {
+        cell: ({ row, table }) => {
+          const canExpandTree = hasTreeExpansion && row.getCanExpand();
+          const canExpandDetail = Boolean(
+            detailPanel && (detailPanel.getRowCanExpand?.(row.original) ?? true),
+          );
+          if (!canExpandTree && !canExpandDetail) {
             return null;
           }
 
-          const isExpanded = row.getIsExpanded();
+          const isTreeExpanded = row.getIsExpanded();
+          const isDetailExpanded =
+            detailExpanded === true || Boolean(detailExpanded[row.id]);
           return (
-            <div className="flex items-center justify-center">
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                aria-label={
-                  isExpanded ? labels.collapseRow : labels.expandRow
-                }
-                aria-expanded={isExpanded}
-                onClick={() => row.toggleExpanded()}
-              >
-                <IconChevronDown
-                  className={cn(
-                    "transition-transform",
-                    isExpanded ? "rotate-0" : "-rotate-90",
-                  )}
-                />
-              </Button>
+            <div className="flex items-center justify-center gap-1">
+              {canExpandTree ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label={
+                    isTreeExpanded ? labels.collapseRow : labels.expandRow
+                  }
+                  aria-expanded={isTreeExpanded}
+                  data-tree-toggle="true"
+                  onClick={() => row.toggleExpanded()}
+                >
+                  <IconChevronDown
+                    className={cn(
+                      "transition-transform",
+                      isTreeExpanded ? "rotate-0" : "-rotate-90",
+                    )}
+                  />
+                </Button>
+              ) : null}
+              {canExpandDetail ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label={
+                    isDetailExpanded
+                      ? hasTreeExpansion
+                        ? (labels.collapseRowDetails ??
+                          DATA_TABLE_DEFAULT_LABELS.collapseRowDetails)
+                        : labels.collapseRow
+                      : hasTreeExpansion
+                        ? (labels.expandRowDetails ??
+                          DATA_TABLE_DEFAULT_LABELS.expandRowDetails)
+                        : labels.expandRow
+                  }
+                  aria-expanded={isDetailExpanded}
+                  data-detail-toggle="true"
+                  onClick={() => {
+                    onDetailExpandedChange((current) =>
+                      toggleDataTableExpandedState(
+                        current,
+                        row.id,
+                        table.getCoreRowModel().flatRows.map((item) => item.id),
+                      ),
+                    );
+                  }}
+                >
+                  <IconChevronDown
+                    className={cn(
+                      "transition-transform",
+                      isDetailExpanded ? "rotate-0" : "-rotate-90",
+                    )}
+                  />
+                </Button>
+              ) : null}
             </div>
           );
         },
@@ -162,28 +238,61 @@ export function useDataTableColumns<TData>({
         size: UTILITY_COLUMN_SIZE,
         minSize: UTILITY_COLUMN_SIZE,
         maxSize: UTILITY_COLUMN_SIZE,
-        header: ({ table }) => (
-          <div className="flex items-center justify-center">
-            <Checkbox
-              className="my-0.5"
-              checked={table.getIsAllPageRowsSelected()}
-              onCheckedChange={(checked: boolean | "indeterminate") => {
-                table.toggleAllPageRowsSelected(checked === true);
-              }}
-              aria-label={
-                labels.selectAllVisibleRows ??
-                DATA_TABLE_DEFAULT_LABELS.selectAllVisibleRows
-              }
-            />
-          </div>
-        ),
+        header: ({ table }) => {
+          const selectsFilteredRows = rowSelectionSelectAllScope === "filtered";
+          const selectableRows = (selectsFilteredRows
+            ? table.getFilteredRowModel().flatRows
+            : table.getRowModel().flatRows
+          ).filter((row) => row.getCanSelect() && row.getCanMultiSelect());
+          const allSelected =
+            selectableRows.length > 0 &&
+            selectableRows.every((row) => row.getIsSelected());
+          const someSelected = selectableRows.some((row) => row.getIsSelected());
+          const label = selectsFilteredRows
+            ? (labels.selectAllFilteredRows ??
+              DATA_TABLE_DEFAULT_LABELS.selectAllFilteredRows)
+            : (labels.selectAllVisibleRows ??
+              DATA_TABLE_DEFAULT_LABELS.selectAllVisibleRows);
+
+          if (selectableRows.length === 0) {
+            return <span className="sr-only">{label}</span>;
+          }
+
+          return (
+            <div className="flex items-center justify-center">
+              <Checkbox
+                className="my-0.5"
+                checked={allSelected ? true : someSelected ? "indeterminate" : false}
+                onCheckedChange={(checked: boolean | "indeterminate") => {
+                  table.setRowSelection((current) => {
+                    const next = { ...current };
+                    for (const row of selectableRows) {
+                      if (checked === true) {
+                        next[row.id] = true;
+                      } else {
+                        delete next[row.id];
+                      }
+                    }
+                    return next;
+                  });
+                }}
+                aria-label={label}
+              />
+            </div>
+          );
+        },
         cell: ({ row }) => (
           <div className="flex items-center justify-center">
             <Checkbox
               className="my-0.5"
               checked={row.getIsSelected()}
+              disabled={!row.getCanSelect()}
               onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
-                if (!event.shiftKey || !lastSelectedRowIdRef.current) {
+                if (
+                  !event.shiftKey ||
+                  !lastSelectedRowIdRef.current ||
+                  !row.getCanMultiSelect()
+                ) {
                   lastSelectedRowIdRef.current = row.id;
                   return;
                 }
@@ -208,7 +317,7 @@ export function useDataTableColumns<TData>({
 
     defs.push(...columns.map((column) => decorateFilterableColumn(column)));
 
-    if (rowActions.length || editableRows) {
+    if (rowActions.length || editableRows || enableRowPinning) {
       defs.push({
         id: "__actions__",
         enableSorting: false,
@@ -225,10 +334,15 @@ export function useDataTableColumns<TData>({
           if (isEditing) {
             return (
               <div className="flex w-full items-center justify-end gap-2">
+                {editErrors._row ? (
+                  <span className="sr-only" role="alert">
+                    {editErrors._row}
+                  </span>
+                ) : null}
                 <Button
                   type="button"
                   size="sm"
-                  disabled={isSavingEdit}
+                  disabled={isSavingEdit || !isEditDirty}
                   onClick={() => {
                     void saveEdit(row.original);
                   }}
@@ -265,6 +379,15 @@ export function useDataTableColumns<TData>({
                 }}
                 onCancelEditing={() => {}}
                 labels={labels}
+                rowPinning={
+                  enableRowPinning
+                    ? {
+                        canPin: row.getCanPin(),
+                        position: row.getIsPinned(),
+                        pin: (position) => row.pin(position),
+                      }
+                    : undefined
+                }
               />
             </div>
           );
@@ -283,13 +406,19 @@ export function useDataTableColumns<TData>({
     cancelEditing,
     columns,
     editableRows,
+    detailExpanded,
+    detailPanel,
+    editErrors,
     editingRowId,
     enableRowSelection,
-    getRowCanExpand,
+    enableRowPinning,
+    hasTreeExpansion,
     isSavingEdit,
+    isEditDirty,
     labels,
     lastSelectedRowIdRef,
-    renderExpandedRow,
+    onDetailExpandedChange,
+    rowSelectionSelectAllScope,
     rowActions,
     saveEdit,
     selectRowRange,

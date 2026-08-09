@@ -17,6 +17,7 @@ export default defineConfig({
     thegridcn: "src/entries/thegridcn.ts",
     "thegridcn-virtual": "src/entries/thegridcn-virtual.ts",
     "url-state": "src/entries/url-state.ts",
+    "data-source": "src/entries/data-source.ts",
     types: "src/entries/types.ts",
     advanced: "src/entries/advanced.ts",
     adapter: "src/entries/adapter.ts",

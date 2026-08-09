@@ -403,6 +403,10 @@ export function DemoApp() {
               rowSelection={rowSelection}
               onRowSelectionChange={setRowSelection}
               enableRowSelection
+              interactiveGrid
+              enableCellSelection
+              enablePrint
+              enableFullscreen
               toolbarActions={[
                 {
                   key: "refresh",

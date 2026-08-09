@@ -20,7 +20,17 @@ export function DataTableCardPanel<TData>(
   }
 
   return (
-    <React.Suspense fallback={<DataTableBaseCardPanel {...props} />}>
+    <React.Suspense
+      fallback={
+        <DataTableBaseCardPanel
+          {...props}
+          renderedRows={props.renderedRows.slice(
+            0,
+            Math.max(1, Math.floor(config.fallbackCardCount ?? 12)),
+          )}
+        />
+      }
+    >
       <LazyDataTableVirtualCardPanel {...props} />
     </React.Suspense>
   );
