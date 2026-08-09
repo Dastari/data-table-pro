@@ -16,11 +16,11 @@ Audit baseline:
 
 Current implementation baseline:
 
-- package version: 4.2.0
+- package version: 4.3.0
 - React/React DOM peers: 19.2.8
 - TanStack Table: 8.21.3
 - TanStack Virtual: 3.14.8
-- validation: 211 unit/integration tests, enforced coverage and declaration
+- validation: 281 unit/integration tests, enforced coverage and declaration
   snapshots, SSR/hydration tests, a packed-consumer build, and six
   adapter/theme Playwright screenshot and axe cases
 - toolchain: TypeScript 7 CLI with the official TypeScript 6 compiler-API
@@ -222,6 +222,27 @@ Quality:
 
 ### Phase 2: TanStack feature parity (3.2)
 
+Status: partially delivered in 4.3.0. Richer filters, tree/detail expansion,
+row pinning, selection policies, and hardened column-group behavior are
+complete; faceting and data grouping/aggregation remain.
+
+Delivered in 4.3.0:
+
+- Boolean, inclusive numeric-range, and inclusive date-range column filters,
+  including localized labels, serializable values, and client filter
+  functions.
+- Independent tree expansion and application detail panels, with `getSubRows`,
+  manual expansion, leaf-first/depth-limited filtering, expanded-row
+  pagination policy, accessible indentation controls, and the deprecated
+  `renderExpandedRow` bridge.
+- Controlled/uncontrolled top and bottom row pinning, per-row pin predicates,
+  visibility policy, row-menu actions, API commands, persistence, saved views,
+  and styling hooks.
+- Single/multi/sub-row selection policies, per-row selectability, page versus
+  filtered select-all scope, and cross-page selected IDs for manual data.
+- Locked nested group reordering by default, explicit cross-group opt-in,
+  descriptions, group-specific height, class, and style hooks.
+
 Filtering and faceting:
 
 - Add `boolean`, `numberRange`, `dateRange`, and `faceted` filter definitions.
@@ -320,20 +341,22 @@ Initial budgets:
 
 | Artifact | Budget |
 | --- | --- |
-| Base shadcn package-owned runtime | <= 35 KiB gzip |
+| Base shadcn package-owned runtime | <= 42 KiB gzip |
 | HeroUI/The Gridcn adapter delta | <= 6 KiB gzip each |
 | URL-state entry | <= 5 KiB gzip, excluding peer dependency |
+| Data-source entry | <= 3 KiB gzip, excluding React peer dependency |
 | Base entry imports TanStack Virtual | No |
 | Demo initial JavaScript | <= 100 KiB gzip |
 
 Budgets may be adjusted once source-map-based attribution is in CI, but any
 increase must be explained in the changelog.
 
-The first measured minified base graph is 33.7 KiB gzip. The provisional
-30 KiB target was adjusted to 35 KiB after source attribution so CI has a
-realistic but narrow regression margin; optional virtualization is excluded
-from this graph. The adapter deltas are 0.2 KiB (HeroUI) and 0.5 KiB (The
-Gridcn), URL state is 2.2 KiB, and demo initial JavaScript is 64.9 KiB gzip.
+The 4.3.0 minified base graph is 39.3 KiB gzip after adding richer filters,
+tree/detail expansion, selection policies, group behavior, and row pinning.
+The CI ceiling is 42 KiB, retaining a narrow margin while optional
+virtualization and the server data source remain separate. The adapter deltas
+are measured independently, URL state remains below 5 KiB, the data-source
+entry is 2.0 KiB, and demo initial JavaScript remains below 100 KiB gzip.
 
 ### Phase 4: modern-grid quality of life (3.4)
 
@@ -370,6 +393,13 @@ Toolbar and data operations:
   empty/error/retry overlays.
 
 Server data source:
+
+Delivered in 4.3.0 as the independently importable
+`data-table-pro/data-source` entrypoint for offset and cursor pagination,
+sorting, global/column filters, caller-defined query context, abort signals,
+known/unknown totals, facets, metadata, stale-request protection, request
+deduplication, caching, retry, refresh, and invalidation. Grouping,
+aggregation, and lazy tree-path requests remain.
 
 - Add a typed request containing pagination/cursor, sorting, global/column
   filters, grouping, aggregation, expansion path, and abort signal.

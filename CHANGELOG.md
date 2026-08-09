@@ -4,6 +4,67 @@
 
 No changes yet.
 
+## 4.3.0 - 2026-08-09
+
+### Features
+
+- Added boolean, numeric-range, and date-range column filters with inclusive
+  client filtering, serializable values, operators, bounds, steps, and
+  localized labels.
+- Added the optional `data-table-pro/data-source` entrypoint with typed offset
+  and cursor requests, manual-table props, cancellation, stale-response
+  protection, in-flight deduplication, cache policies, retry, refresh, and
+  invalidation.
+- Added true hierarchical rows through `getSubRows`, manual expansion,
+  expanded-row pagination policy, leaf-first/depth-limited filtering, tree
+  indentation, accessible expand controls, and card-renderer tree context.
+- Added independent `detailPanel` state while retaining
+  `renderExpandedRow` as a deprecated compatibility bridge.
+- Added controlled/uncontrolled row pinning, top/bottom regions, per-row pin
+  predicates, filtering/pagination visibility policy, row-menu actions,
+  imperative API methods, persistence, saved views, and styling slots.
+- Added explicit single/multi/sub-row selection policies, per-row
+  selectability, page/filtered select-all scope, and cross-page selected IDs
+  for manual/server data.
+- Added package-owned container-responsive toolbar primitives and filter
+  layouts, using the table's allocated inline size rather than viewport media
+  queries.
+
+### Column groups
+
+- Groups now remain intact during pointer and keyboard reordering by default;
+  `freeReordering` explicitly opts both boundaries into cross-group moves.
+- Added group descriptions, table-wide and per-group header heights, and
+  group-specific class and inline-style hooks.
+
+### Fixes
+
+- Kept utility controls, striped-row indexes, detail rows, nested selections,
+  and expanded child IDs coherent when tree expansion and row pinning are
+  enabled together.
+- Prevented a disabled data-source hook from reporting an obsolete active
+  request as fetching.
+- Quantized JavaScript container-width observation to the same fixed
+  breakpoints used by the package CSS container queries.
+
+### Compatibility
+
+- No public prop or existing entrypoint was removed.
+- Card view keeps ordinary card ordering when row pinning is configured;
+  separate pinned regions are a table-view feature.
+- Server/manual tables must include a pinned record in the current `data`
+  window for it to render.
+
+### Validation
+
+- 281 unit/integration tests
+- lint, package/demo typechecks, coverage, deterministic build, public API
+  snapshot, packed-consumer build, demo build, and bundle budgets
+- The measured base graph is 39.3 KiB gzip, up from 33.7 KiB for the added
+  filter, tree/detail, selection, grouping, and row-pinning runtime. The base
+  CI ceiling is now 42 KiB; the 2.0 KiB data-source entry has its own 3 KiB
+  ceiling and neither graph statically imports TanStack Virtual.
+
 ## 4.2.0 - 2026-08-08
 
 ### Features

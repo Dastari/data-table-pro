@@ -10,9 +10,10 @@ const rootDir = path.resolve(
 const distDir = path.join(rootDir, "dist");
 const kib = 1024;
 const budgets = {
-  base: 36 * kib,
+  base: 42 * kib,
   adapterDelta: 6 * kib,
   urlState: 5 * kib,
+  dataSource: 3 * kib,
   demoInitial: 100 * kib,
   demoLoadedAdapter: 190 * kib,
   demoCss: 20 * kib,
@@ -27,6 +28,7 @@ for (const entry of [
   "thegridcn.js",
   "thegridcn-virtual.js",
   "url-state.js",
+  "data-source.js",
   "adapter.js",
   "adapter-virtual.js",
 ]) {
@@ -38,6 +40,7 @@ const baseSize = gzipGraph(baseGraph);
 const heroSize = gzipGraph(packageGraphs.get("heroui.js"));
 const gridSize = gzipGraph(packageGraphs.get("thegridcn.js"));
 const urlStateSize = gzipGraph(packageGraphs.get("url-state.js"));
+const dataSourceSize = gzipGraph(packageGraphs.get("data-source.js"));
 const demoSizes = await readDemoBuildSizes();
 
 assertBudget("base shadcn static runtime", baseSize, budgets.base);
@@ -52,6 +55,7 @@ assertBudget(
   budgets.adapterDelta,
 );
 assertBudget("URL-state entry", urlStateSize, budgets.urlState);
+assertBudget("data-source entry", dataSourceSize, budgets.dataSource);
 assertBudget(
   "demo initial JavaScript",
   demoSizes.initialJavaScript,
@@ -80,6 +84,10 @@ assertDoesNotContainVirtual(
   "stable adapter-authoring",
   packageGraphs.get("adapter.js"),
 );
+assertDoesNotContainVirtual(
+  "data source",
+  packageGraphs.get("data-source.js"),
+);
 assertContainsVirtual(
   "virtual shadcn",
   packageGraphs.get("virtual.js"),
@@ -104,6 +112,7 @@ process.stdout.write(
     `  HeroUI delta: ${formatSize(Math.max(0, heroSize - baseSize))} / ${formatSize(budgets.adapterDelta)}`,
     `  The Gridcn delta: ${formatSize(Math.max(0, gridSize - baseSize))} / ${formatSize(budgets.adapterDelta)}`,
     `  URL state: ${formatSize(urlStateSize)} / ${formatSize(budgets.urlState)}`,
+    `  data source: ${formatSize(dataSourceSize)} / ${formatSize(budgets.dataSource)}`,
     `  demo initial: ${formatSize(demoSizes.initialJavaScript)} / ${formatSize(budgets.demoInitial)}`,
     `  demo loaded adapter: ${formatSize(demoSizes.loadedAdapterJavaScript)} / ${formatSize(budgets.demoLoadedAdapter)}`,
     `  demo CSS: ${formatSize(demoSizes.css)} / ${formatSize(budgets.demoCss)}`,

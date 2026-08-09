@@ -55,11 +55,11 @@ The previously planned API cleanup is deferred to a future 5.0 release.
 ## Installation
 
 ```bash
-pnpm add github:Dastari/data-table-pro#v4.2.0
+pnpm add github:Dastari/data-table-pro#v4.3.0
 ```
 
 This package is installed from GitHub refs. It is not published to npm.
-Release tags such as `v4.2.0` include committed `dist/` output, so consumers
+Release tags such as `v4.3.0` include committed `dist/` output, so consumers
 do not need to allow package build scripts during install.
 
 Peer dependencies:
@@ -572,9 +572,9 @@ pnpm test:browser
 with layout assertions, axe audits, and screenshot baselines.
 `test:consumer` packs the repository and builds a clean consumer fixture
 against the resulting tarball, including every supported adapter and subpath.
-`bundle:check` enforces the base/adapter/URL-state/demo gzip budgets and fails
-if a base or stable adapter-authoring entrypoint statically reaches TanStack
-Virtual.
+`bundle:check` enforces the base/adapter/URL-state/data-source/demo gzip budgets
+and fails if a base, stable adapter-authoring, or data-source entrypoint
+statically reaches TanStack Virtual.
 `api-snapshots/public-api.md` is the generated, reviewable declaration
 reference for this TypeScript package; the repository does not contain a Rust
 crate or Rustdoc output. When a reviewed public declaration change is

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ColumnDef, CellContext, FilterFnOption, ColumnFiltersState, SortingState, ExpandedState, Row, ColumnOrderState, ColumnPinningState, VisibilityState, PaginationState, ColumnSizingState, Updater, Table, HeaderContext } from '@tanstack/react-table';
+import { ColumnDef, CellContext, FilterFnOption, ColumnFiltersState, SortingState, ExpandedState, Row, ColumnOrderState, ColumnPinningState, RowPinningState, VisibilityState, PaginationState, ColumnSizingState, Updater, Table, HeaderContext } from '@tanstack/react-table';
 
 type DataTableViewMode = "table" | "card";
 type DataTableAlign = "start" | "center" | "end";
@@ -9,7 +9,8 @@ type DataTableContainerBreakpoint = "sm" | "md" | "lg" | "xl" | "2xl";
 type DataTableDensity = "compact" | "comfortable" | "spacious";
 type DataTableCardSizing = "fixed" | "content" | "fluid";
 type DataTableCellOverflow = "truncate" | "clip" | "wrap" | "visible";
-type DataTableColumnFilterType = "text" | "select" | "multi";
+type DataTableColumnFilterType = "text" | "select" | "multi" | "boolean" | "numberRange" | "dateRange";
+type DataTableColumnFilterOperator = "contains" | "equals" | "startsWith" | "endsWith";
 type DataTableCsvExportScope = "filtered" | "page" | "selected" | "all";
 type DataTableActionErrorSource = "toolbarAction" | "selectionAction" | "rowAction" | "rowClick" | "edit" | "fileUpload" | "infiniteScroll";
 declare const DATA_TABLE_CONTAINER_BREAKPOINT_WIDTHS: Record<DataTableContainerBreakpoint, number>;
@@ -32,6 +33,10 @@ type DataTableColumnFilterOption = {
     label: string;
     value: string;
 };
+type DataTableColumnFilterRangeValue<TValue extends number | string> = {
+    from?: TValue;
+    to?: TValue;
+};
 type DataTableColumnFilterConfig<TData, TValue> = {
     type: DataTableColumnFilterType;
     label?: string;
@@ -40,6 +45,12 @@ type DataTableColumnFilterConfig<TData, TValue> = {
         rows: Array<TData>;
     }) => Array<DataTableColumnFilterOption | string>);
     getOptionValue?: (value: TValue | undefined, row: TData) => string;
+    operator?: DataTableColumnFilterOperator;
+    trueLabel?: string;
+    falseLabel?: string;
+    min?: number | string;
+    max?: number | string;
+    step?: number;
 };
 type DataTableColumnMeta<TData, TValue> = {
     type?: DataTableColumnType;
@@ -72,6 +83,22 @@ type DataTableColumnDef<TData, TValue = unknown> = ColumnDef<TData, TValue> & {
 type DataTableColumnGroupDef<TData> = DataTableColumnDef<TData, unknown> & {
     id: string;
     columns: Array<DataTableColumnDef<TData, unknown>>;
+    /**
+     * A concise explanation of the columns in this group. It is exposed as an
+     * accessible description and native tooltip on the shared header.
+     */
+    description?: string;
+    /**
+     * Allows leaves to cross this group's boundary during column reordering.
+     * Groups are locked by default so a shared heading remains intact.
+     */
+    freeReordering?: boolean;
+    /** Additional class name for this shared group header. */
+    headerClassName?: string;
+    /** Additional inline styles for this shared group header. */
+    headerStyle?: React.CSSProperties;
+    /** Height for this shared group header, overriding `columnGroupHeaderHeight`. */
+    headerHeight?: React.CSSProperties["height"];
 };
 type DataTableToolbarAction<TData> = {
     key: string;
@@ -88,6 +115,12 @@ type DataTableToolbarAction<TData> = {
     variant?: "default" | "secondary" | "outline" | "ghost" | "destructive";
     disabled?: boolean;
 };
+type DataTableSelectionActionContext<TData> = {
+    /** Selected row objects that are present in the currently loaded data. */
+    rows: Array<TData>;
+    /** Every selected row id, including ids retained across server pages. */
+    rowIds: Array<string>;
+};
 type DataTableSelectionAction<TData> = {
     key: string;
     label: string;
@@ -95,11 +128,9 @@ type DataTableSelectionAction<TData> = {
         className?: string;
     }>;
     iconOnly?: boolean;
-    onClick: (context: {
-        rows: Array<TData>;
-    }) => void | Promise<void>;
+    onClick: (context: DataTableSelectionActionContext<TData>) => void | Promise<void>;
     variant?: "default" | "secondary" | "outline" | "ghost" | "destructive";
-    disabled?: boolean | ((rows: Array<TData>) => boolean);
+    disabled?: boolean | ((rows: Array<TData>, context: DataTableSelectionActionContext<TData>) => boolean);
 };
 type DataTableRowAction<TData> = {
     key: string;
@@ -131,6 +162,10 @@ type DataTableToolbarVisibility = {
 type DataTableCardRendererProps<TData> = {
     row: TData;
     rowId: string;
+    depth: number;
+    canExpandSubRows: boolean;
+    isSubRowsExpanded: boolean;
+    toggleSubRowsExpanded: () => void;
     isSelected: boolean;
     onSelectedChange: (nextValue: boolean) => void;
     actions: Array<DataTableRowAction<TData>>;
@@ -200,6 +235,13 @@ type DataTableExpandedRowProps<TData> = {
     rowId: string;
     tableRow: Row<TData>;
 };
+/** A separately controlled application detail panel rendered beneath a row. */
+type DataTableDetailPanel<TData> = {
+    expanded?: ExpandedState;
+    onExpandedChange?: (expanded: ExpandedState) => void;
+    getRowCanExpand?: (row: TData) => boolean;
+    render: (props: DataTableExpandedRowProps<TData>) => React.ReactNode;
+};
 type DataTableCsvExportOptions<TData> = {
     filename?: string;
     includeHeaders?: boolean;
@@ -231,6 +273,7 @@ type DataTableColumnPrefs = {
     sizing?: Record<string, number>;
     order?: ColumnOrderState;
     pinning?: ColumnPinningState;
+    rowPinning?: RowPinningState;
     density?: DataTableDensity;
 };
 type DataTablePersistenceSlice = keyof DataTableColumnPrefs;
@@ -266,6 +309,7 @@ type DataTableState = {
     expanded: ExpandedState;
     columnOrder: ColumnOrderState;
     columnPinning: ColumnPinningState;
+    rowPinning: RowPinningState;
     columnSizing: ColumnSizingState;
     density: DataTableDensity;
     viewMode: DataTableViewMode;
@@ -321,6 +365,8 @@ type DataTableApi<TData> = {
     renameSavedView: (id: string, name: string) => DataTableSavedView | undefined;
     deleteSavedView: (id: string) => boolean;
     clearSavedViews: () => boolean;
+    pinRow: (rowId: string, position?: "top" | "bottom") => boolean;
+    unpinRow: (rowId: string) => boolean;
     focus: () => void;
     scrollToRow: (rowId: string) => boolean;
     scrollToColumn: (columnId: string) => boolean;
@@ -338,6 +384,10 @@ type DataTableLabels = {
     columns: string;
     filters: string;
     clearFilters: string;
+    filterFrom?: string;
+    filterTo?: string;
+    filterTrue?: string;
+    filterFalse?: string;
     selectedRows: (count: number) => string;
     showHiddenRows: (label: string) => string;
     recordsPerPage: string;
@@ -351,6 +401,7 @@ type DataTableLabels = {
     nextPage: string;
     lastPage: string;
     selectAllVisibleRows?: string;
+    selectAllFilteredRows?: string;
     selectRow?: string;
     selectCardRow?: (rowId: string) => string;
     switchToTableView?: string;
@@ -365,6 +416,8 @@ type DataTableLabels = {
     cancelEdit: string;
     expandRow: string;
     collapseRow: string;
+    expandRowDetails?: string;
+    collapseRowDetails?: string;
     exportCsv: string;
     density: string;
     compactDensity: string;
@@ -373,6 +426,9 @@ type DataTableLabels = {
     pinLeft: string;
     pinRight: string;
     unpin: string;
+    pinRowToTop: string;
+    pinRowToBottom: string;
+    unpinRow: string;
     resizeColumn: (columnLabel: string) => string;
 };
 type DataTableSummaryRow<TData> = {
@@ -391,6 +447,7 @@ type DataTableRowClassNameContext<TData> = {
     isExpanded: boolean;
     isLoading: boolean;
     isSelected: boolean;
+    pinnedPosition: false | "top" | "bottom";
 };
 type DataTableProps<TData> = {
     columns: Array<DataTableColumnDef<TData, unknown>>;
@@ -426,16 +483,45 @@ type DataTableProps<TData> = {
     rowSelection?: Record<string, boolean>;
     onRowSelectionChange?: (rowSelection: Record<string, boolean>) => void;
     enableRowSelection?: boolean;
+    /** Allows multiple selected rows globally or per row. Defaults to true. */
+    enableMultiRowSelection?: boolean | ((row: TData) => boolean);
+    /** Cascades parent selection to sub-rows globally or per row. Defaults to true. */
+    enableSubRowSelection?: boolean | ((row: TData) => boolean);
+    /** Prevents individual rows from being selected. */
+    getRowCanSelect?: (row: TData) => boolean;
+    /** Select-all affects the current page or all loaded filtered rows. */
+    rowSelectionSelectAllScope?: "page" | "filtered";
     expanded?: ExpandedState;
     onExpandedChange?: (expanded: ExpandedState) => void;
+    /** Resolve nested records for tree expansion. */
+    getSubRows?: (row: TData, index: number) => Array<TData> | undefined;
+    /** Keep expansion state controlled by the host; useful for server-loaded children. */
+    manualExpanding?: boolean;
+    /** Keep child rows with their parent when paginating. Defaults to TanStack's behavior. */
+    paginateExpandedRows?: boolean;
+    /** Include parents when a descendant matches a filter. */
+    filterFromLeafRows?: boolean;
+    /** Limit descendant traversal while filtering. */
+    maxLeafRowFilterDepth?: number;
+    /** New, independently controlled detail-panel contract. */
+    detailPanel?: DataTableDetailPanel<TData>;
     getRowCanExpand?: (row: TData) => boolean;
+    /** @deprecated Use `detailPanel={{ render }}`. Kept as a detail-panel bridge. */
     renderExpandedRow?: (props: DataTableExpandedRowProps<TData>) => React.ReactNode;
     columnOrder?: ColumnOrderState;
     onColumnOrderChange?: (columnOrder: ColumnOrderState) => void;
     enableColumnReordering?: boolean;
+    /** Default height for shared column-group header cells. */
+    columnGroupHeaderHeight?: React.CSSProperties["height"];
     columnPinning?: ColumnPinningState;
     onColumnPinningChange?: (columnPinning: ColumnPinningState) => void;
     enableColumnPinning?: boolean;
+    rowPinning?: RowPinningState;
+    onRowPinningChange?: (rowPinning: RowPinningState) => void;
+    /** Enables row actions that pin a row to the top or bottom of the table. */
+    enableRowPinning?: boolean | ((row: TData) => boolean);
+    /** Keep pinned rows visible when filtering or paginating them out. */
+    keepPinnedRows?: boolean;
     toolbarActions?: Array<DataTableToolbarAction<TData>>;
     selectionActions?: Array<DataTableSelectionAction<TData>>;
     rowActions?: Array<DataTableRowAction<TData>>;
@@ -507,4 +593,4 @@ declare function hideOnClassName(hideOn: DataTableContainerBreakpoint | Array<Da
 declare function isHiddenAtContainerWidth(hideOn: DataTableContainerBreakpoint | Array<DataTableContainerBreakpoint> | undefined, containerWidth: number): boolean;
 declare function rowSelectionStateFromRows<TData>(rows: Array<Row<TData>>): TData[];
 
-export { DATA_TABLE_CONTAINER_BREAKPOINT_WIDTHS, type DataTableActionErrorContext, type DataTableActionErrorSource, type DataTableAlign, type DataTableApi, type DataTableCardRendererProps, type DataTableCardSizing, type DataTableCardVirtualizationConfig, type DataTableCellEditRenderProps, type DataTableCellOverflow, type DataTableColumnDef, type DataTableColumnFilterConfig, type DataTableColumnFilterOption, type DataTableColumnFilterType, type DataTableColumnFixed, type DataTableColumnGroupDef, type DataTableColumnMeta, type DataTableColumnPrefs, type DataTableColumnType, type DataTableColumnVisibilityOption, type DataTableContainerBreakpoint, type DataTableCsvExportOptions, type DataTableCsvExportScope, type DataTableDensity, type DataTableDragAndDropConfig, type DataTableEditableRowsConfig, type DataTableEmptyStateContext, type DataTableExpandedRowProps, type DataTableFileUploadConfig, type DataTableHiddenRowsConfig, type DataTableInfiniteScroll, type DataTableInitialState, type DataTableLabels, type DataTableLoadingState, type DataTablePersistenceConfig, type DataTablePersistenceOperation, type DataTablePersistencePayload, type DataTablePersistenceSlice, type DataTablePersistenceStorage, type DataTableProps, type DataTableResetOptions, type DataTableRowAction, type DataTableRowClassNameContext, type DataTableRowLoadingState, type DataTableSavedView, type DataTableSavedViewSlice, type DataTableSavedViewsChangeOperation, type DataTableSavedViewsConfig, type DataTableSavedViewsPayload, type DataTableSelectionAction, type DataTableState, type DataTableSummaryRow, type DataTableToolbarAction, type DataTableToolbarVisibility, type DataTableViewMode, type DataTableVirtualizationConfig, alignClassName, canEditRow, canUseRowAction, cellAlignClassName, headerAlignClassName, hideOnClassName, isHiddenAtContainerWidth, isRowVisible, resolveColumnAlign, resolveRowActionLabel, rowSelectionStateFromRows };
+export { DATA_TABLE_CONTAINER_BREAKPOINT_WIDTHS, type DataTableActionErrorContext, type DataTableActionErrorSource, type DataTableAlign, type DataTableApi, type DataTableCardRendererProps, type DataTableCardSizing, type DataTableCardVirtualizationConfig, type DataTableCellEditRenderProps, type DataTableCellOverflow, type DataTableColumnDef, type DataTableColumnFilterConfig, type DataTableColumnFilterOperator, type DataTableColumnFilterOption, type DataTableColumnFilterRangeValue, type DataTableColumnFilterType, type DataTableColumnFixed, type DataTableColumnGroupDef, type DataTableColumnMeta, type DataTableColumnPrefs, type DataTableColumnType, type DataTableColumnVisibilityOption, type DataTableContainerBreakpoint, type DataTableCsvExportOptions, type DataTableCsvExportScope, type DataTableDensity, type DataTableDetailPanel, type DataTableDragAndDropConfig, type DataTableEditableRowsConfig, type DataTableEmptyStateContext, type DataTableExpandedRowProps, type DataTableFileUploadConfig, type DataTableHiddenRowsConfig, type DataTableInfiniteScroll, type DataTableInitialState, type DataTableLabels, type DataTableLoadingState, type DataTablePersistenceConfig, type DataTablePersistenceOperation, type DataTablePersistencePayload, type DataTablePersistenceSlice, type DataTablePersistenceStorage, type DataTableProps, type DataTableResetOptions, type DataTableRowAction, type DataTableRowClassNameContext, type DataTableRowLoadingState, type DataTableSavedView, type DataTableSavedViewSlice, type DataTableSavedViewsChangeOperation, type DataTableSavedViewsConfig, type DataTableSavedViewsPayload, type DataTableSelectionAction, type DataTableSelectionActionContext, type DataTableState, type DataTableSummaryRow, type DataTableToolbarAction, type DataTableToolbarVisibility, type DataTableViewMode, type DataTableVirtualizationConfig, alignClassName, canEditRow, canUseRowAction, cellAlignClassName, headerAlignClassName, hideOnClassName, isHiddenAtContainerWidth, isRowVisible, resolveColumnAlign, resolveRowActionLabel, rowSelectionStateFromRows };

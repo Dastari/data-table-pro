@@ -1,5 +1,26 @@
 # Migration Guide
 
+## 4.3.0 additive feature release
+
+Version 4.3.0 removes no prop, type, or entrypoint. Existing flat-row tables,
+detail panels based on `renderExpandedRow`, manual server data, and column
+reordering continue to work.
+
+- New server integrations can import `useDataTableDataSource` from
+  `data-table-pro/data-source`; existing `data` plus manual flags remain
+  supported.
+- `renderExpandedRow` remains a deprecated detail-panel bridge. Use
+  `detailPanel={{ render, getRowCanExpand }}` when adopting `getSubRows` so
+  application details and hierarchical expansion have independent state.
+- Nested column groups are now locked during reordering by default. Add
+  `freeReordering: true` to every group boundary that intentionally permits a
+  leaf to cross it.
+- Row pinning is opt-in through `enableRowPinning`. Add `rowPinning` to custom
+  persistence/saved-view slice lists if those lists override the defaults.
+- Responsive presentation is owned by `data-table-pro/styles.css` container
+  queries. Consumers should not add viewport media-query copies of the table
+  breakpoints.
+
 ## 4.0.0 code-splitting entrypoints
 
 No existing import or prop needs to change. The base adapter entrypoints still
