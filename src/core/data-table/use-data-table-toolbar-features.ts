@@ -101,6 +101,10 @@ export function useDataTableToolbarFeatures<TData>({
             : startCase(id));
       const state = currentColumnFilters.find((item) => item.id === id);
       const configuredFacetOptions = filter.faceting?.options;
+      const facetedMinMax =
+        filter.type === "numberRange"
+          ? table.getColumn(id)?.getFacetedMinMaxValues()
+          : undefined;
       const rawOptions =
         filter.type === "faceted" && configuredFacetOptions
           ? typeof configuredFacetOptions === "function"
@@ -132,8 +136,8 @@ export function useDataTableToolbarFeatures<TData>({
           searchPlaceholder: filter.faceting?.searchPlaceholder,
           trueLabel: filter.trueLabel,
           falseLabel: filter.falseLabel,
-          min: filter.min,
-          max: filter.max,
+          min: filter.min ?? facetedMinMax?.[0],
+          max: filter.max ?? facetedMinMax?.[1],
           step: filter.step,
         },
       ];

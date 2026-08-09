@@ -2,6 +2,7 @@ import * as React from "react";
 import {
   getCoreRowModel,
   getExpandedRowModel,
+  getFacetedMinMaxValues,
   getFacetedRowModel,
   getFacetedUniqueValues,
   getFilteredRowModel,
@@ -347,11 +348,18 @@ export function useDataTableInstance<TData>({
     [setLocalColumnSizing],
   );
 
-  const needsFaceting = React.useMemo(
-    () =>
-      getDataTableLeafColumns(
+  const facetingNeeds = React.useMemo(
+    () => {
+      let uniqueValues = false;
+      let minMaxValues = false;
+      for (const { column } of getDataTableLeafColumns(
         tableColumns as DataTableProps<TData>["columns"],
-      ).some(({ column }) => column.meta?.filter?.type === "faceted"),
+      )) {
+        uniqueValues ||= column.meta?.filter?.type === "faceted";
+        minMaxValues ||= column.meta?.filter?.type === "numberRange";
+      }
+      return { minMaxValues, uniqueValues };
+    },
     [tableColumns],
   );
 
@@ -362,9 +370,18 @@ export function useDataTableInstance<TData>({
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: manualFiltering ? undefined : getFilteredRowModel(),
     getFacetedRowModel:
-      needsFaceting && !manualFiltering ? getFacetedRowModel() : undefined,
+      (facetingNeeds.uniqueValues || facetingNeeds.minMaxValues) &&
+      !manualFiltering
+        ? getFacetedRowModel()
+        : undefined,
     getFacetedUniqueValues:
-      needsFaceting && !manualFiltering ? getFacetedUniqueValues() : undefined,
+      facetingNeeds.uniqueValues && !manualFiltering
+        ? getFacetedUniqueValues()
+        : undefined,
+    getFacetedMinMaxValues:
+      facetingNeeds.minMaxValues && !manualFiltering
+        ? getFacetedMinMaxValues()
+        : undefined,
     getGroupedRowModel:
       currentGrouping.length && !manualGrouping ? getGroupedRowModel() : undefined,
     getSortedRowModel: manualSorting ? undefined : getSortedRowModel(),

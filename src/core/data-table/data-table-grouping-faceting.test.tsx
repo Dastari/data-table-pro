@@ -107,6 +107,33 @@ describe("DataTable grouping and faceting", () => {
     expect(screen.queryByText("Remote")).toBeNull();
   });
 
+  it("derives local numeric facet bounds when range bounds are not configured", () => {
+    const apiRef = React.createRef<DataTableApi<RowData>>();
+    render(
+      <DataTable
+        apiRef={apiRef}
+        columns={[
+          columns[0],
+          {
+            ...columns[1],
+            meta: { filter: { type: "numberRange" } },
+          },
+        ]}
+        data={rows}
+        getRowId={(row) => row.id}
+      />,
+    );
+
+    expect(
+      apiRef.current
+        ?.getTable()
+        ?.getColumn("score")
+        ?.getFacetedMinMaxValues(),
+    ).toEqual([2, 7]);
+    expect(screen.getByLabelText("Score: From").getAttribute("min")).toBe("2");
+    expect(screen.getByLabelText("Score: To").getAttribute("max")).toBe("7");
+  });
+
   it("reorders grouped columns from the accessible grouping bar", () => {
     const apiRef = React.createRef<DataTableApi<RowData>>();
     render(
