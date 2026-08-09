@@ -320,12 +320,19 @@ const columns: Array<DataTableColumnDef<Person>> = [contactGroup];
 The table creates one header row per nesting level and gives every group
 header the span of its visible leaf columns. `header` may be a string or a
 TanStack header render function. Use `meta.headerClassName`,
-`meta.headerStyle`, and `meta.align` for group styling. Visibility, filters,
-ordering, pinning, sizing, editing, responsive hiding, and CSV export continue
-to operate on leaf columns. Drag/keyboard reordering applies to leaves; moving
-a leaf away from its siblings visually splits the group, matching the usual
-grid behavior. A group resize handle resizes its visible descendants
-proportionally.
+`meta.headerStyle`, and `meta.align` for group styling, or the group-specific
+`headerClassName`, `headerStyle`, and `headerHeight` fields. `description`
+provides an accessible description and native tooltip for the group heading.
+Set `columnGroupHeaderHeight` to establish a table-wide group-heading height;
+a group's `headerHeight` takes precedence.
+
+Visibility, filters, ordering, pinning, sizing, editing, responsive hiding,
+and CSV export continue to operate on leaf columns. Groups preserve their
+shared headings during drag and keyboard reordering: by default a leaf may move
+only within the same nested group. Set `freeReordering: true` on every group
+boundary that a leaf should be able to cross (both groups when moving between
+groups) to permit splitting or joining groups. A group resize handle resizes its
+visible descendants proportionally.
 
 ### Controlled toolbar query
 

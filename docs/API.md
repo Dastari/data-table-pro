@@ -270,14 +270,18 @@ Groups may be nested to any depth. Every nesting level renders as another
 header row; group cells receive `colSpan` for their visible descendants and
 `scope="colgroup"`, while leaf headers receive `scope="col"`. A group header
 supports string or render-function content plus `meta.headerClassName`,
-`meta.headerStyle`, and `meta.align` styling. The DOM also exposes
+`meta.headerStyle`, and `meta.align` styling. Group definitions additionally
+support `description` (an accessible native tooltip), `headerClassName`,
+`headerStyle`, and `headerHeight`; `columnGroupHeaderHeight` sets the default
+height for all shared group headers. The DOM also exposes
 `data-dtp-slot="data-table-column-group-header"` and `data-header-depth`.
 
 Visibility, toolbar filters, ordering, pinning, sizing, responsive hiding,
 editing defaults, card-title detection, and CSV export resolve nested leaf
-columns. Leaf columns remain independently reorderable and pinnable. If leaf
-ordering separates siblings, the shared heading is rendered as separate
-spans. Resizing a group distributes the size change proportionally across its
+columns. Leaf columns remain independently pinnable. Reordering is locked to a
+leaf's same nested group by default so shared headings remain intact. Set
+`freeReordering: true` on every group boundary crossed to allow a leaf to leave,
+enter, or split groups. Resizing a group distributes the size change proportionally across its
 visible descendants; setting `enableResizing: false` on the group removes its
 resize handle. Group definitions themselves do not appear in the leaf-column
 visibility, filter, or pinning controls.
@@ -649,6 +653,7 @@ checkboxes by default.
 | `columnOrder` | `ColumnOrderState` | internal state | Controlled column order. |
 | `onColumnOrderChange` | `(order: ColumnOrderState) => void` | `undefined` | Column order callback. |
 | `enableColumnReordering` | `boolean` | `false` | Enables header drag and keyboard column reordering. |
+| `columnGroupHeaderHeight` | `CSSProperties["height"]` | `undefined` | Default height for shared column-group headers; a group `headerHeight` overrides it. |
 | `columnPinning` | `ColumnPinningState` | internal state seeded from `meta.fixed` | Controlled column pinning. |
 | `onColumnPinningChange` | `(pinning: ColumnPinningState) => void` | `undefined` | Column pinning callback. |
 | `enableColumnPinning` | `boolean` | `false` | Adds pin/unpin controls to the table options menu. |

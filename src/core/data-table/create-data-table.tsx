@@ -34,6 +34,7 @@ import { useDataTableScrollViewport } from "./use-data-table-scroll-viewport";
 import {
   exportDataTableCsv,
   getColumnId,
+  getDataTableColumnGroupPaths,
   getDataTableLeafColumns,
   getInitialColumnPinning,
   validateDataTableColumnIds,
@@ -134,6 +135,7 @@ export function createDataTableWithPanels(
     columnOrder,
     onColumnOrderChange,
     enableColumnReordering = false,
+    columnGroupHeaderHeight,
     columnPinning,
     onColumnPinningChange,
     enableColumnPinning = false,
@@ -531,6 +533,10 @@ export function createDataTableWithPanels(
       startEditingRow,
       tableRef,
     });
+    const columnGroupPaths = React.useMemo(
+      () => getDataTableColumnGroupPaths(columns),
+      [columns],
+    );
 
     const {
       effectivePageCount,
@@ -548,6 +554,7 @@ export function createDataTableWithPanels(
       visibleLeafColumns,
     } = useDataTableInstance({
       autoResetPageIndex: false,
+      columnGroupPaths,
       columnResizeMode,
       dir,
       currentColumnFilters,
@@ -1125,6 +1132,7 @@ export function createDataTableWithPanels(
                   bodyRowComponents={bodyRowComponents}
                   columnLayouts={columnLayout.columnLayouts}
                   currentDensity={currentDensity}
+                  columnGroupHeaderHeight={columnGroupHeaderHeight}
                   currentSorting={currentSorting}
                   dir={dir}
                   DataTableEmptyState={DataTableEmptyState}

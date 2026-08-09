@@ -134,6 +134,22 @@ export type DataTableColumnGroupDef<TData> = DataTableColumnDef<
 > & {
   id: string;
   columns: Array<DataTableColumnDef<TData, unknown>>;
+  /**
+   * A concise explanation of the columns in this group. It is exposed as an
+   * accessible description and native tooltip on the shared header.
+   */
+  description?: string;
+  /**
+   * Allows leaves to cross this group's boundary during column reordering.
+   * Groups are locked by default so a shared heading remains intact.
+   */
+  freeReordering?: boolean;
+  /** Additional class name for this shared group header. */
+  headerClassName?: string;
+  /** Additional inline styles for this shared group header. */
+  headerStyle?: React.CSSProperties;
+  /** Height for this shared group header, overriding `columnGroupHeaderHeight`. */
+  headerHeight?: React.CSSProperties["height"];
 };
 
 export type DataTableToolbarAction<TData> = {
@@ -549,6 +565,8 @@ export type DataTableProps<TData> = {
   columnOrder?: ColumnOrderState;
   onColumnOrderChange?: (columnOrder: ColumnOrderState) => void;
   enableColumnReordering?: boolean;
+  /** Default height for shared column-group header cells. */
+  columnGroupHeaderHeight?: React.CSSProperties["height"];
   columnPinning?: ColumnPinningState;
   onColumnPinningChange?: (columnPinning: ColumnPinningState) => void;
   enableColumnPinning?: boolean;

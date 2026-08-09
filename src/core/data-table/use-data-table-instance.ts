@@ -24,17 +24,20 @@ import type {
 } from "@tanstack/react-table";
 import type { DataTableProps } from "../types";
 import {
+  canReorderDataTableColumn,
   dataTableGlobalFilterFn,
   getColumnId,
   getDataTableLeafColumns,
   isUtilityColumnId,
   moveColumnInOrder,
 } from "./data-table-utils";
+import type { DataTableColumnGroupPaths } from "./data-table-utils";
 import { useDataTableInfiniteScroll } from "./use-data-table-infinite-scroll";
 import { useDataTablePaginationClamp } from "./use-data-table-pagination-clamp";
 
 export function useDataTableInstance<TData>({
   autoResetPageIndex,
+  columnGroupPaths,
   columnResizeMode,
   dir,
   currentColumnFilters,
@@ -82,6 +85,7 @@ export function useDataTableInstance<TData>({
   virtualization,
 }: {
   autoResetPageIndex: boolean;
+  columnGroupPaths: DataTableColumnGroupPaths;
   columnResizeMode: DataTableProps<TData>["columnResizeMode"];
   dir: NonNullable<DataTableProps<TData>["dir"]>;
   currentColumnFilters: ColumnFiltersState;
@@ -315,6 +319,16 @@ export function useDataTableInstance<TData>({
         return;
       }
 
+      if (
+        !canReorderDataTableColumn(
+          sourceColumnId,
+          targetColumnId,
+          columnGroupPaths,
+        )
+      ) {
+        return;
+      }
+
       const defaultOrder = table
         .getAllLeafColumns()
         .map((column) => column.id)
@@ -326,7 +340,7 @@ export function useDataTableInstance<TData>({
       );
       handleColumnOrderChange(nextOrder);
     },
-    [currentColumnOrder, handleColumnOrderChange, table],
+    [columnGroupPaths, currentColumnOrder, handleColumnOrderChange, table],
   );
 
   const renderedRows = table.getRowModel().rows;
