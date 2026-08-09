@@ -22,6 +22,10 @@ import type {
 import type { DataTableUiKit } from "../ui-kit";
 import { DATA_TABLE_DEFAULT_LABELS } from "./data-table-labels";
 
+const LazyToolbarDataOperations = React.lazy(
+  () => import("./data-table-toolbar-operations"),
+);
+
 export type DataTableToolbarColumnFilter = {
   id: string;
   label: string;
@@ -159,12 +163,6 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
     const compactSearchInputRef = React.useRef<HTMLInputElement | null>(null);
     const [isCompactSearchVisible, setIsCompactSearchVisible] =
       React.useState(false);
-    const [columnQuery, setColumnQuery] = React.useState("");
-    const [newSavedViewName, setNewSavedViewName] = React.useState("");
-    const [renamingSavedViewId, setRenamingSavedViewId] =
-      React.useState<string | null>(null);
-    const [renamedSavedViewName, setRenamedSavedViewName] =
-      React.useState("");
     const compactToolbarIconButtonClassName =
       uiClassNames.toolbarCompactIconButton ?? "";
     const primaryActions = toolbarActions.filter(
@@ -195,19 +193,54 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
         enableToolbarColumnChooser ||
         enableToolbarResetLayout ||
         enableToolbarSavedViews);
-    const filteredColumnVisibilityOptions = columnVisibilityOptions.filter(
-      (column) =>
-        column.label.toLocaleLowerCase().includes(columnQuery.toLocaleLowerCase()),
-    );
+    const hasToolbarOperationsMenu =
+      enableToolbarColumnChooser ||
+      enableToolbarResetLayout ||
+      enableToolbarSavedViews;
     const activeColumnFilters = columnFilters.filter((filter) =>
       hasColumnFilterValue(filter.value),
     );
-    const activeFilterCount = activeColumnFilters.length +
-      (toolbarQueryValue ? 1 : 0);
-    const orderedDataColumnIds = table
-      .getAllLeafColumns()
-      .map((column) => column.id)
-      .filter((id) => !id.startsWith("__"));
+    const toolbarOperationsUi = {
+      Button,
+      DropdownMenuCheckboxItem,
+      DropdownMenuGroup,
+      DropdownMenuItem,
+      DropdownMenuLabel,
+      DropdownMenuSeparator,
+      InputGroup,
+      InputGroupAddon,
+      InputGroupInput,
+    };
+    const renderToolbarDataOperations = (placement: "menu" | "chips") => (
+      <React.Suspense fallback={null}>
+        <LazyToolbarDataOperations
+          placement={placement}
+          ui={toolbarOperationsUi}
+          labels={labels}
+          enableColumnChooser={enableToolbarColumnChooser}
+          enableFilterChips={enableToolbarFilterChips}
+          enableResetLayout={enableToolbarResetLayout}
+          enableSavedViews={enableToolbarSavedViews}
+          enableColumnPinning={enableColumnPinning}
+          columnVisibilityOptions={columnVisibilityOptions}
+          onColumnVisibilityChange={onColumnVisibilityChange}
+          onColumnPinningChange={onColumnPinningChange}
+          reorderColumn={reorderColumn}
+          table={table as unknown as TanStackTable<unknown>}
+          onResetColumnLayout={onResetColumnLayout}
+          savedViews={savedViews}
+          onCreateSavedView={onCreateSavedView}
+          onApplySavedView={onApplySavedView}
+          onRenameSavedView={onRenameSavedView}
+          onDeleteSavedView={onDeleteSavedView}
+          toolbarQueryValue={toolbarQueryValue}
+          onToolbarQueryValueChange={onToolbarQueryValueChange}
+          activeColumnFilters={activeColumnFilters}
+          onColumnFilterChange={onColumnFilterChange}
+          onClearColumnFilters={onClearColumnFilters}
+        />
+      </React.Suspense>
+    );
     const groupableColumns = table
       .getAllLeafColumns()
       .filter(
@@ -219,35 +252,6 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
       const column = table.getColumn(id);
       return column ? [column] : [];
     });
-    const moveColumn = React.useCallback(
-      (columnId: string, direction: -1 | 1) => {
-        const order = table
-          .getAllLeafColumns()
-          .map((column) => column.id)
-          .filter((id) => !id.startsWith("__"));
-        const index = order.indexOf(columnId);
-        const targetIndex = index + direction;
-        if (index < 0 || targetIndex < 0 || targetIndex >= order.length) {
-          return;
-        }
-        reorderColumn(columnId, order[targetIndex]!);
-      },
-      [reorderColumn, table],
-    );
-    const setAllColumnsVisible = React.useCallback(
-      (visible: boolean) => {
-        table.setColumnVisibility((current) => {
-          const next = { ...current };
-          for (const column of table.getAllLeafColumns()) {
-            if (!column.id.startsWith("__") && column.getCanHide()) {
-              next[column.id] = visible;
-            }
-          }
-          return next;
-        });
-      },
-      [table],
-    );
     const hasVisibleViewToggle =
       showViewToggle && enableViewToggle && Boolean(onViewModeChange);
     const hasVisibleTrailingActions =
@@ -531,115 +535,11 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
                         </DropdownMenuGroup>
                       </>
                     ) : null}
-                    {enableToolbarColumnChooser ? (
-                      <>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuLabel>{labels.columns}</DropdownMenuLabel>
-                        <div className="px-2 pb-2">
-                          <InputGroup>
-                            <InputGroupInput
-                              value={columnQuery}
-                              onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-                                setColumnQuery(event.target.value);
-                              }}
-                              placeholder={labels.searchColumns}
-                              aria-label={labels.searchColumns}
-                            />
-                            <InputGroupAddon align="inline-start" aria-hidden="true">
-                              <IconSearch />
-                            </InputGroupAddon>
-                          </InputGroup>
-                        </div>
-                        <DropdownMenuGroup>
-                          <DropdownMenuItem
-                            onSelect={(event: Event) => {
-                              event.preventDefault();
-                              setAllColumnsVisible(true);
-                            }}
-                          >
-                            {labels.showAllColumns}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onSelect={(event: Event) => {
-                              event.preventDefault();
-                              setAllColumnsVisible(false);
-                            }}
-                          >
-                            {labels.hideAllColumns}
-                          </DropdownMenuItem>
-                          {filteredColumnVisibilityOptions.map((column) => {
-                            const orderIndex = orderedDataColumnIds.indexOf(column.id);
-                            return (
-                              <React.Fragment
-                                key={`column-operation-${column.id}`}
-                              >
-                                <DropdownMenuCheckboxItem
-                                  checked={column.visible}
-                                  disabled={!column.canHide}
-                                  onCheckedChange={(checked: boolean | "indeterminate") => {
-                                    onColumnVisibilityChange?.(
-                                      column.id,
-                                      checked === true,
-                                    );
-                                  }}
-                                >
-                                  {column.label}
-                                </DropdownMenuCheckboxItem>
-                                <DropdownMenuItem
-                                  disabled={orderIndex <= 0}
-                                  onSelect={(event: Event) => {
-                                    event.preventDefault();
-                                    moveColumn(column.id, -1);
-                                  }}
-                                >
-                                  {labels.moveColumnEarlier(column.label)}
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  disabled={
-                                    orderIndex < 0 ||
-                                    orderIndex === orderedDataColumnIds.length - 1
-                                  }
-                                  onSelect={(event: Event) => {
-                                    event.preventDefault();
-                                    moveColumn(column.id, 1);
-                                  }}
-                                >
-                                  {labels.moveColumnLater(column.label)}
-                                </DropdownMenuItem>
-                                {enableColumnPinning ? (
-                                  <>
-                                    <DropdownMenuItem
-                                      onSelect={(event: Event) => {
-                                        event.preventDefault();
-                                        onColumnPinningChange(column.id, "left");
-                                      }}
-                                    >
-                                      {labels.pinLeft}: {column.label}
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                      onSelect={(event: Event) => {
-                                        event.preventDefault();
-                                        onColumnPinningChange(column.id, "right");
-                                      }}
-                                    >
-                                      {labels.pinRight}: {column.label}
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                      onSelect={(event: Event) => {
-                                        event.preventDefault();
-                                        onColumnPinningChange(column.id, false);
-                                      }}
-                                    >
-                                      {labels.unpin}: {column.label}
-                                    </DropdownMenuItem>
-                                  </>
-                                ) : null}
-                              </React.Fragment>
-                            );
-                          })}
-                        </DropdownMenuGroup>
-                      </>
-                    ) : columnVisibilityOptions.some((column) => column.canHide) ? (
+                    {hasToolbarOperationsMenu
+                      ? renderToolbarDataOperations("menu")
+                      : null}
+                    {!enableToolbarColumnChooser &&
+                    columnVisibilityOptions.some((column) => column.canHide) ? (
                       <>
                         <DropdownMenuSeparator />
                         <DropdownMenuLabel>{labels.columns}</DropdownMenuLabel>
@@ -717,116 +617,6 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
                               </button>
                             </DropdownMenuItem>
                           ))}
-                        </DropdownMenuGroup>
-                      </>
-                    ) : null}
-                    {enableToolbarResetLayout ? (
-                      <>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          onSelect={(event: Event) => {
-                            event.preventDefault();
-                            onResetColumnLayout();
-                          }}
-                        >
-                          {labels.resetColumnLayout}
-                        </DropdownMenuItem>
-                      </>
-                    ) : null}
-                    {enableToolbarSavedViews ? (
-                      <>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuLabel>{labels.savedViews}</DropdownMenuLabel>
-                        <div className="px-2 pb-2">
-                          <InputGroup>
-                            <InputGroupInput
-                              value={newSavedViewName}
-                              onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-                                setNewSavedViewName(event.target.value);
-                              }}
-                              placeholder={labels.savedViewName}
-                              aria-label={labels.savedViewName}
-                            />
-                          </InputGroup>
-                        </div>
-                        <DropdownMenuItem
-                            disabled={!newSavedViewName.trim()}
-                            onSelect={(event: Event) => {
-                              event.preventDefault();
-                              if (onCreateSavedView(newSavedViewName.trim())) {
-                                setNewSavedViewName("");
-                              }
-                            }}
-                          >
-                          {labels.createSavedView}
-                        </DropdownMenuItem>
-                        <DropdownMenuGroup>
-                          {savedViews.map((view) =>
-                            renamingSavedViewId === view.id ? (
-                              <div
-                                key={`saved-view-edit-${view.id}`}
-                                className="flex gap-1 px-2 py-1"
-                                role="group"
-                                aria-label={labels.renameSavedView(view.name)}
-                              >
-                                <InputGroup>
-                                  <InputGroupInput
-                                    value={renamedSavedViewName}
-                                    onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-                                      setRenamedSavedViewName(event.target.value);
-                                    }}
-                                    aria-label={labels.savedViewName}
-                                  />
-                                </InputGroup>
-                                <DropdownMenuItem
-                                  onSelect={(event: Event) => {
-                                    event.preventDefault();
-                                    if (
-                                      renamedSavedViewName.trim() &&
-                                      onRenameSavedView(
-                                        view.id,
-                                        renamedSavedViewName.trim(),
-                                      )
-                                    ) {
-                                      setRenamingSavedViewId(null);
-                                    }
-                                  }}
-                                >
-                                  {labels.saveSavedView}
-                                </DropdownMenuItem>
-                              </div>
-                            ) : (
-                              <React.Fragment
-                                key={`saved-view-${view.id}`}
-                              >
-                                <DropdownMenuItem
-                                  onSelect={(event: Event) => {
-                                    event.preventDefault();
-                                    onApplySavedView(view.id);
-                                  }}
-                                >
-                                  {view.name}
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onSelect={(event: Event) => {
-                                    event.preventDefault();
-                                    setRenamingSavedViewId(view.id);
-                                    setRenamedSavedViewName(view.name);
-                                  }}
-                                >
-                                  {labels.renameSavedView(view.name)}
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onSelect={(event: Event) => {
-                                    event.preventDefault();
-                                    onDeleteSavedView(view.id);
-                                  }}
-                                >
-                                  {labels.deleteSavedView(view.name)}
-                                </DropdownMenuItem>
-                              </React.Fragment>
-                            ),
-                          )}
                         </DropdownMenuGroup>
                       </>
                     ) : null}
@@ -1040,52 +830,9 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
             </div>
           ) : null}
 
-          {enableToolbarFilterChips && activeFilterCount ? (
-            <div
-              data-dtp-slot="data-table-active-filters"
-              aria-label={`${labels.filters}: ${activeFilterCount}`}
-              className="flex min-w-0 flex-wrap items-center gap-2"
-            >
-              <span className="text-sm opacity-70">
-                {labels.filters} ({activeFilterCount})
-              </span>
-              {toolbarQueryValue ? (
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  aria-label={labels.clearSearch}
-                  onClick={() => onToolbarQueryValueChange("")}
-                >
-                  {toolbarQueryValue} <span aria-hidden="true">×</span>
-                </Button>
-              ) : null}
-              {activeColumnFilters.map((filter) => (
-                <Button
-                  key={`active-filter-${filter.id}`}
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  aria-label={`${labels.clearFilters}: ${filter.label}`}
-                  onClick={() => onColumnFilterChange(filter.id, "")}
-                >
-                  {filter.label}: {formatActiveFilterValue(filter.value)}{" "}
-                  <span aria-hidden="true">×</span>
-                </Button>
-              ))}
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  onToolbarQueryValueChange("");
-                  onClearColumnFilters();
-                }}
-              >
-                {labels.clearFilters}
-              </Button>
-            </div>
-          ) : null}
+          {enableToolbarFilterChips
+            ? renderToolbarDataOperations("chips")
+            : null}
 
           {enableGrouping && groupedColumns.length ? (
             <div
@@ -1375,19 +1122,6 @@ function hasColumnFilterValue(value: unknown) {
   }
 
   return value !== undefined && value !== null && value !== "";
-}
-
-function formatActiveFilterValue(value: unknown) {
-  if (Array.isArray(value)) {
-    return value.map(String).join(", ");
-  }
-  if (value && typeof value === "object") {
-    const range = value as { from?: unknown; to?: unknown };
-    if ("from" in range || "to" in range) {
-      return [range.from, range.to].filter(Boolean).map(String).join("–");
-    }
-  }
-  return String(value);
 }
 
 function normalizeToolbarRangeValue(value: unknown): {

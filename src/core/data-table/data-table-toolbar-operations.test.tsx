@@ -21,7 +21,7 @@ function openTableOptions() {
 }
 
 describe("DataTable toolbar data operations", () => {
-  it("renders the enhanced searchable column chooser and layout controls only when opted in", () => {
+  it("renders the enhanced searchable column chooser and layout controls only when opted in", async () => {
     const onColumnOrderChange = vi.fn();
     render(
       <DataTable
@@ -35,7 +35,7 @@ describe("DataTable toolbar data operations", () => {
     );
 
     openTableOptions();
-    expect(screen.getByLabelText("Search columns")).toBeTruthy();
+    expect(await screen.findByLabelText("Search columns")).toBeTruthy();
     expect(screen.getByText("Show all columns")).toBeTruthy();
     expect(screen.getByText("Hide all columns")).toBeTruthy();
     expect(screen.getByText("Reset column layout")).toBeTruthy();
@@ -49,7 +49,7 @@ describe("DataTable toolbar data operations", () => {
     expect(onColumnOrderChange).toHaveBeenCalledWith(["role", "name"]);
   });
 
-  it("creates, applies, renames, and deletes saved views from the opted-in menu", () => {
+  it("creates, applies, renames, and deletes saved views from the opted-in menu", async () => {
     const values = new Map<string, string>();
     const storage = {
       getItem: (key: string) => values.get(key) ?? null,
@@ -68,7 +68,7 @@ describe("DataTable toolbar data operations", () => {
     );
 
     openTableOptions();
-    fireEvent.change(screen.getByLabelText("View name"), {
+    fireEvent.change(await screen.findByLabelText("View name"), {
       target: { value: "Operations" },
     });
     fireEvent.click(screen.getByRole("menuitem", { name: "Create saved view" }));
@@ -85,7 +85,7 @@ describe("DataTable toolbar data operations", () => {
     expect(screen.queryByRole("menuitem", { name: "Ops" })).toBeNull();
   });
 
-  it("shows removable active filter chips only with toolbar operations enabled", () => {
+  it("shows removable active filter chips only with toolbar operations enabled", async () => {
     const onColumnFiltersChange = vi.fn();
     render(
       <DataTable
@@ -104,7 +104,7 @@ describe("DataTable toolbar data operations", () => {
       />,
     );
 
-    expect(screen.getByLabelText("Filters: 1")).toBeTruthy();
+    expect(await screen.findByLabelText("Filters: 1")).toBeTruthy();
     fireEvent.click(screen.getByLabelText("Clear filters: Role"));
     expect(onColumnFiltersChange).toHaveBeenCalledWith([]);
   });
