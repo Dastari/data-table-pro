@@ -27,6 +27,7 @@ import {
 type TestRow = {
   id: string;
   name: string;
+  children?: Array<TestRow>;
 };
 
 const columns: Array<DataTableColumnDef<TestRow, unknown>> = [
@@ -217,6 +218,140 @@ describe("DataTable unified state API", () => {
     fireEvent.mouseUp(document);
 
     expect(onColumnSizingChange).toHaveBeenCalled();
+  });
+
+  it("renders top and bottom pinned rows and exposes row pin actions", () => {
+    const onRowPinningChange = vi.fn();
+    render(
+      <DataTable
+        columns={columns}
+        data={rows}
+        getRowId={(row) => row.id}
+        enableRowPinning
+        onRowPinningChange={onRowPinningChange}
+      />,
+    );
+
+    fireEvent.pointerDown(
+      screen.getAllByRole("button", { name: "Row actions" })[0],
+    );
+    fireEvent.click(screen.getByText("Pin row to top"));
+
+    expect(onRowPinningChange).toHaveBeenCalledWith({
+      top: ["1"],
+      bottom: [],
+    });
+    expect(
+      screen.getByText("Ada").closest('[data-dtp-slot="data-table-pinned-row"]')
+        ?.getAttribute("data-row-pinned"),
+    ).toBe("top");
+
+    fireEvent.pointerDown(
+      screen.getAllByRole("button", { name: "Row actions" })[0],
+    );
+    fireEvent.click(screen.getByText("Unpin row"));
+    expect(onRowPinningChange).toHaveBeenLastCalledWith({
+      top: [],
+      bottom: [],
+    });
+  });
+
+  it("supports controlled row pinning, API methods, saved views, and persistence", () => {
+    const apiRef = React.createRef<DataTableApi<TestRow>>();
+    const storage = new MemoryStorage();
+    render(
+      <DataTable
+        apiRef={apiRef}
+        columns={columns}
+        data={rows}
+        getRowId={(row) => row.id}
+        enableRowPinning
+        persistence={{ key: "row-pinning", debounceMs: 0, storage }}
+        savedViews={{ key: "row-pinning", storage }}
+      />,
+    );
+
+    act(() => {
+      expect(apiRef.current?.pinRow("2", "bottom")).toBe(true);
+    });
+    expect(apiRef.current?.getState().rowPinning).toEqual({
+      top: [],
+      bottom: ["2"],
+    });
+    expect(apiRef.current?.createSavedView("Pinned")).toBeDefined();
+    expect(apiRef.current?.unpinRow("2")).toBe(true);
+    expect(apiRef.current?.applySavedView(apiRef.current.getSavedViews()[0]!.id)).toBe(
+      true,
+    );
+    expect(apiRef.current?.getState().rowPinning).toEqual({
+      top: [],
+      bottom: ["2"],
+    });
+
+    const persisted = JSON.parse(
+      storage.values.get("data-table-pro:column-prefs:row-pinning") ?? "{}",
+    ) as { state?: { rowPinning?: unknown } };
+    expect(persisted.state?.rowPinning).toEqual({ top: [], bottom: ["2"] });
+  });
+
+  it("honors keepPinnedRows when filters exclude a pinned row", () => {
+    const view = render(
+      <DataTable
+        columns={columns}
+        data={rows}
+        getRowId={(row) => row.id}
+        rowPinning={{ top: ["1"], bottom: [] }}
+        toolbarQueryValue="Grace"
+        keepPinnedRows={false}
+      />,
+    );
+
+    expect(screen.queryByText("Ada")).toBeNull();
+    expect(screen.getByText("Grace")).not.toBeNull();
+
+    view.rerender(
+      <DataTable
+        columns={columns}
+        data={rows}
+        getRowId={(row) => row.id}
+        rowPinning={{ top: ["1"], bottom: [] }}
+        toolbarQueryValue="Grace"
+        keepPinnedRows
+      />,
+    );
+
+    expect(screen.getByText("Ada")).not.toBeNull();
+    expect(screen.getByText("Grace")).not.toBeNull();
+  });
+
+  it("pins nested rows resolved through getSubRows", () => {
+    const apiRef = React.createRef<DataTableApi<TestRow>>();
+    render(
+      <DataTable
+        apiRef={apiRef}
+        columns={columns}
+        data={[
+          {
+            id: "parent",
+            name: "Parent",
+            children: [{ id: "child", name: "Child" }],
+          },
+        ]}
+        getRowId={(row) => row.id}
+        getSubRows={(row) => row.children}
+        initialState={{ expanded: { parent: true } }}
+        enableRowPinning
+      />,
+    );
+
+    act(() => {
+      expect(apiRef.current?.pinRow("child", "top")).toBe(true);
+    });
+
+    expect(
+      screen.getByText("Child").closest('[data-dtp-slot="data-table-pinned-row"]')
+        ?.getAttribute("data-row-pinned"),
+    ).toBe("top");
   });
 
   it("configures resizing and keyboard reordering for RTL", () => {
@@ -476,6 +611,7 @@ function createState(): DataTableState {
     expanded: {},
     columnOrder: [],
     columnPinning: {},
+    rowPinning: { top: [], bottom: [] },
     columnSizing: {},
     density: "comfortable",
     viewMode: "table",

@@ -1,5 +1,6 @@
 import * as React from "react";
 import type { Cell, Row } from "@tanstack/react-table";
+import type { RowPinningPosition } from "@tanstack/react-table";
 import type {
   DataTableColumnDef,
   DataTableDensity,
@@ -37,6 +38,7 @@ type DataTableBodyRowProps<TData> = {
   isSelected: boolean;
   loadingState: DataTableRowLoadingState | undefined;
   onRowClick: DataTableProps<TData>["onRowClick"];
+  pinnedPosition?: Exclude<RowPinningPosition, false>;
   originalRow: TData;
   detailPanel: DataTableProps<TData>["detailPanel"];
   row: Row<TData>;
@@ -64,6 +66,7 @@ function DataTableBodyRowInner<TData>({
   isSelected,
   loadingState,
   onRowClick,
+  pinnedPosition,
   originalRow,
   detailPanel,
   row,
@@ -86,6 +89,10 @@ function DataTableBodyRowInner<TData>({
         data-tree-depth={
           !isInitialLoadingRow && row.depth > 0 ? row.depth : undefined
         }
+        data-dtp-slot={
+          pinnedPosition ? "data-table-pinned-row" : "data-table-row"
+        }
+        data-row-pinned={pinnedPosition}
         draggable={isInitialLoadingRow ? false : isDraggable}
         data-loading={loadingState?.isLoading || undefined}
         data-row-index={isInitialLoadingRow ? undefined : rowIndex}
@@ -110,8 +117,13 @@ function DataTableBodyRowInner<TData>({
               isExpanded,
               isLoading: Boolean(loadingState?.isLoading),
               isSelected,
+              pinnedPosition: pinnedPosition ?? false,
             }),
           uiClassNames.row,
+          pinnedPosition === "top" &&
+            cn("border-b-2", uiClassNames.rowPinnedTop),
+          pinnedPosition === "bottom" &&
+            cn("border-t-2", uiClassNames.rowPinnedBottom),
           stripedRows &&
             !isInitialLoadingRow &&
             (rowIndex % 2 === 0
@@ -267,7 +279,10 @@ function DataTableBodyRowInner<TData>({
         })}
       </TableRow>
       {!isInitialLoadingRow && detailPanel && isDetailExpanded ? (
-        <TableRow data-dtp-slot="data-table-detail-panel-row">
+        <TableRow
+          data-dtp-slot="data-table-detail-panel-row"
+          data-row-pinned={pinnedPosition}
+        >
           <TableCell
             colSpan={Math.max(1, visibleLeafColumnCount)}
             className={cn(
@@ -312,6 +327,7 @@ function areDataTableBodyRowsEqual<TData>(
     previous.currentDensity === next.currentDensity &&
     previous.detailPanel === next.detailPanel &&
     previous.isDetailExpanded === next.isDetailExpanded &&
+    previous.pinnedPosition === next.pinnedPosition &&
     previous.onRowClick === next.onRowClick &&
     previous.dragAndDrop === next.dragAndDrop &&
     previous.getRowClassName === next.getRowClassName &&

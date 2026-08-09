@@ -358,6 +358,7 @@ Legacy controlled props remain supported. If a legacy prop and its matching
   `renameSavedView(id, name)`, `deleteSavedView(id)`, and
   `clearSavedViews()`
 - `focus()`, `scrollToRow(rowId)`, and `scrollToColumn(columnId)`
+- `pinRow(rowId, position?)` and `unpinRow(rowId)` when row pinning is enabled
 - `exportCsv(options?)`
 
 Scroll commands return `false` when the requested rendered element is not
@@ -763,6 +764,10 @@ checkboxes by default.
 | `columnPinning` | `ColumnPinningState` | internal state seeded from `meta.fixed` | Controlled column pinning. |
 | `onColumnPinningChange` | `(pinning: ColumnPinningState) => void` | `undefined` | Column pinning callback. |
 | `enableColumnPinning` | `boolean` | `false` | Adds pin/unpin controls to the table options menu. |
+| `rowPinning` | `RowPinningState` | internal state | Controlled `{ top, bottom }` row-id lists. |
+| `onRowPinningChange` | `(pinning: RowPinningState) => void` | `undefined` | Reports row-pinning changes. |
+| `enableRowPinning` | `boolean \| (row) => boolean` | `false` | Adds top, bottom, and unpin actions to row menus; a predicate receives the original row. |
+| `keepPinnedRows` | `boolean` | `true` | Keeps supplied pinned rows visible when client filtering or pagination would otherwise hide them. |
 | `columnPrefsKey` | `string` | `undefined` | Compatibility shorthand for versioned persistence of uncontrolled visibility, sizing, order, pinning, and density in `localStorage`. |
 | `persistence` | `DataTablePersistenceConfig` | `undefined` | Versioned persistence configuration. Takes precedence over `columnPrefsKey` and supports selected slices, custom storage/serialization, migration, debouncing, and error reporting. |
 | `savedViews` | `DataTableSavedViewsConfig` | `undefined` | Versioned storage and lifecycle callbacks for named state snapshots managed through `apiRef`. |
@@ -772,6 +777,10 @@ checkboxes by default.
 | `onColumnSizingChange` | `(sizing: ColumnSizingState) => void` | `undefined` | Controlled sizing callback. |
 | `layoutMode` | `"fill" \| "fit"` | `"fill"` | `fill` stretches the table to the container; `fit` sizes to content width. |
 | `stickyHeader` | `boolean` | `true` | Makes the table header sticky inside the scroll area. |
+
+Pinned regions are rendered in table view only. Card view keeps pinned rows in
+its ordinary card order, and server/manual pagination can render a pinned row
+only when that record is included in the supplied `data` window.
 
 The default persistence envelope is:
 

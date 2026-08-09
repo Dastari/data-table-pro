@@ -6,6 +6,7 @@ import type {
   ColumnSizingState,
   ExpandedState,
   PaginationState,
+  RowPinningState,
   SortingState,
   VisibilityState,
 } from "@tanstack/react-table";
@@ -34,6 +35,7 @@ export function useDataTableState<TData>({
   columnFilters,
   columnOrder,
   columnPinning,
+  rowPinning,
   columnSizing,
   columnPrefsKey,
   persistence,
@@ -44,6 +46,7 @@ export function useDataTableState<TData>({
   enableRowSelection,
   enableToolbarQueryFiltering,
   expanded,
+  getSubRows,
   getRowId,
   hiddenRows,
   initialState,
@@ -53,6 +56,7 @@ export function useDataTableState<TData>({
   onColumnFiltersChange,
   onColumnOrderChange,
   onColumnPinningChange,
+  onRowPinningChange,
   onColumnSizingChange,
   onColumnVisibilityChange,
   onDensityChange,
@@ -80,6 +84,7 @@ export function useDataTableState<TData>({
   columnFilters: DataTableProps<TData>["columnFilters"];
   columnOrder: DataTableProps<TData>["columnOrder"];
   columnPinning: DataTableProps<TData>["columnPinning"];
+  rowPinning: DataTableProps<TData>["rowPinning"];
   columnSizing?: DataTableProps<TData>["columnSizing"];
   columnPrefsKey: DataTableProps<TData>["columnPrefsKey"];
   persistence?: DataTableProps<TData>["persistence"];
@@ -90,6 +95,7 @@ export function useDataTableState<TData>({
   enableRowSelection: boolean;
   enableToolbarQueryFiltering: boolean;
   expanded: DataTableProps<TData>["expanded"];
+  getSubRows: DataTableProps<TData>["getSubRows"];
   getRowId: DataTableProps<TData>["getRowId"];
   hiddenRows: DataTableProps<TData>["hiddenRows"];
   initialState?: DataTableProps<TData>["initialState"];
@@ -99,6 +105,7 @@ export function useDataTableState<TData>({
   onColumnFiltersChange: DataTableProps<TData>["onColumnFiltersChange"];
   onColumnOrderChange: DataTableProps<TData>["onColumnOrderChange"];
   onColumnPinningChange: DataTableProps<TData>["onColumnPinningChange"];
+  onRowPinningChange: DataTableProps<TData>["onRowPinningChange"];
   onColumnSizingChange?: DataTableProps<TData>["onColumnSizingChange"];
   onColumnVisibilityChange: DataTableProps<TData>["onColumnVisibilityChange"];
   onDensityChange: DataTableProps<TData>["onDensityChange"];
@@ -188,6 +195,16 @@ export function useDataTableState<TData>({
         initialState?.columnPinning ??
         persistedColumnPrefs.pinning ??
         getInitialColumnPinning(columns),
+    });
+  const [currentRowPinning, setCurrentRowPinning] =
+    useControllableState<RowPinningState>({
+      value: rowPinning,
+      onChange: onRowPinningChange,
+      defaultValue: () =>
+        initialState?.rowPinning ?? persistedColumnPrefs.rowPinning ?? {
+          top: [],
+          bottom: [],
+        },
     });
   const [currentColumnSizing, setCurrentColumnSizing] =
     useControllableState<ColumnSizingState>({
@@ -354,6 +371,7 @@ export function useDataTableState<TData>({
         columnSizing === undefined ? currentColumnSizing : undefined,
       order: columnOrder ? undefined : currentColumnOrder,
       pinning: columnPinning ? undefined : currentColumnPinning,
+      rowPinning: rowPinning === undefined ? currentRowPinning : undefined,
       density: density ? undefined : currentDensity,
     },
   });
@@ -409,10 +427,19 @@ export function useDataTableState<TData>({
       return new Map<string, TData>();
     }
 
-    return new Map(
-      visibleData.map((row, index) => [getRowId(row, index), row]),
-    );
-  }, [getRowId, shouldResolveSelectedRows, visibleData]);
+    const rows = new Map<string, TData>();
+    const visitRows = (currentRows: Array<TData>) => {
+      currentRows.forEach((row, index) => {
+        rows.set(getRowId(row, index), row);
+        const subRows = getSubRows?.(row, index);
+        if (subRows?.length) {
+          visitRows(subRows);
+        }
+      });
+    };
+    visitRows(visibleData);
+    return rows;
+  }, [getRowId, getSubRows, shouldResolveSelectedRows, visibleData]);
   const selectedRows = React.useMemo(() => {
     if (!shouldResolveSelectedRows) {
       return [];
@@ -436,6 +463,7 @@ export function useDataTableState<TData>({
     currentColumnFilters,
     currentColumnOrder,
     currentColumnPinning,
+    currentRowPinning,
     currentColumnSizing,
     currentColumnVisibility,
     currentDensity,
@@ -458,6 +486,7 @@ export function useDataTableState<TData>({
     setCurrentColumnFilters,
     setCurrentColumnOrder,
     setCurrentColumnPinning,
+    setCurrentRowPinning,
     setCurrentColumnVisibility,
     setCurrentExpanded,
     setCurrentRowSelection,

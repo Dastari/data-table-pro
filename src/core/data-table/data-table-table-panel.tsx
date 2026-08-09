@@ -3,6 +3,7 @@ import type {
   Column,
   ExpandedState,
   Header,
+  RowPinningPosition,
   Row,
   Table as TanStackTable,
 } from "@tanstack/react-table";
@@ -53,6 +54,8 @@ export type DataTableTablePanelProps<TData> = {
   primeColumnForResize: (columnId: string, currentSize: number) => void;
   renderedRows: Array<Row<TData>>;
   detailPanel: DataTableProps<TData>["detailPanel"];
+  topPinnedRows: Array<Row<TData>>;
+  bottomPinnedRows: Array<Row<TData>>;
   reorderColumn: (sourceColumnId: string, targetColumnId: string) => void;
   resetColumnSize: (columnId: string) => void;
   resolvedLabels: DataTableLabels;
@@ -117,6 +120,8 @@ export function DataTableTablePanel<TData>({
   primeColumnForResize,
   renderedRows,
   detailPanel,
+  topPinnedRows,
+  bottomPinnedRows,
   reorderColumn,
   resetColumnSize,
   resolvedLabels,
@@ -160,6 +165,58 @@ export function DataTableTablePanel<TData>({
         : [],
     [filteredRows, summaryRows.length],
   );
+  const renderBodyRow = (
+    row: Row<TData>,
+    rowIndex: number,
+    pinnedPosition?: Exclude<RowPinningPosition, false>,
+  ) => {
+    const originalRow = row.original;
+    const isInitialLoadingRow = isDataTableLoadingRow(originalRow);
+    const loadingState = isInitialLoadingRow
+      ? { isLoading: true }
+      : getRowLoadingState?.(originalRow, rowIndex);
+    const resolvedLoadingState: DataTableRowLoadingState | undefined =
+      typeof loadingState === "boolean"
+        ? { isLoading: loadingState }
+        : loadingState;
+    const isDraggable = isInitialLoadingRow
+      ? false
+      : (dragAndDrop?.getRowDraggable?.(originalRow) ?? false);
+
+    return (
+      <DataTableBodyRow
+        key={`${pinnedPosition ?? "center"}-${row.id}`}
+        columnLayouts={columnLayouts}
+        components={bodyRowComponents}
+        currentDensity={currentDensity}
+        draftValues={draftValues}
+        dragAndDrop={dragAndDrop}
+        explicitCustomCellColumnIds={explicitCustomCellColumnIds}
+        getRowClassName={getRowClassName}
+        isDraggable={isDraggable}
+        isDetailExpanded={
+          currentDetailExpanded === true ||
+          Boolean(currentDetailExpanded[row.id])
+        }
+        isEditing={editingRowId === row.id}
+        isExpanded={row.getIsExpanded()}
+        isInitialLoadingRow={isInitialLoadingRow}
+        isSelected={row.getIsSelected()}
+        loadingState={resolvedLoadingState}
+        onRowClick={onRowClick}
+        originalRow={originalRow}
+        pinnedPosition={pinnedPosition}
+        detailPanel={detailPanel}
+        row={row}
+        rowIndex={rowIndex}
+        setDraftValues={setDraftValues}
+        stripedRows={stripedRows}
+        uiClassNames={uiClassNames}
+        visibleCells={row.getVisibleCells()}
+        visibleLeafColumnCount={visibleLeafColumnCount}
+      />
+    );
+  };
 
   return (
     <div
@@ -247,8 +304,11 @@ export function DataTableTablePanel<TData>({
                 ))}
               </TableHeader>
               <TableBody>
-                {renderedRows.length ? (
+                {topPinnedRows.length || renderedRows.length || bottomPinnedRows.length ? (
                   <>
+                    {topPinnedRows.map((row, index) =>
+                      renderBodyRow(row, index, "top"),
+                    )}
                     {virtualPaddingTop > 0 ? (
                       <TableRow aria-hidden="true">
                         <TableCell
@@ -258,54 +318,9 @@ export function DataTableTablePanel<TData>({
                         />
                       </TableRow>
                     ) : null}
-                    {rowsToRender.map(({ row, rowIndex }) => {
-                      const originalRow = row.original;
-                      const isInitialLoadingRow =
-                        isDataTableLoadingRow(originalRow);
-                      const loadingState = isInitialLoadingRow
-                        ? { isLoading: true }
-                        : getRowLoadingState?.(originalRow, rowIndex);
-                      const resolvedLoadingState: DataTableRowLoadingState | undefined =
-                        typeof loadingState === "boolean"
-                          ? { isLoading: loadingState }
-                          : loadingState;
-                      const isDraggable = isInitialLoadingRow
-                        ? false
-                        : (dragAndDrop?.getRowDraggable?.(originalRow) ?? false);
-
-                      return (
-                        <DataTableBodyRow
-                          key={row.id}
-                          columnLayouts={columnLayouts}
-                          components={bodyRowComponents}
-                          currentDensity={currentDensity}
-                          draftValues={draftValues}
-                          dragAndDrop={dragAndDrop}
-                          explicitCustomCellColumnIds={explicitCustomCellColumnIds}
-                          getRowClassName={getRowClassName}
-                          isDraggable={isDraggable}
-                          isDetailExpanded={
-                            currentDetailExpanded === true ||
-                            Boolean(currentDetailExpanded[row.id])
-                          }
-                          isEditing={editingRowId === row.id}
-                          isExpanded={row.getIsExpanded()}
-                          isInitialLoadingRow={isInitialLoadingRow}
-                          isSelected={row.getIsSelected()}
-                          loadingState={resolvedLoadingState}
-                          onRowClick={onRowClick}
-                          originalRow={originalRow}
-                          detailPanel={detailPanel}
-                          row={row}
-                          rowIndex={rowIndex}
-                          setDraftValues={setDraftValues}
-                          stripedRows={stripedRows}
-                          uiClassNames={uiClassNames}
-                          visibleCells={row.getVisibleCells()}
-                          visibleLeafColumnCount={visibleLeafColumnCount}
-                        />
-                      );
-                    })}
+                    {rowsToRender.map(({ row, rowIndex }) =>
+                      renderBodyRow(row, rowIndex + topPinnedRows.length),
+                    )}
                     {virtualPaddingBottom > 0 ? (
                       <TableRow aria-hidden="true">
                         <TableCell
@@ -315,6 +330,13 @@ export function DataTableTablePanel<TData>({
                         />
                       </TableRow>
                     ) : null}
+                    {bottomPinnedRows.map((row, index) =>
+                      renderBodyRow(
+                        row,
+                        topPinnedRows.length + renderedRows.length + index,
+                        "bottom",
+                      ),
+                    )}
                   </>
                 ) : (
                   <TableRow>

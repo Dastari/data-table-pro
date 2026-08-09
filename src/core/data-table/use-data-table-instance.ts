@@ -17,6 +17,7 @@ import type {
   FilterFnOption,
   OnChangeFn,
   PaginationState,
+  RowPinningState,
   Row,
   SortingState,
   Table as TanStackTable,
@@ -28,6 +29,7 @@ import {
   dataTableGlobalFilterFn,
   getColumnId,
   getDataTableLeafColumns,
+  isDataTableLoadingRow,
   isUtilityColumnId,
   moveColumnInOrder,
 } from "./data-table-utils";
@@ -43,15 +45,18 @@ export function useDataTableInstance<TData>({
   currentColumnFilters,
   currentColumnOrder,
   currentColumnPinning,
+  currentRowPinning,
   currentColumnSizing,
   currentExpanded,
   currentPagination,
   currentRowSelection,
   currentSorting,
+  currentViewMode,
   defaultColumn,
   effectiveColumnVisibility,
   enableColumnResizing,
   enableMultiRowSelection,
+  enableRowPinning,
   enableRowSelection,
   enableSubRowSelection,
   getRowCanSelect,
@@ -63,9 +68,11 @@ export function useDataTableInstance<TData>({
   handleColumnFiltersChange,
   handleColumnOrderChange,
   handleColumnPinningChange,
+  handleRowPinningChange,
   handleColumnVisibilityChange,
   handleExpandedChange,
   infiniteScroll,
+  keepPinnedRows,
   manualFiltering,
   manualExpanding,
   manualPagination,
@@ -98,6 +105,7 @@ export function useDataTableInstance<TData>({
   currentColumnFilters: ColumnFiltersState;
   currentColumnOrder: ColumnOrderState;
   currentColumnPinning: ColumnPinningState;
+  currentRowPinning: RowPinningState;
   currentColumnSizing: ColumnSizingState;
   currentExpanded: ExpandedState;
   currentPagination: PaginationState;
@@ -110,6 +118,7 @@ export function useDataTableInstance<TData>({
   enableMultiRowSelection: NonNullable<
     DataTableProps<TData>["enableMultiRowSelection"]
   >;
+  enableRowPinning: DataTableProps<TData>["enableRowPinning"];
   enableRowSelection: boolean;
   enableSubRowSelection: NonNullable<
     DataTableProps<TData>["enableSubRowSelection"]
@@ -123,9 +132,11 @@ export function useDataTableInstance<TData>({
   handleColumnFiltersChange: OnChangeFn<ColumnFiltersState>;
   handleColumnOrderChange: OnChangeFn<ColumnOrderState>;
   handleColumnPinningChange: OnChangeFn<ColumnPinningState>;
+  handleRowPinningChange: OnChangeFn<RowPinningState>;
   handleColumnVisibilityChange: OnChangeFn<VisibilityState>;
   handleExpandedChange: OnChangeFn<ExpandedState>;
   infiniteScroll: DataTableProps<TData>["infiniteScroll"];
+  keepPinnedRows: boolean;
   manualFiltering: boolean;
   manualExpanding: boolean;
   manualPagination: boolean;
@@ -218,6 +229,36 @@ export function useDataTableInstance<TData>({
     };
   }, [currentColumnPinning, generatedColumnIds]);
 
+  const effectiveRowPinning = React.useMemo<RowPinningState>(() => {
+    const availableRowIds = new Set<string>();
+    const visitRows = (rows: Array<TData>) => {
+      rows.forEach((row, index) => {
+        availableRowIds.add(tableGetRowId(row, index));
+        if (!isDataTableLoadingRow(row)) {
+          const subRows = getSubRows?.(row, index);
+          if (subRows?.length) {
+            visitRows(subRows);
+          }
+        }
+      });
+    };
+    visitRows(tableData);
+    const top = (currentRowPinning.top ?? []).filter((rowId) =>
+      availableRowIds.has(rowId),
+    );
+    const topIds = new Set(top);
+    const bottom = (currentRowPinning.bottom ?? []).filter(
+      (rowId) => availableRowIds.has(rowId) && !topIds.has(rowId),
+    );
+    return { top, bottom };
+  }, [
+    currentRowPinning.bottom,
+    currentRowPinning.top,
+    getSubRows,
+    tableData,
+    tableGetRowId,
+  ]);
+
   const tableState = React.useMemo(
     () => ({
       sorting: currentSorting,
@@ -229,6 +270,7 @@ export function useDataTableInstance<TData>({
       expanded: currentExpanded,
       columnOrder: effectiveColumnOrder,
       columnPinning: effectiveColumnPinning,
+      rowPinning: effectiveRowPinning,
       columnSizing: currentColumnSizing,
     }),
     [
@@ -241,6 +283,7 @@ export function useDataTableInstance<TData>({
       effectiveColumnVisibility,
       effectiveColumnOrder,
       effectiveColumnPinning,
+      effectiveRowPinning,
       globalFilterValue,
     ],
   );
@@ -303,6 +346,11 @@ export function useDataTableInstance<TData>({
     enableRowSelection: getRowCanSelect
       ? (row) => enableRowSelection && getRowCanSelect(row.original)
       : enableRowSelection,
+    enableRowPinning:
+      typeof enableRowPinning === "function"
+        ? (row) => enableRowPinning(row.original)
+        : enableRowPinning,
+    keepPinnedRows,
     enableMultiRowSelection:
       typeof enableMultiRowSelection === "function"
         ? (row) => enableMultiRowSelection(row.original)
@@ -341,6 +389,7 @@ export function useDataTableInstance<TData>({
     onExpandedChange: handleExpandedChange,
     onColumnOrderChange: handleColumnOrderChange,
     onColumnPinningChange: handleColumnPinningChange,
+    onRowPinningChange: handleRowPinningChange,
     onColumnSizingChange: handleColumnSizingChange,
   });
   tableRef.current = table;
@@ -376,7 +425,14 @@ export function useDataTableInstance<TData>({
     [columnGroupPaths, currentColumnOrder, handleColumnOrderChange, table],
   );
 
-  const renderedRows = table.getRowModel().rows;
+  const topPinnedRows = table.getTopRows();
+  const bottomPinnedRows = table.getBottomRows();
+  // Card rendering has no top/bottom table regions. Keep its original row
+  // model intact rather than silently dropping pinned records.
+  const renderedRows =
+    currentViewMode === "table"
+      ? table.getCenterRows()
+      : table.getRowModel().rows;
   const virtualizationConfig =
     typeof virtualization === "object" ? virtualization : undefined;
   const virtualRowsEnabled =
@@ -506,6 +562,8 @@ export function useDataTableInstance<TData>({
     handleFooterPageSizeChange,
     isPageCountKnown,
     renderedRows,
+    topPinnedRows,
+    bottomPinnedRows,
     reorderColumn,
     rowsToRender,
     sentinelRef,
