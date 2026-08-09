@@ -174,6 +174,7 @@ export function createDataTableWithPanels(
     columnPrefsKey,
     persistence,
     savedViews,
+    toolbarDataOperations,
     initialState,
     state: unifiedState,
     onStateChange,
@@ -228,6 +229,8 @@ export function createDataTableWithPanels(
     const draggedColumnIdRef = React.useRef<string | null>(null);
     const tableRef = React.useRef<TanStackTable<TData> | null>(null);
     const lastSelectedRowIdRef = React.useRef<string | null>(null);
+    const [toolbarSavedViewsVersion, setToolbarSavedViewsVersion] =
+      React.useState(0);
     const generatedTitleId = React.useId();
     const generatedDescriptionId = React.useId();
     useDataTablePerformanceDiagnostics({ columns, data, getRowId });
@@ -236,6 +239,12 @@ export function createDataTableWithPanels(
       () => resolveDataTableLabels(labels),
       [labels],
     );
+    const toolbarOperations =
+      toolbarDataOperations === true
+        ? { columnChooser: true, savedViews: true, resetLayout: true }
+        : toolbarDataOperations === false
+          ? {}
+          : (toolbarDataOperations ?? {});
     const resolvedToolbarQueryValue =
       toolbarQueryValue ?? unifiedState?.globalFilter;
     const resolvedSorting = sorting ?? unifiedState?.sorting;
@@ -1078,6 +1087,40 @@ export function createDataTableWithPanels(
       () => clearDataTableSavedViews(savedViews),
       [savedViews],
     );
+    const toolbarSavedViews = React.useMemo(() => {
+      void toolbarSavedViewsVersion;
+      return readDataTableSavedViews(savedViews);
+    }, [savedViews, toolbarSavedViewsVersion]);
+    const handleToolbarCreateSavedView = React.useCallback(
+      (name: string) => {
+        const view = createSavedView(name);
+        if (view) {
+          setToolbarSavedViewsVersion((current) => current + 1);
+        }
+        return view;
+      },
+      [createSavedView],
+    );
+    const handleToolbarRenameSavedView = React.useCallback(
+      (id: string, name: string) => {
+        const view = renameSavedView(id, name);
+        if (view) {
+          setToolbarSavedViewsVersion((current) => current + 1);
+        }
+        return view;
+      },
+      [renameSavedView],
+    );
+    const handleToolbarDeleteSavedView = React.useCallback(
+      (id: string) => {
+        const deleted = deleteSavedView(id);
+        if (deleted) {
+          setToolbarSavedViewsVersion((current) => current + 1);
+        }
+        return deleted;
+      },
+      [deleteSavedView],
+    );
     const exportCsvFromApi = React.useCallback<
       DataTableApi<TData>["exportCsv"]
     >(
@@ -1320,6 +1363,12 @@ export function createDataTableWithPanels(
                   effectiveToolbarActions={guardedToolbarActions}
                   enableColumnPinning={enableColumnPinning}
                   enableGrouping={enableGrouping}
+                  enableToolbarColumnChooser={toolbarOperations.columnChooser === true}
+                  enableToolbarFilterChips={Boolean(toolbarDataOperations)}
+                  enableToolbarResetLayout={toolbarOperations.resetLayout === true}
+                  enableToolbarSavedViews={
+                    toolbarOperations.savedViews === true && Boolean(savedViews)
+                  }
                   enableDensityToggle={enableDensityToggle}
                   enableViewToggle={enableViewToggle && Boolean(cardRenderer)}
                   hiddenRowsLabel={hiddenRows?.label}
@@ -1330,11 +1379,18 @@ export function createDataTableWithPanels(
                   onDensityChange={handleDensityChange}
                   onShowHiddenRowsChange={handleShowHiddenRowsChange}
                   onToolbarQueryValueChange={setLocalSearchValue}
+                  reorderColumn={reorderColumn}
+                  onResetColumnLayout={resetColumnLayout}
+                  onCreateSavedView={handleToolbarCreateSavedView}
+                  onApplySavedView={applySavedView}
+                  onRenameSavedView={handleToolbarRenameSavedView}
+                  onDeleteSavedView={handleToolbarDeleteSavedView}
                   onViewModeChange={handleViewModeChange}
                   openFileDialog={fileUpload ? openFileDialog : undefined}
                   selectedRowIds={selectedRowIds}
                   selectedRows={selectedRows}
                   selectionActions={guardedSelectionActions}
+                  savedViews={toolbarSavedViews}
                   showHiddenRows={currentShowHiddenRows}
                   table={table}
                   title={title}

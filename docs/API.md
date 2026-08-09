@@ -885,9 +885,9 @@ selection, and expansion are intentionally transient unless included in
 `savedViews` supports `version`, `slices`, `storage`, `serialize`,
 `deserialize`, `migrate`, and `onError` equivalents. `onChange(views,
 operation)` receives `"create"`, `"rename"`, `"delete"`, or `"clear"`;
-`onApply(view)` runs after the selected snapshot is restored. No saved-view UI
-is imposed, so host projects can present these commands in their own toolbar,
-menu, or command palette.
+`onApply(view)` runs after the selected snapshot is restored. Host projects can
+present these commands themselves, or opt into the compact built-in controls
+with `toolbarDataOperations={{ savedViews: true }}`.
 
 ### Export, density, labels, and summary props
 
@@ -897,6 +897,7 @@ menu, or command palette.
 | `density` | `"compact" \| "comfortable" \| "spacious"` | internal state | Controlled row density. |
 | `onDensityChange` | `(density: DataTableDensity) => void` | `undefined` | Density change callback. |
 | `enableDensityToggle` | `boolean` | `false` | Adds density controls to the table options menu. |
+| `toolbarDataOperations` | `boolean \| DataTableToolbarDataOperations` | `false` | Opts into enhanced table-options controls. `true` enables searchable column management, reset layout, and saved-view UI; choose individual `columnChooser`, `resetLayout`, or `savedViews` flags to limit it. |
 | `labels` | `Partial<DataTableLabels>` | English defaults | Overrides built-in UI labels. |
 | `summaryRows` | `Array<DataTableSummaryRow<TData>>` | `[]` | Renders aggregate/footer rows aligned to visible columns. |
 | `dir` | `"ltr" \| "rtl"` | `"ltr"` | Direction used for logical pinned column offsets. |
@@ -981,6 +982,12 @@ Notes:
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `toolbarVisibility` | `DataTableToolbarVisibility` | all enabled | Selectively hides parts of the toolbar. |
+
+When `toolbarDataOperations.columnChooser` is enabled, the Columns section
+adds search, bulk show/hide, accessible move-earlier/move-later controls, and
+pin actions (when `enableColumnPinning` is also enabled). Active toolbar and
+column filters are shown as removable chips with a count. `resetLayout` uses
+the same initial layout as `apiRef.current.resetColumnLayout()`.
 
 ### Drag-and-drop props
 

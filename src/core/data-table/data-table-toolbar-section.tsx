@@ -1,6 +1,10 @@
 import * as React from "react";
 import type { Table as TanStackTable } from "@tanstack/react-table";
-import type { DataTableLabels, DataTableProps } from "../types";
+import type {
+  DataTableLabels,
+  DataTableProps,
+  DataTableSavedView,
+} from "../types";
 
 type DataTableToolbarSectionProps<TData> = {
   allRows: Array<TData>;
@@ -14,6 +18,10 @@ type DataTableToolbarSectionProps<TData> = {
   effectiveToolbarActions: Array<unknown>;
   enableColumnPinning: boolean;
   enableGrouping: boolean;
+  enableToolbarColumnChooser: boolean;
+  enableToolbarFilterChips: boolean;
+  enableToolbarResetLayout: boolean;
+  enableToolbarSavedViews: boolean;
   enableDensityToggle: boolean;
   enableViewToggle: boolean;
   hiddenRowsLabel: string | undefined;
@@ -24,11 +32,18 @@ type DataTableToolbarSectionProps<TData> = {
   onDensityChange: (density: "compact" | "comfortable" | "spacious") => void;
   onShowHiddenRowsChange: (showHiddenRows: boolean) => void;
   onToolbarQueryValueChange: (value: string) => void;
+  reorderColumn: (sourceColumnId: string, targetColumnId: string) => void;
+  onResetColumnLayout: () => void;
+  onCreateSavedView: (name: string) => DataTableSavedView | undefined;
+  onApplySavedView: (id: string) => boolean;
+  onRenameSavedView: (id: string, name: string) => DataTableSavedView | undefined;
+  onDeleteSavedView: (id: string) => boolean;
   onViewModeChange: (viewMode: "table" | "card") => void;
   openFileDialog: (() => void) | undefined;
   selectedRowIds: Array<string>;
   selectedRows: Array<TData>;
   selectionActions: DataTableProps<TData>["selectionActions"];
+  savedViews: Array<DataTableSavedView>;
   showHiddenRows: boolean;
   table: TanStackTable<TData>;
   title: string | undefined;
@@ -52,6 +67,10 @@ export function DataTableToolbarSection<TData>({
   effectiveToolbarActions,
   enableColumnPinning,
   enableGrouping,
+  enableToolbarColumnChooser,
+  enableToolbarFilterChips,
+  enableToolbarResetLayout,
+  enableToolbarSavedViews,
   enableDensityToggle,
   enableViewToggle,
   hiddenRowsLabel,
@@ -62,11 +81,18 @@ export function DataTableToolbarSection<TData>({
   onDensityChange,
   onShowHiddenRowsChange,
   onToolbarQueryValueChange,
+  reorderColumn,
+  onResetColumnLayout,
+  onCreateSavedView,
+  onApplySavedView,
+  onRenameSavedView,
+  onDeleteSavedView,
   onViewModeChange,
   openFileDialog,
   selectedRowIds,
   selectedRows,
   selectionActions,
+  savedViews,
   showHiddenRows,
   table,
   title,
@@ -87,6 +113,7 @@ export function DataTableToolbarSection<TData>({
         toolbarQueryValue={toolbarQueryValue}
         toolbarQueryPlaceholder={toolbarQueryPlaceholder}
         onToolbarQueryValueChange={onToolbarQueryValueChange}
+        reorderColumn={reorderColumn}
         customToolbar={customToolbar}
         compactToolbar={compactToolbar}
         viewMode={viewMode}
@@ -106,16 +133,26 @@ export function DataTableToolbarSection<TData>({
         }}
         enableColumnPinning={enableColumnPinning}
         enableGrouping={enableGrouping}
+        enableToolbarColumnChooser={enableToolbarColumnChooser}
+        enableToolbarFilterChips={enableToolbarFilterChips}
+        enableToolbarResetLayout={enableToolbarResetLayout}
+        enableToolbarSavedViews={enableToolbarSavedViews}
         onColumnPinningChange={onColumnPinningChange}
         columnFilters={columnFilters}
         onColumnFilterChange={onColumnFilterChange}
         onClearColumnFilters={onClearColumnFilters}
+        onResetColumnLayout={onResetColumnLayout}
+        onCreateSavedView={onCreateSavedView}
+        onApplySavedView={onApplySavedView}
+        onRenameSavedView={onRenameSavedView}
+        onDeleteSavedView={onDeleteSavedView}
         density={density}
         onDensityChange={onDensityChange}
         enableDensityToggle={enableDensityToggle}
         labels={labels}
         toolbarVisibility={toolbarVisibility}
         openFileDialog={openFileDialog}
+        savedViews={savedViews}
         table={table}
       />
     </div>
