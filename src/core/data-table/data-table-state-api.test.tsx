@@ -481,12 +481,14 @@ describe("DataTable unified state API", () => {
         getData: () => 'Ada\t"Admin\nOwner"',
       },
     });
-    expect(onPaste).toHaveBeenCalledWith(
-      expect.objectContaining({
-        text: 'Ada\t"Admin\nOwner"',
-        values: [["Ada", "Admin\nOwner"]],
-      }),
-    );
+    await waitFor(() => {
+      expect(onPaste).toHaveBeenCalledWith(
+        expect.objectContaining({
+          text: 'Ada\t"Admin\nOwner"',
+          values: [["Ada", "Admin\nOwner"]],
+        }),
+      );
+    });
 
     expect(apiRef.current?.print()).toBe(true);
     expect(print).toHaveBeenCalled();

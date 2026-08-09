@@ -34,13 +34,11 @@ import { useControllableState } from "./use-controllable-state";
 import { useDataTableInstance } from "./use-data-table-instance";
 import { useDataTableScrollViewport } from "./use-data-table-scroll-viewport";
 import {
-  copyDataTableToClipboard,
   exportDataTableCsv,
   getColumnId,
   getDataTableColumnGroupPaths,
   getDataTableLeafColumns,
   getInitialColumnPinning,
-  parseDataTableClipboardText,
   validateDataTableColumnIds,
 } from "./data-table-utils";
 import { useDataTableState } from "./use-data-table-state";
@@ -1283,8 +1281,11 @@ export function createDataTableWithPanels(
     const copyToClipboard = React.useCallback<
       DataTableApi<TData>["copyToClipboard"]
     >(
-      (options) =>
-        copyDataTableToClipboard({
+      async (options) => {
+        const { copyDataTableToClipboard } = await import(
+          "./data-table-clipboard"
+        );
+        return copyDataTableToClipboard({
           clipboard:
             options ??
             (clipboard?.copy === false
@@ -1297,7 +1298,8 @@ export function createDataTableWithPanels(
                 : clipboard?.copy ?? true),
           cellSelection: currentCellSelection,
           table,
-        }),
+        });
+      },
       [clipboard?.copy, currentCellSelection, table],
     );
     const pinRow = React.useCallback<DataTableApi<TData>["pinRow"]>(
@@ -1469,12 +1471,16 @@ export function createDataTableWithPanels(
             }
             runAction(
               { source: "clipboardPaste" },
-              () =>
-                paste.onPaste({
+              async () => {
+                const { parseDataTableClipboardText } = await import(
+                  "./data-table-clipboard"
+                );
+                return paste.onPaste({
                   table,
                   text,
                   values: parseDataTableClipboardText(text),
-                }),
+                });
+              },
             );
           }}
         >
