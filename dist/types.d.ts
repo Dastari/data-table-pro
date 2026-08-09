@@ -1,7 +1,38 @@
 import * as React from 'react';
-import { ColumnDef, CellContext, FilterFnOption, ColumnFiltersState, SortingState, ExpandedState, Row, ColumnOrderState, ColumnPinningState, RowPinningState, VisibilityState, PaginationState, ColumnSizingState, Updater, Table, HeaderContext } from '@tanstack/react-table';
+import { ColumnDef, CellContext, FilterFnOption, ColumnFiltersState, SortingState, GroupingState, AggregationFn, ExpandedState, Row, ColumnOrderState, ColumnPinningState, RowPinningState, Table, VisibilityState, PaginationState, ColumnSizingState, Updater, HeaderContext } from '@tanstack/react-table';
 
 type DataTableViewMode = "table" | "card";
+/** Accessibility behavior for the table view. Native table semantics remain the default. */
+type DataTableAccessibilityOptions = {
+    /**
+     * `grid` enables spreadsheet-like roving focus and keyboard navigation.
+     * `native` (the default) retains ordinary HTML table keyboard behavior.
+     */
+    mode?: "native" | "grid";
+    /** Number of rows moved by PageUp/PageDown when layout cannot be measured. */
+    pageSize?: number;
+};
+/** Shorthand configuration for the interactive ARIA grid mode. */
+type DataTableInteractiveGridOptions = Omit<DataTableAccessibilityOptions, "mode">;
+/** A stable grid coordinate used for cell and rectangular range selection. */
+type DataTableCellCoordinate = {
+    rowId: string;
+    columnId: string;
+};
+/** The two corners of a cell selection. A single-cell selection has equal corners. */
+type DataTableCellSelection = {
+    anchor: DataTableCellCoordinate;
+    focus: DataTableCellCoordinate;
+};
+type DataTableGridCommandContext<TData> = {
+    table: Table<TData>;
+    cellSelection: DataTableCellSelection | null;
+};
+/** Commands are delegated to the application; the table never records app data. */
+type DataTableGridCommands<TData> = {
+    undo?: (context: DataTableGridCommandContext<TData>) => void | Promise<void>;
+    redo?: (context: DataTableGridCommandContext<TData>) => void | Promise<void>;
+};
 type DataTableAlign = "start" | "center" | "end";
 type DataTableColumnType = "text" | "numeric" | "date";
 type DataTableColumnFixed = "left" | "right";
@@ -9,10 +40,44 @@ type DataTableContainerBreakpoint = "sm" | "md" | "lg" | "xl" | "2xl";
 type DataTableDensity = "compact" | "comfortable" | "spacious";
 type DataTableCardSizing = "fixed" | "content" | "fluid";
 type DataTableCellOverflow = "truncate" | "clip" | "wrap" | "visible";
-type DataTableColumnFilterType = "text" | "select" | "multi" | "boolean" | "numberRange" | "dateRange";
+type DataTableColumnFilterType = "text" | "select" | "multi" | "faceted" | "boolean" | "numberRange" | "dateRange";
 type DataTableColumnFilterOperator = "contains" | "equals" | "startsWith" | "endsWith";
 type DataTableCsvExportScope = "filtered" | "page" | "selected" | "all";
-type DataTableActionErrorSource = "toolbarAction" | "selectionAction" | "rowAction" | "rowClick" | "edit" | "fileUpload" | "infiniteScroll";
+type DataTableClipboardCopyScope = DataTableCsvExportScope | "cellSelection";
+type DataTableClipboardCopyOptions<TData> = {
+    includeHeaders?: boolean;
+    columns?: Array<string>;
+    scope?: DataTableClipboardCopyScope;
+    /** Defaults to tab-separated text. */
+    delimiter?: "\t" | ",";
+    escapeFormulaValues?: boolean;
+    getCellValue?: (context: {
+        row: TData;
+        rowId: string;
+        columnId: string;
+        value: unknown;
+    }) => unknown;
+    /** Host-owned clipboard delivery for non-browser or permission-managed apps. */
+    onCopy?: (context: {
+        text: string;
+        rows: Array<TData>;
+        scope: DataTableClipboardCopyScope;
+    }) => void | Promise<void>;
+};
+type DataTableClipboardPasteContext<TData> = {
+    text: string;
+    values: Array<Array<string>>;
+    table: Table<TData>;
+};
+type DataTableClipboardConfig<TData> = {
+    copy?: boolean | DataTableClipboardCopyOptions<TData>;
+    paste?: {
+        enabled?: boolean;
+        preventDefault?: boolean;
+        onPaste: (context: DataTableClipboardPasteContext<TData>) => void | Promise<void>;
+    };
+};
+type DataTableActionErrorSource = "toolbarAction" | "selectionAction" | "rowAction" | "rowClick" | "edit" | "undo" | "redo" | "clipboardCopy" | "clipboardPaste" | "fileUpload" | "infiniteScroll" | "retry";
 declare const DATA_TABLE_CONTAINER_BREAKPOINT_WIDTHS: Record<DataTableContainerBreakpoint, number>;
 type DataTableRowLoadingState = {
     isLoading: boolean;
@@ -22,16 +87,55 @@ type DataTableLoadingState = {
     isLoading: boolean;
     loadingRowCount?: number;
 };
+type DataTableAutoPageSizeConfig = {
+    minRows?: number;
+    maxRows?: number;
+    estimateRowHeight?: number;
+};
+type DataTableStateOverlayContext<TData> = {
+    rows: Array<TData>;
+    toolbarQueryValue: string;
+    error: unknown;
+    isRetrying: boolean;
+    retry: (() => void | Promise<void>) | undefined;
+};
+type DataTableStateOverlay<TData> = {
+    empty?: React.ReactNode | ((context: DataTableEmptyStateContext<TData>) => React.ReactNode);
+    error?: unknown;
+    isRetrying?: boolean;
+    onRetry?: () => void | Promise<void>;
+    renderError?: (context: DataTableStateOverlayContext<TData>) => React.ReactNode;
+};
 type DataTableCellEditRenderProps<TData, TValue> = {
     cell: CellContext<TData, TValue>;
     row: TData;
     value: TValue | undefined;
     draftValue: unknown;
     setDraftValue: (value: unknown) => void;
+    error?: string;
+    isDirty: boolean;
+    isPending: boolean;
 };
 type DataTableColumnFilterOption = {
     label: string;
     value: string;
+    /** Number of matching records. Omit when the count is not known. */
+    count?: number;
+    disabled?: boolean;
+};
+type DataTableFacetedFilterOptions<TData, TValue> = {
+    /**
+     * Server-provided facet values. When supplied, these take precedence over
+     * locally calculated unique values and their counts.
+     */
+    options?: Array<DataTableColumnFilterOption | string> | ((context: {
+        rows: Array<TData>;
+    }) => Array<DataTableColumnFilterOption | string>);
+    /** Render a readable label for values discovered from the local row model. */
+    getOptionLabel?: (value: TValue | undefined) => string;
+    /** Enables an in-menu search input. Defaults to true. */
+    searchable?: boolean;
+    searchPlaceholder?: string;
 };
 type DataTableColumnFilterRangeValue<TValue extends number | string> = {
     from?: TValue;
@@ -45,6 +149,8 @@ type DataTableColumnFilterConfig<TData, TValue> = {
         rows: Array<TData>;
     }) => Array<DataTableColumnFilterOption | string>);
     getOptionValue?: (value: TValue | undefined, row: TData) => string;
+    /** Settings for `type: "faceted"`, including server-provided facet data. */
+    faceting?: DataTableFacetedFilterOptions<TData, TValue>;
     operator?: DataTableColumnFilterOperator;
     trueLabel?: string;
     falseLabel?: string;
@@ -159,6 +265,15 @@ type DataTableToolbarVisibility = {
     viewToggle?: boolean;
     customToolbar?: boolean;
 };
+/** Optional toolbar controls for working with the current table layout and views. */
+type DataTableToolbarDataOperations = {
+    /** Search, bulk show/hide, pin, and keyboard-accessible column move controls. */
+    columnChooser?: boolean;
+    /** Create, apply, rename, and delete saved views when `savedViews` is configured. */
+    savedViews?: boolean;
+    /** Adds a reset-layout action using the table's initial layout. */
+    resetLayout?: boolean;
+};
 type DataTableCardRendererProps<TData> = {
     row: TData;
     rowId: string;
@@ -176,7 +291,16 @@ type DataTableCardRendererProps<TData> = {
 type DataTableEditableRowsConfig<TData> = {
     canEditRow?: (row: TData) => boolean;
     getInitialValues?: (row: TData) => Record<string, unknown>;
+    validateRow?: (row: TData, draftValues: Record<string, unknown>) => void | string | Record<string, string> | Promise<void | string | Record<string, string>>;
+    /** Apply an optimistic host update and optionally return a rollback callback. */
+    onOptimisticUpdate?: (row: TData, draftValues: Record<string, unknown>) => void | (() => void);
     onSaveRow: (row: TData, draftValues: Record<string, unknown>) => void | Promise<void>;
+    onSaveSuccess?: (row: TData, draftValues: Record<string, unknown>) => void;
+    onSaveError?: (error: unknown, row: TData, draftValues: Record<string, unknown>) => void;
+    /** Defaults to true for inputs owned by the table. */
+    commitOnEnter?: boolean;
+    /** Defaults to true for inputs owned by the table. */
+    cancelOnEscape?: boolean;
 };
 type DataTableInfiniteScroll = {
     enabled: boolean;
@@ -311,6 +435,8 @@ type DataTableState = {
     columnPinning: ColumnPinningState;
     rowPinning: RowPinningState;
     columnSizing: ColumnSizingState;
+    /** Present in snapshots produced by 4.4+; optional for 4.x object-literal compatibility. */
+    grouping?: GroupingState;
     density: DataTableDensity;
     viewMode: DataTableViewMode;
     showHiddenRows: boolean;
@@ -371,6 +497,12 @@ type DataTableApi<TData> = {
     scrollToRow: (rowId: string) => boolean;
     scrollToColumn: (columnId: string) => boolean;
     exportCsv: (options?: boolean | DataTableCsvExportOptions<TData>) => Promise<void>;
+    copyToClipboard: (options?: boolean | DataTableClipboardCopyOptions<TData>) => Promise<string | undefined>;
+    getCellSelection: () => DataTableCellSelection | null;
+    setCellSelection: (selection: DataTableCellSelection | null) => void;
+    clearCellSelection: () => void;
+    print: () => boolean;
+    toggleFullscreen: () => Promise<boolean>;
 };
 type DataTableLabels = {
     searchPlaceholder: string;
@@ -419,6 +551,12 @@ type DataTableLabels = {
     expandRowDetails?: string;
     collapseRowDetails?: string;
     exportCsv: string;
+    print?: string;
+    enterFullscreen?: string;
+    exitFullscreen?: string;
+    errorTitle?: string;
+    errorDescription?: string;
+    retry?: string;
     density: string;
     compactDensity: string;
     comfortableDensity: string;
@@ -430,6 +568,26 @@ type DataTableLabels = {
     pinRowToBottom: string;
     unpinRow: string;
     resizeColumn: (columnLabel: string) => string;
+    grouping?: string;
+    groupBy?: (columnLabel: string) => string;
+    ungroup?: (columnLabel: string) => string;
+    removeGrouping?: (columnLabel: string) => string;
+    moveGroupingEarlier?: (columnLabel: string) => string;
+    moveGroupingLater?: (columnLabel: string) => string;
+    facetSearch?: (columnLabel: string) => string;
+    searchColumns?: string;
+    showAllColumns?: string;
+    hideAllColumns?: string;
+    moveColumnEarlier?: (columnLabel: string) => string;
+    moveColumnLater?: (columnLabel: string) => string;
+    resetColumnLayout?: string;
+    savedViews?: string;
+    createSavedView?: string;
+    savedViewName?: string;
+    applySavedView?: (name: string) => string;
+    renameSavedView?: (name: string) => string;
+    deleteSavedView?: (name: string) => string;
+    saveSavedView?: string;
 };
 type DataTableSummaryRow<TData> = {
     key: string;
@@ -474,8 +632,20 @@ type DataTableProps<TData> = {
     sorting?: SortingState;
     onSortingChange?: (sorting: SortingState) => void;
     manualSorting?: boolean;
+    grouping?: GroupingState;
+    onGroupingChange?: (grouping: GroupingState) => void;
+    /** Use rows already grouped by the server instead of TanStack's grouping model. */
+    manualGrouping?: boolean;
+    /** Show group/ungroup controls in the table options menu and grouping bar. */
+    enableGrouping?: boolean;
+    /** Controls whether grouped columns are reordered, removed, or left in place. */
+    groupedColumnMode?: false | "reorder" | "remove";
+    /** Named aggregation functions available to column `aggregationFn` definitions. */
+    aggregationFns?: Record<string, AggregationFn<TData>>;
     pageIndex?: number;
     pageSize?: number;
+    /** Sizes an opt-in page from the measurable table scroll viewport. */
+    autoPageSize?: boolean | DataTableAutoPageSizeConfig;
     onPageIndexChange?: (pageIndex: number) => void;
     onPageSizeChange?: (pageSize: number) => void;
     pageCount?: number;
@@ -526,6 +696,17 @@ type DataTableProps<TData> = {
     selectionActions?: Array<DataTableSelectionAction<TData>>;
     rowActions?: Array<DataTableRowAction<TData>>;
     csvExport?: boolean | DataTableCsvExportOptions<TData>;
+    /** Opt-in TSV/CSV copy and application-owned paste handling. */
+    clipboard?: DataTableClipboardConfig<TData>;
+    /** Enables pointer and Shift+keyboard rectangular cell selection in grid mode. */
+    enableCellSelection?: boolean;
+    /** Controlled cell/range selection. Supplying a value also enables it in grid mode. */
+    cellSelection?: DataTableCellSelection | null;
+    /** Initial cell/range selection when uncontrolled. */
+    defaultCellSelection?: DataTableCellSelection | null;
+    onCellSelectionChange?: (selection: DataTableCellSelection | null) => void;
+    /** Host-owned undo/redo commands invoked by Ctrl/Cmd+Z and Ctrl/Cmd+Shift+Z. */
+    gridCommands?: DataTableGridCommands<TData>;
     density?: DataTableDensity;
     onDensityChange?: (density: DataTableDensity) => void;
     enableDensityToggle?: boolean;
@@ -545,7 +726,11 @@ type DataTableProps<TData> = {
     viewMode?: DataTableViewMode;
     onViewModeChange?: (viewMode: DataTableViewMode) => void;
     enableViewToggle?: boolean;
+    enablePrint?: boolean;
+    enableFullscreen?: boolean;
     emptyState?: React.ReactNode | ((context: DataTableEmptyStateContext<TData>) => React.ReactNode);
+    /** Explicit empty/error/retry rendering contract. */
+    stateOverlay?: DataTableStateOverlay<TData>;
     isLoading?: boolean;
     loadingRowCount?: number;
     getRowLoadingState?: (row: TData, index: number) => boolean | DataTableRowLoadingState;
@@ -567,6 +752,8 @@ type DataTableProps<TData> = {
     dir?: "ltr" | "rtl";
     flexGrow?: boolean;
     toolbarVisibility?: DataTableToolbarVisibility;
+    /** Opts into enhanced layout and saved-view toolbar controls. */
+    toolbarDataOperations?: boolean | DataTableToolbarDataOperations;
     className?: string;
     tableClassName?: string;
     tableContainerClassName?: string;
@@ -580,6 +767,10 @@ type DataTableProps<TData> = {
     dragAndDrop?: DataTableDragAndDropConfig<TData>;
     fileUpload?: DataTableFileUploadConfig;
     virtualization?: boolean | DataTableVirtualizationConfig;
+    /** Opt in to ARIA grid semantics and roving keyboard navigation. */
+    accessibility?: DataTableAccessibilityOptions;
+    /** Shorthand for `accessibility={{ mode: "grid" }}`. */
+    interactiveGrid?: boolean | DataTableInteractiveGridOptions;
 };
 declare function isRowVisible<TData>(row: TData, hiddenRows: DataTableHiddenRowsConfig<TData> | undefined, showHiddenRows: boolean): boolean;
 declare function resolveRowActionLabel<TData>(label: DataTableRowAction<TData>["label"], row: TData): string;
@@ -593,4 +784,4 @@ declare function hideOnClassName(hideOn: DataTableContainerBreakpoint | Array<Da
 declare function isHiddenAtContainerWidth(hideOn: DataTableContainerBreakpoint | Array<DataTableContainerBreakpoint> | undefined, containerWidth: number): boolean;
 declare function rowSelectionStateFromRows<TData>(rows: Array<Row<TData>>): TData[];
 
-export { DATA_TABLE_CONTAINER_BREAKPOINT_WIDTHS, type DataTableActionErrorContext, type DataTableActionErrorSource, type DataTableAlign, type DataTableApi, type DataTableCardRendererProps, type DataTableCardSizing, type DataTableCardVirtualizationConfig, type DataTableCellEditRenderProps, type DataTableCellOverflow, type DataTableColumnDef, type DataTableColumnFilterConfig, type DataTableColumnFilterOperator, type DataTableColumnFilterOption, type DataTableColumnFilterRangeValue, type DataTableColumnFilterType, type DataTableColumnFixed, type DataTableColumnGroupDef, type DataTableColumnMeta, type DataTableColumnPrefs, type DataTableColumnType, type DataTableColumnVisibilityOption, type DataTableContainerBreakpoint, type DataTableCsvExportOptions, type DataTableCsvExportScope, type DataTableDensity, type DataTableDetailPanel, type DataTableDragAndDropConfig, type DataTableEditableRowsConfig, type DataTableEmptyStateContext, type DataTableExpandedRowProps, type DataTableFileUploadConfig, type DataTableHiddenRowsConfig, type DataTableInfiniteScroll, type DataTableInitialState, type DataTableLabels, type DataTableLoadingState, type DataTablePersistenceConfig, type DataTablePersistenceOperation, type DataTablePersistencePayload, type DataTablePersistenceSlice, type DataTablePersistenceStorage, type DataTableProps, type DataTableResetOptions, type DataTableRowAction, type DataTableRowClassNameContext, type DataTableRowLoadingState, type DataTableSavedView, type DataTableSavedViewSlice, type DataTableSavedViewsChangeOperation, type DataTableSavedViewsConfig, type DataTableSavedViewsPayload, type DataTableSelectionAction, type DataTableSelectionActionContext, type DataTableState, type DataTableSummaryRow, type DataTableToolbarAction, type DataTableToolbarVisibility, type DataTableViewMode, type DataTableVirtualizationConfig, alignClassName, canEditRow, canUseRowAction, cellAlignClassName, headerAlignClassName, hideOnClassName, isHiddenAtContainerWidth, isRowVisible, resolveColumnAlign, resolveRowActionLabel, rowSelectionStateFromRows };
+export { DATA_TABLE_CONTAINER_BREAKPOINT_WIDTHS, type DataTableAccessibilityOptions, type DataTableActionErrorContext, type DataTableActionErrorSource, type DataTableAlign, type DataTableApi, type DataTableAutoPageSizeConfig, type DataTableCardRendererProps, type DataTableCardSizing, type DataTableCardVirtualizationConfig, type DataTableCellCoordinate, type DataTableCellEditRenderProps, type DataTableCellOverflow, type DataTableCellSelection, type DataTableClipboardConfig, type DataTableClipboardCopyOptions, type DataTableClipboardCopyScope, type DataTableClipboardPasteContext, type DataTableColumnDef, type DataTableColumnFilterConfig, type DataTableColumnFilterOperator, type DataTableColumnFilterOption, type DataTableColumnFilterRangeValue, type DataTableColumnFilterType, type DataTableColumnFixed, type DataTableColumnGroupDef, type DataTableColumnMeta, type DataTableColumnPrefs, type DataTableColumnType, type DataTableColumnVisibilityOption, type DataTableContainerBreakpoint, type DataTableCsvExportOptions, type DataTableCsvExportScope, type DataTableDensity, type DataTableDetailPanel, type DataTableDragAndDropConfig, type DataTableEditableRowsConfig, type DataTableEmptyStateContext, type DataTableExpandedRowProps, type DataTableFacetedFilterOptions, type DataTableFileUploadConfig, type DataTableGridCommandContext, type DataTableGridCommands, type DataTableHiddenRowsConfig, type DataTableInfiniteScroll, type DataTableInitialState, type DataTableInteractiveGridOptions, type DataTableLabels, type DataTableLoadingState, type DataTablePersistenceConfig, type DataTablePersistenceOperation, type DataTablePersistencePayload, type DataTablePersistenceSlice, type DataTablePersistenceStorage, type DataTableProps, type DataTableResetOptions, type DataTableRowAction, type DataTableRowClassNameContext, type DataTableRowLoadingState, type DataTableSavedView, type DataTableSavedViewSlice, type DataTableSavedViewsChangeOperation, type DataTableSavedViewsConfig, type DataTableSavedViewsPayload, type DataTableSelectionAction, type DataTableSelectionActionContext, type DataTableState, type DataTableStateOverlay, type DataTableStateOverlayContext, type DataTableSummaryRow, type DataTableToolbarAction, type DataTableToolbarDataOperations, type DataTableToolbarVisibility, type DataTableViewMode, type DataTableVirtualizationConfig, alignClassName, canEditRow, canUseRowAction, cellAlignClassName, headerAlignClassName, hideOnClassName, isHiddenAtContainerWidth, isRowVisible, resolveColumnAlign, resolveRowActionLabel, rowSelectionStateFromRows };

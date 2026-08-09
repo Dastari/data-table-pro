@@ -1,4 +1,4 @@
-import { PaginationState, SortingState, ColumnFiltersState } from '@tanstack/react-table';
+import { PaginationState, SortingState, ColumnFiltersState, GroupingState } from '@tanstack/react-table';
 import { DataTableProps } from './types.js';
 import 'react';
 
@@ -19,6 +19,14 @@ type DataTableDataSourceQuery<TQuery = undefined, TCursor = string> = {
     cursor: TCursor | null;
     sorting: SortingState;
     columnFilters: ColumnFiltersState;
+    /** Server-owned global filter value, normally the table toolbar query. */
+    globalFilter?: string;
+    /** Server-owned row grouping state. */
+    grouping?: GroupingState;
+    /** Requested aggregate functions keyed by result/column identifier. */
+    aggregations?: Record<string, string>;
+    /** Stable ancestor/group identifiers for lazy child or group loading. */
+    expansionPath?: Array<string>;
     /** Application-owned request parameters, such as a tenant or parent ID. */
     query: TQuery | undefined;
 };
@@ -35,6 +43,12 @@ type DataTableDataSourceResponse<TData, TCursor = string, TFacets = unknown> = {
     nextCursor?: TCursor | null;
     /** Backend-provided facet/count metadata for filter UIs. */
     facets?: TFacets;
+    /** Stable row identifiers in response order when IDs are server-projected. */
+    rowIds?: Array<string>;
+    /** Backend-provided aggregate values keyed by result/column identifier. */
+    aggregates?: Record<string, unknown>;
+    /** Application-owned response metadata such as revision or timing data. */
+    metadata?: Record<string, unknown>;
 };
 type DataTableDataSource<TData, TQuery = undefined, TCursor = string, TFacets = unknown> = (request: DataTableDataSourceRequest<TQuery, TCursor>) => DataTableDataSourceResponse<TData, TCursor, TFacets> | Promise<DataTableDataSourceResponse<TData, TCursor, TFacets>>;
 type DataTableDataSourceRetryOptions = number | {
@@ -74,9 +88,12 @@ type UseDataTableDataSourceOptions<TData, TQuery = undefined, TCursor = string, 
     onPageSizeChange?: (pageSize: number) => void;
     onSortingChange?: (sorting: SortingState) => void;
     onColumnFiltersChange?: (filters: ColumnFiltersState) => void;
+    onGlobalFilterChange?: (globalFilter: string) => void;
+    onGroupingChange?: (grouping: GroupingState) => void;
 };
-type DataTableDataSourceTableProps<TData> = Pick<DataTableProps<TData>, "columnFilters" | "data" | "hasNextPage" | "isLoading" | "manualFiltering" | "manualPagination" | "manualSorting" | "onColumnFiltersChange" | "onPageIndexChange" | "onPageSizeChange" | "onSortingChange" | "pageIndex" | "pageSize" | "sorting" | "totalRowCount">;
+type DataTableDataSourceTableProps<TData> = Pick<DataTableProps<TData>, "columnFilters" | "data" | "hasNextPage" | "isLoading" | "manualFiltering" | "manualGrouping" | "manualPagination" | "manualSorting" | "onColumnFiltersChange" | "onGroupingChange" | "onPageIndexChange" | "onPageSizeChange" | "onSortingChange" | "pageIndex" | "pageSize" | "sorting" | "grouping" | "toolbarQueryValue" | "onToolbarQueryValueChange" | "totalRowCount">;
 type UseDataTableDataSourceResult<TData, TCursor = string, TFacets = unknown> = {
+    aggregates: Record<string, unknown> | undefined;
     data: Array<TData>;
     error: unknown;
     facets: TFacets | undefined;
@@ -87,6 +104,8 @@ type UseDataTableDataSourceResult<TData, TCursor = string, TFacets = unknown> = 
     isFetching: boolean;
     isSuccess: boolean;
     nextCursor: TCursor | null | undefined;
+    metadata: Record<string, unknown> | undefined;
+    rowIds: Array<string> | undefined;
     rowCount: number | undefined;
     /** Starts a network request, bypassing a fresh cache entry. */
     refresh: () => Promise<DataTableDataSourceResponse<TData, TCursor, TFacets> | undefined>;

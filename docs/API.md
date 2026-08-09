@@ -213,18 +213,27 @@ For cursor APIs, set `mode: "cursor"` and pass the cursor for the requested
 page as `cursor`; the hook exposes the backend's `nextCursor`. Memoize `source`
 with `useCallback`, or include all of its changing inputs in `query`, so a
 changed request is observable. Provide `getRequestKey` when `query` contains a
-non-serializable value.
+non-serializable value. Requests also carry `globalFilter`, `grouping`, named
+`aggregations`, and an `expansionPath`; results may return stable `rowIds`,
+`facets`, `aggregates`, and arbitrary `metadata`. These fields are additive, so
+an existing source may ignore them and retain its previous result shape.
 
 ## Type Exports
 
 These are exported from the adapter entrypoints and from `data-table-pro/types`.
 
 - `DataTableAlign`
+- `DataTableAccessibilityOptions`
 - `DataTableApi`
+- `DataTableAutoPageSizeConfig`
 - `DataTableCardSizing`
 - `DataTableCardVirtualizationConfig`
 - `DataTableCellOverflow`
 - `DataTableCellEditRenderProps`
+- `DataTableCellSelection`
+- `DataTableClipboardConfig`
+- `DataTableClipboardCopyOptions`
+- `DataTableClipboardCopyScope`
 - `DataTableCardRendererProps`
 - `DataTableColumnDef`
 - `DataTableColumnGroupDef`
@@ -251,6 +260,8 @@ These are exported from the adapter entrypoints and from `data-table-pro/types`.
 - `DataTableHiddenRowsConfig`
 - `DataTableInfiniteScroll`
 - `DataTableInitialState`
+- `DataTableGridCommands`
+- `DataTableInteractiveGridOptions`
 - `DataTableLabels`
 - `DataTableLoadingState`
 - `DataTablePersistenceConfig`
@@ -268,6 +279,8 @@ These are exported from the adapter entrypoints and from `data-table-pro/types`.
 - `DataTableRowAction`
 - `DataTableRowLoadingState`
 - `DataTableState`
+- `DataTableStateOverlay`
+- `DataTableToolbarDataOperations`
 - `DataTableSelectionAction`
 - `DataTableSummaryRow`
 - `DataTableToolbarAction`
@@ -360,6 +373,10 @@ Legacy controlled props remain supported. If a legacy prop and its matching
 - `focus()`, `scrollToRow(rowId)`, and `scrollToColumn(columnId)`
 - `pinRow(rowId, position?)` and `unpinRow(rowId)` when row pinning is enabled
 - `exportCsv(options?)`
+- `copyToClipboard(options?)`
+- `getCellSelection()`, `setCellSelection(selection)`, and
+  `clearCellSelection()`
+- `print()` and `toggleFullscreen()`
 
 Scroll commands return `false` when the requested rendered element is not
 currently available, including a virtual row outside the active window.
@@ -435,10 +452,9 @@ also ignored. `rowSelection` is never read or written without the explicit
 `"rowSelection"` opt-in.
 
 The hook returns direct values and TanStack-compatible setters for every
-enhanced slice, a `tableState` object for slices currently supported by
-`DataTableState`, and `clearEnhancedState()`. Grouping is returned separately
-for server-owned state and forward compatibility; first-class table grouping
-is scheduled for Phase 2.
+enhanced slice, a `tableState` object for slices supported by `DataTableState`,
+and `clearEnhancedState()`. Its `grouping` state can be passed directly to the
+table's first-class `grouping` / `onGroupingChange` contract.
 
 ### Basic content props
 
@@ -507,6 +523,9 @@ optional `trueLabel` and `falseLabel` overrides. Text filters accept an
 TanStack's faceted unique-value map and displays local option counts. Set
 `faceting.options` when the server owns facet results; its optional `count`
 is displayed unchanged. `faceting.searchable` defaults to `true`.
+Numeric-range filters without configured `min` or `max` derive the missing
+bounds from TanStack's local faceted row model. Explicit bounds always win,
+and manual/server filtering remains server-owned.
 
 ```tsx
 meta: {
@@ -692,6 +711,13 @@ rectangular values as TSV (without headers). Set
 `clipboard.copy.scope: "cellSelection"` to request that scope explicitly from
 the imperative copy API; `includeHeaders: true` remains available.
 
+`clipboard.copy` accepts the same `filtered`, `page`, `selected`, and `all`
+scopes as CSV plus `cellSelection`; configure tab or comma delimiters,
+headers, columns, value formatting, formula neutralization, and an app-owned
+`onCopy` destination. `clipboard.paste` is deliberately opt-in and receives
+both the original text and parsed two-dimensional values. The table does not
+mutate application records implicitly.
+
 ### Pagination props
 
 | Prop | Type | Default | Description |
@@ -846,7 +872,7 @@ virtualizer retain the scroll anchor when measurements change. Treat `data`,
 row objects, column definitions, and `getRowId` as immutable/memoized inputs.
 Development builds warn about common identity churn and duplicate row ids.
 
-Column virtualization is intentionally not available in 4.3. The table panel
+Column virtualization is intentionally not available in 4.4. The table panel
 preserves native table layout, grouped headers, pinned/resized columns, detail
 rows, and accessibility semantics; slicing only body columns would break those
 contracts. Use the included 20/100/500-column benchmark to establish whether
@@ -874,6 +900,12 @@ Column meta can customize editing with `renderEditCell`, `parseEditValue`, and
 row, current value, draft value, and `setDraftValue`. Numeric columns use
 number inputs, date columns use datetime inputs, and boolean drafts use
 checkboxes by default.
+
+`validateRow` may return a general error string or field-name/error map, either
+synchronously or asynchronously. Editing exposes dirty and pending UI state,
+supports Enter to commit and Escape to cancel by default, and provides
+optimistic update, rollback, success, and failure callbacks without retaining
+an application-owned undo history.
 
 ### Column visibility, sizing, ordering, pinning, and preferences props
 
@@ -928,7 +960,7 @@ Persistence errors are best-effort and do not break rendering.
 Named saved views use a separate
 `data-table-pro:saved-views:${savedViews.key}` payload. By default a saved view
 captures sorting, filtering, column visibility/order/pinning/sizing, density,
-view mode, hidden-row visibility, and the global query. Pagination, row
+grouping, view mode, hidden-row visibility, and the global query. Pagination, row
 selection, and expansion are intentionally transient unless included in
 `savedViews.slices`.
 

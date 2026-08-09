@@ -11,6 +11,7 @@ type DataTableUiClassNames = {
     cardUnselected?: string;
     cardViewport?: string;
     cellBorder?: string;
+    cellSelected?: string;
     columnGroupHeader?: string;
     dragActive?: string;
     emptyState?: string;

@@ -10,7 +10,7 @@ const rootDir = path.resolve(
 const distDir = path.join(rootDir, "dist");
 const kib = 1024;
 const budgets = {
-  base: 42 * kib,
+  base: 48 * kib,
   adapterDelta: 6 * kib,
   urlState: 5 * kib,
   dataSource: 3 * kib,

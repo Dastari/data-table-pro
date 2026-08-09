@@ -4,6 +4,93 @@
 
 No changes yet.
 
+## 4.4.0 - 2026-08-09
+
+Version 4.4.0 completes the core Phase 2–4 modernization work with additive,
+opt-in APIs. It removes no public prop, type, or package entrypoint.
+
+### Features
+
+- Added local faceted option counts, searchable faceted multi-select filters,
+  server-supplied facet options, and automatically derived numeric facet
+  bounds when range limits are not configured.
+- Added controlled and manual grouping, grouped-column modes, built-in and
+  custom aggregation functions, grouped/aggregated/placeholder rendering,
+  accessible group/ungroup controls, and a reorderable grouping bar.
+- Expanded `data-table-pro/data-source` requests with global filtering,
+  grouping, aggregation, and expansion paths, and results with stable row IDs,
+  aggregates, facets, and metadata. The generated `tableProps` now wires the
+  corresponding manual table contracts.
+- Added opt-in ARIA grid semantics with one roving cell tab stop, complete
+  arrow/Home/End/Page navigation, virtual/server row and column metadata, and
+  focus restoration from interactive descendants.
+- Added controlled or uncontrolled rectangular cell-range selection through
+  pointer drag and Shift+keyboard navigation, selection styling/ARIA state,
+  imperative selection commands, and app-owned undo/redo command hooks.
+- Added formula-safe TSV/CSV clipboard copy, selected-range copy, opt-in parsed
+  paste callbacks, and flattened expanded-row ordering.
+- Added asynchronous row validation, field/general errors, dirty and pending
+  states, Enter/Escape commit policy, optimistic updates, rollback, and save
+  lifecycle callbacks to row editing.
+- Added opt-in toolbar data operations: a searchable column chooser, bulk
+  visibility, group-safe reordering, pinning, layout reset, active-filter
+  chips/counts, and create/apply/rename/delete controls for named saved views.
+- Added opt-in viewport-driven automatic page sizing, explicit
+  empty/error/retry state handling, and print/fullscreen toolbar controls and
+  API commands.
+
+### Performance and accessibility
+
+- Cached normalized search values by immutable row/column identity and
+  deferred only client-owned filtering, leaving controlled server callbacks
+  immediate.
+- Dynamically measured variable-height virtual table rows and retained stable
+  row keys and scroll anchors.
+- Added development diagnostics for actual array-wrapper identity churn and a
+  reproducible 1k–100k row / 20–500 column benchmark matrix.
+- Moved clipboard handling, enhanced toolbar operations, automatic page-size
+  observation, and error overlays behind first-use chunks. Default tables do
+  not request those opt-in implementations.
+- Added real-browser interactive-grid navigation and pointer range-selection
+  coverage alongside the existing adapter/theme screenshots and axe audits.
+- Pinned patched transitive releases of brace-expansion, fast-uri, Hono,
+  js-yaml, and nanoid after newly published advisories; `pnpm audit` reports no
+  known vulnerabilities.
+
+### Compatibility
+
+- No public prop, type, package entrypoint, default semantic mode, or default
+  toolbar behavior was removed or changed.
+- `DataTableState.grouping` is optional so existing complete state object
+  literals remain source-compatible. All new behaviors are disabled unless
+  their corresponding prop or controlled state is supplied.
+- `DataTableApi.copyToClipboard()` already returned a promise; loading its
+  implementation asynchronously does not change that contract.
+- Column virtualization remains intentionally deferred. A partial body-only
+  implementation would break native grouped headers, pinned/resized columns,
+  detail rows, and screen-reader geometry; the wide-column benchmark remains
+  the supported decision tool for responsive visibility/server projection.
+- A standalone per-cell commit model, built-in runtime filter-operator builder,
+  and XLSX plugin remain optional future work. Existing row editing exposes
+  per-cell editors and app-owned validation/commit hooks.
+
+### Validation
+
+- 310 unit/integration tests with enforced coverage
+- lint and package/demo typechecks
+- deterministic package build and public API snapshot
+- packed-consumer and demo production builds
+- clean `pnpm audit`
+- base, adapter, URL-state, data-source, demo JavaScript, and CSS budgets
+- browser keyboard/range tests plus six adapter/theme screenshot and axe cases
+- The measured base static graph is 46.1 KiB gzip. The ceiling moves from
+  42 KiB to 48 KiB to cover the grouping, grid-navigation, range-selection,
+  editing, and state coordination that must remain in the shared runtime while
+  retaining 1.9 KiB of regression headroom. Clipboard (2.04 KB minified),
+  toolbar operations (4.60 KB), auto sizing (1.34 KB), error overlays
+  (1.01 KB), virtualization, and the data source remain separately loaded or
+  independently importable.
+
 ## 4.3.0 - 2026-08-09
 
 ### Features

@@ -1,5 +1,45 @@
 # Migration Guide
 
+## 4.4.0 additive modernization release
+
+Version 4.4.0 removes no public prop, type, or package entrypoint. A 4.3 table
+keeps native table semantics and its existing toolbar, paging, editing, and
+server behavior until a new option is enabled.
+
+- Use `enableGrouping`, `grouping` / `onGroupingChange`, or
+  `initialState.grouping` to adopt grouping. `DataTableState.grouping` remains
+  optional so existing complete state object literals compile unchanged.
+- Use `interactiveGrid` (or `accessibility={{ mode: "grid" }}`) only for an
+  application-style keyboard grid. Add `enableCellSelection` separately when
+  rectangular range selection is wanted; ordinary row selection is
+  independent.
+- Use `clipboard` for opt-in copy/paste behavior. `copyToClipboard()` remains
+  asynchronous and now loads its implementation on first use. Setting
+  `clipboard={{ copy: false }}` continues to disable imperative/default range
+  copy.
+- Use `toolbarDataOperations` for the searchable column manager, filter chips,
+  reset, and saved-view UI. Existing `savedViews` API-ref commands still work
+  without built-in controls. Newly created saved views include grouping by
+  default; an explicit `savedViews.slices` list remains authoritative.
+- Use `autoPageSize`, `stateOverlay`, `enablePrint`, and `enableFullscreen`
+  independently. Their optional implementations load only when requested.
+- Data-source callbacks may consume the new `globalFilter`, `grouping`,
+  `aggregations`, and `expansionPath` request fields and return `rowIds`,
+  `facets`, `aggregates`, and `metadata`. Existing sources can ignore all new
+  fields and keep returning their prior result shape.
+- Numeric range filters without explicit `min` / `max` now expose bounds from
+  TanStack's local faceted row model. Set explicit limits to retain fixed
+  application-defined bounds; manual/server filters remain server-owned.
+
+The base gzip budget rises from 42 KiB to 48 KiB with a measured 46.1 KiB
+static graph. Clipboard, enhanced toolbar operations, auto sizing, error
+overlays, virtualization, and the data-source hook are not added to that
+default static path when unused.
+
+Column virtualization is not part of 4.4. The package keeps native table
+layout and grouped-header, pinning, resizing, detail-row, and accessibility
+correctness instead of shipping a partial body-only virtualizer.
+
 ## 4.3.0 additive feature release
 
 Version 4.3.0 removes no prop, type, or entrypoint. Existing flat-row tables,

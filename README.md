@@ -28,14 +28,15 @@ Dedicated subpath exports are also available:
 - `data-table-pro/types`: public TypeScript types
 
 The current feature set includes client/manual filtering with local or
-server-provided facets, grouping and aggregation, sorting and
-pagination, unknown-total pagination, selection, detail panels, table/card
-views, row/card virtualization, nested column groups, column
+server-provided facets, grouping and aggregation, sorting and pagination,
+unknown-total and automatic page sizing, row and cell-range selection,
+interactive-grid keyboard navigation, detail panels, table/card views,
+row/card virtualization, nested column groups, column
 sizing/order/pinning/visibility, versioned persistence, named saved views,
-versioned URL state, CSV export, inline row editing, density controls,
-loading/empty states, summary rows, alternate row shading, infinite loading,
-typed server data sources, and host-owned
-drag/upload integrations. See
+versioned URL state, CSV and clipboard export, inline row editing, density
+controls, loading/empty/error states, summary rows, alternate row shading,
+infinite loading, typed server data sources, and host-owned drag/upload
+integrations. See
 [`docs/API.md`](./docs/API.md) for the complete contract.
 
 ## Breaking Changes In 3.0.0
@@ -53,14 +54,22 @@ compatibility-first major that releases the accumulated state, persistence,
 quality, dependency, accessibility, and package-splitting work after 3.0.9.
 The previously planned API cleanup is deferred to a future 5.0 release.
 
+## 4.4.0 Compatibility
+
+Version 4.4.0 is an additive minor release. Native table semantics and the
+existing toolbar remain the defaults; grouping, interactive-grid navigation,
+cell ranges, clipboard/paste, enhanced data operations, auto page sizing,
+print/fullscreen controls, and error overlays are individually opt-in. No
+public prop, type, or entrypoint was removed.
+
 ## Installation
 
 ```bash
-pnpm add github:Dastari/data-table-pro#v4.3.0
+pnpm add github:Dastari/data-table-pro#v4.4.0
 ```
 
 This package is installed from GitHub refs. It is not published to npm.
-Release tags such as `v4.3.0` include committed `dist/` output, so consumers
+Release tags such as `v4.4.0` include committed `dist/` output, so consumers
 do not need to allow package build scripts during install.
 
 Peer dependencies:
@@ -580,6 +589,38 @@ const columns: Array<DataTableColumnDef<Person>> = [
   initialState={{ grouping: ["team"] }}
 />;
 ```
+
+### Interactive grid, ranges, and data operations
+
+Keep the default native table for reading/browsing. Opt into grid mode for a
+keyboard-operated data workspace, then enable rectangular selection and
+clipboard handling independently:
+
+```tsx
+<DataTable
+  columns={columns}
+  data={rows}
+  getRowId={(row) => row.id}
+  interactiveGrid
+  enableCellSelection
+  clipboard={{
+    copy: true,
+    paste: {
+      onPaste: ({ values }) => applyPastedValues(values),
+    },
+  }}
+  toolbarDataOperations
+  autoPageSize
+  enablePrint
+  enableFullscreen
+  stateOverlay={{ error, onRetry: reload }}
+/>
+```
+
+Grid mode provides roving cell focus and arrow/Home/End/Page navigation. Shift
+extends the cell range, Ctrl/Cmd+C copies the range as formula-safe TSV, and
+optional undo/redo callbacks remain application-owned. Enhanced toolbar,
+clipboard, auto-size, and error-overlay implementations are first-use chunks.
 
 ## Demo App
 

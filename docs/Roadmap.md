@@ -16,11 +16,11 @@ Audit baseline:
 
 Current implementation baseline:
 
-- package version: 4.3.0
+- package version: 4.4.0
 - React/React DOM peers: 19.2.8
 - TanStack Table: 8.21.3
 - TanStack Virtual: 3.14.8
-- validation: 281 unit/integration tests, enforced coverage and declaration
+- validation: 310 unit/integration tests, enforced coverage and declaration
   snapshots, SSR/hydration tests, a packed-consumer build, and six
   adapter/theme Playwright screenshot and axe cases
 - toolchain: TypeScript 7 CLI with the official TypeScript 6 compiler-API
@@ -222,9 +222,11 @@ Quality:
 
 ### Phase 2: TanStack feature parity (3.2)
 
-Status: partially delivered in 4.3.0. Richer filters, tree/detail expansion,
-row pinning, selection policies, and hardened column-group behavior are
-complete; faceting and data grouping/aggregation remain.
+Status: core scope complete in 4.4.0. Richer filters, tree/detail expansion,
+row pinning, selection policies, hardened column groups, faceting, grouping,
+and aggregation are implemented across all adapters. Applications can still
+supply a custom `globalFilterFn` for domain-specific fuzzy ranking; a bundled
+ranking dependency is not added to the base runtime.
 
 Delivered in 4.3.0:
 
@@ -243,13 +245,24 @@ Delivered in 4.3.0:
 - Locked nested group reordering by default, explicit cross-group opt-in,
   descriptions, group-specific height, class, and style hooks.
 
+Delivered in 4.4.0:
+
+- Searchable faceted multi-select filters with local unique-value counts,
+  server-provided facet options/counts, and local numeric min/max derivation.
+- Controlled/uncontrolled and manual grouping, grouped-column modes, built-in
+  and custom aggregations, grouped/aggregated/placeholder cells, column-menu
+  controls, and an accessible reorderable grouping bar.
+- Grouping state throughout unified state, saved views, URL state,
+  export/clipboard row models, and the server data-source contract.
+
 Filtering and faceting:
 
 - Add `boolean`, `numberRange`, `dateRange`, and `faceted` filter definitions.
 - Wire `getFacetedRowModel`, `getFacetedUniqueValues`, and
   `getFacetedMinMaxValues` only when needed.
 - Support option counts, search within facet values, async/server facet data,
-  filter operators, and opt-in fuzzy ranking.
+  and filter operators. Domain-specific fuzzy ranking remains available
+  through `globalFilterFn` without adding a ranking dependency.
 
 Grouping and aggregation:
 
@@ -344,7 +357,7 @@ Initial budgets:
 
 | Artifact | Budget |
 | --- | --- |
-| Base shadcn package-owned runtime | <= 42 KiB gzip |
+| Base shadcn package-owned runtime | <= 48 KiB gzip |
 | HeroUI/The Gridcn adapter delta | <= 6 KiB gzip each |
 | URL-state entry | <= 5 KiB gzip, excluding peer dependency |
 | Data-source entry | <= 3 KiB gzip, excluding React peer dependency |
@@ -354,14 +367,45 @@ Initial budgets:
 Budgets may be adjusted once source-map-based attribution is in CI, but any
 increase must be explained in the changelog.
 
-The 4.3.0 minified base graph is 39.3 KiB gzip after adding richer filters,
-tree/detail expansion, selection policies, group behavior, and row pinning.
-The CI ceiling is 42 KiB, retaining a narrow margin while optional
-virtualization and the server data source remain separate. The adapter deltas
-are measured independently, URL state remains below 5 KiB, the data-source
-entry is 2.0 KiB, and demo initial JavaScript remains below 100 KiB gzip.
+The 4.4.0 minified base static graph is 46.1 KiB gzip after adding grouping,
+grid navigation, range selection, editing lifecycle state, and their shared
+coordination. The CI ceiling is 48 KiB, retaining 1.9 KiB of source-attributed
+regression margin. Clipboard, toolbar operations, automatic page sizing, error
+overlays, and virtualization are first-use chunks; the server data source is a
+separate entry. Adapter deltas remain below 6 KiB, URL state below 5 KiB, the
+data-source entry is 2.2 KiB, and demo initial JavaScript remains below 100 KiB.
 
 ### Phase 4: modern-grid quality of life (3.4)
+
+Status: core scope complete in 4.4.0. The native reading table remains the
+default; grid navigation, cell selection, clipboard/paste, enhanced toolbar
+operations, adaptive paging, and overlays are opt-in.
+
+Delivered in 4.4.0:
+
+- ARIA grid semantics, roving focus, full geometry-aware keyboard navigation,
+  focus restoration, and virtual/server row and column metadata.
+- Pointer and keyboard cell-range selection, selected-cell semantics/styling,
+  range-aware clipboard copy, and app-owned undo/redo commands.
+- Formula-safe TSV/CSV copy, opt-in parsed paste, asynchronous row validation,
+  field errors, dirty/pending state, optimistic rollback, and keyboard
+  commit/cancel behavior.
+- Searchable/bulk column operations, group-safe reorder/pin/reset controls,
+  filter chips/counts, and complete saved-view CRUD controls.
+- Viewport-driven auto page sizing, print/fullscreen controls, scroll commands,
+  and empty/error/retry state rendering.
+- First-use chunks for clipboard, enhanced toolbar operations, auto sizing, and
+  error overlays so ordinary tables do not execute or download those features.
+
+Intentionally deferred optional scope:
+
+- A standalone per-cell commit mode; 4.4 row editing already provides custom
+  per-cell editors with row-level validation and atomic save/rollback.
+- A built-in runtime filter-operator builder; typed configured operators and
+  app-supplied custom filter UI/functions remain available.
+- An XLSX plugin and column virtualization. XLSX should be a separately
+  budgeted entrypoint; column virtualization needs a layout that preserves
+  native grouped headers, pinning, resizing, detail rows, and accessibility.
 
 Accessibility and navigation:
 
@@ -375,8 +419,9 @@ Accessibility and navigation:
 
 Editing and clipboard:
 
-- Add cell and row edit modes, sync/async validation, field errors, dirty
-  tracking, pending state, optimistic save hooks, and cancel/commit policy.
+- Add row edit mode with per-cell editors, sync/async validation, field errors,
+  dirty tracking, pending state, optimistic save hooks, and cancel/commit
+  policy. A separate per-cell commit transaction remains deferred.
 - Add single-cell and range selection as an opt-in feature.
 - Add copy as tab-separated values and opt-in paste through column parsers and
   edit validation.
@@ -386,23 +431,23 @@ Toolbar and data operations:
 
 - Add searchable column chooser, bulk show/hide, reorder, pin, reset, and
   saved-view controls.
-- Add filter chips, active-filter count, operator builder, and one-command
-  clear/reset.
+- Add filter chips, active-filter count, configured operators, and one-command
+  clear/reset. A built-in runtime operator builder remains deferred.
 - Add export scopes for current page, all loaded, filtered/sorted, selected,
   and server-provided exports.
-- Add print support and an optional XLSX entrypoint; do not put XLSX in the
-  base bundle.
+- Add print support. A future XLSX entrypoint must remain outside the base
+  bundle with its own budget.
 - Add auto page size, scroll-to-row, scroll-to-column, full-screen hook, and
   empty/error/retry overlays.
 
 Server data source:
 
-Delivered in 4.3.0 as the independently importable
+Delivered across 4.3.0 and 4.4.0 as the independently importable
 `data-table-pro/data-source` entrypoint for offset and cursor pagination,
-sorting, global/column filters, caller-defined query context, abort signals,
-known/unknown totals, facets, metadata, stale-request protection, request
-deduplication, caching, retry, refresh, and invalidation. Grouping,
-aggregation, and lazy tree-path requests remain.
+sorting, global/column filters, grouping, aggregation and expansion-path
+requests, caller-defined query context, abort signals, known/unknown totals,
+stable row IDs, facets, aggregates, metadata, stale-request protection,
+request deduplication, caching, retry, refresh, and invalidation.
 
 - Add a typed request containing pagination/cursor, sorting, global/column
   filters, grouping, aggregation, expansion path, and abort signal.
