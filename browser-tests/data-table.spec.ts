@@ -178,3 +178,24 @@ test("responsive behavior follows table container boundaries", async ({
   await expect(header("role")).toBeVisible();
   await expect(header("location")).toHaveCount(0);
 });
+
+test("interactive grid navigation follows the rendered cell geometry", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const grid = page.getByRole("grid").first();
+  await expect(grid).toHaveAttribute("aria-colcount", /[1-9]/);
+  await expect(grid).toHaveAttribute("aria-rowcount", /[1-9]/);
+
+  const firstCell = grid.getByRole("gridcell").first();
+  await firstCell.focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(grid.getByRole("gridcell").nth(1)).toBeFocused();
+  await page.keyboard.press("PageDown");
+  const focused = await page.locator(':focus').evaluate((element) => ({
+    row: element.getAttribute("data-grid-row-index"),
+    column: element.getAttribute("data-grid-column-index"),
+  }));
+  expect(focused.row).not.toBe("0");
+  expect(focused.column).toBe("1");
+});

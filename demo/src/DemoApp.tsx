@@ -403,6 +403,7 @@ export function DemoApp() {
               rowSelection={rowSelection}
               onRowSelectionChange={setRowSelection}
               enableRowSelection
+              interactiveGrid
               toolbarActions={[
                 {
                   key: "refresh",

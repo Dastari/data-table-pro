@@ -209,6 +209,8 @@ export function createDataTableWithPanels(
     dragAndDrop,
     fileUpload,
     virtualization,
+    accessibility,
+    interactiveGrid,
   }: DataTableProps<TData>) {
     const containerRef = React.useRef<HTMLDivElement | null>(null);
     const fileInputRef = React.useRef<HTMLInputElement | null>(null);
@@ -1297,6 +1299,22 @@ export function createDataTableWithPanels(
                   uiClassNames={uiClassNames}
                   viewportHeight={viewportHeight}
                   virtualization={virtualization}
+                  gridMode={
+                    accessibility?.mode === "grid" || interactiveGrid === true ||
+                    typeof interactiveGrid === "object"
+                  }
+                  gridPageSize={
+                    accessibility?.pageSize ??
+                    (typeof interactiveGrid === "object"
+                      ? interactiveGrid.pageSize
+                      : undefined)
+                  }
+                  gridRowOffset={
+                    manualPagination
+                      ? currentPagination.pageIndex * currentPagination.pageSize
+                      : 0
+                  }
+                  totalRowCount={totalRowCount}
                   virtualPaddingBottom={virtualPaddingBottom}
                   virtualPaddingTop={virtualPaddingTop}
                   visibleLeafColumnCount={visibleLeafColumnCount}

@@ -592,6 +592,34 @@ Removed in `2.0.1`:
 | `onSortingChange` | `(sorting: SortingState) => void` | `undefined` | Sorting change callback. |
 | `manualSorting` | `boolean` | `false` | Disables client-side sorting row model. |
 
+### Interactive grid accessibility
+
+The default table view uses native HTML table semantics and ordinary browser
+tab order. Opt in when the table is a keyboard-navigable data workspace:
+
+```tsx
+<DataTable
+  {...props}
+  accessibility={{ mode: "grid", pageSize: 10 }}
+  // or simply: interactiveGrid
+/>
+```
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `accessibility` | `DataTableAccessibilityOptions` | `undefined` | Use `{ mode: "grid" }` for ARIA grid semantics. `pageSize` supplies the PageUp/PageDown step when the viewport has no measurable layout. |
+| `interactiveGrid` | `boolean \| DataTableInteractiveGridOptions` | `false` | Shorthand for grid mode; the object form accepts `pageSize`. |
+
+Grid mode applies `grid`, `rowgroup`, `row`, `columnheader`, and `gridcell`
+roles while retaining the native table elements. It exposes `aria-rowcount` and
+`aria-colcount`; a supplied `totalRowCount` is used for server-backed or
+virtualized data. Mounted rows and cells receive their corresponding
+`aria-rowindex` and `aria-colindex`, and exactly one cell has roving
+`tabindex="0"`. Arrow keys, Home/End,
+Ctrl/Cmd+Home/End, and PageUp/PageDown move that cell. Buttons, checkboxes,
+links, and edit inputs keep their own keyboard behavior; Escape returns focus
+from an interactive descendant to its grid cell.
+
 ### Pagination props
 
 | Prop | Type | Default | Description |

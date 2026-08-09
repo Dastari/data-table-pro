@@ -44,6 +44,10 @@ export type DataTableTablePanelProps<TData> = {
   explicitCustomCellColumnIds: ReadonlySet<string>;
   fillMinWidth: number;
   flexGrow: boolean;
+  gridMode: boolean;
+  gridPageSize?: number;
+  gridRowOffset: number;
+  onGridActiveRowIndexChange?: (rowIndex: number) => void;
   getColumnLayout: (columnId: string) => DataTableColumnLayout;
   getRowClassName: DataTableProps<TData>["getRowClassName"];
   getRowLoadingState: DataTableProps<TData>["getRowLoadingState"];
@@ -80,6 +84,7 @@ export type DataTableTablePanelProps<TData> = {
   TableRow: DataTableUiKit["TableRow"];
   tableScrollContainerRef: React.RefObject<HTMLDivElement | null>;
   tableScrollElement?: HTMLElement | null;
+  totalRowCount?: number;
   uiClassNames: DataTableUiClassNames;
   viewportHeight?: number;
   virtualization?: DataTableProps<TData>["virtualization"];
@@ -110,6 +115,10 @@ export function DataTableTablePanel<TData>({
   explicitCustomCellColumnIds,
   fillMinWidth,
   flexGrow,
+  gridMode,
+  gridPageSize,
+  gridRowOffset,
+  onGridActiveRowIndexChange,
   getColumnLayout,
   getRowClassName,
   getRowLoadingState,
@@ -145,6 +154,8 @@ export function DataTableTablePanel<TData>({
   TableHeader,
   TableRow,
   tableScrollContainerRef,
+  tableScrollElement,
+  totalRowCount,
   uiClassNames,
   virtualPaddingBottom,
   virtualPaddingTop,
@@ -164,6 +175,78 @@ export function DataTableTablePanel<TData>({
         ? filteredRows.map((row) => row.original)
         : [],
     [filteredRows, summaryRows.length],
+  );
+  const headerRowCount = table.getHeaderGroups().length;
+  const displayRowCount =
+    topPinnedRows.length + renderedRows.length + bottomPinnedRows.length;
+  const [activeCell, setActiveCell] = React.useState({ row: 0, column: 0 });
+  const shouldRestoreGridFocusRef = React.useRef(false);
+  const handleGridCellFocus = React.useCallback(
+    (cell: { row: number; column: number }) => {
+      shouldRestoreGridFocusRef.current = true;
+      setActiveCell(cell);
+    },
+    [],
+  );
+
+  // Keep focus on the roving cell after sorting, filtering, or a virtual row
+  // range changes. A missing target is normal while a virtualizer is rendering.
+  React.useEffect(() => {
+    if (!gridMode) return;
+    onGridActiveRowIndexChange?.(activeCell.row);
+    const frame = requestAnimationFrame(() => {
+      const cells = tableScrollContainerRef.current?.querySelectorAll<HTMLElement>(
+        '[data-dtp-grid-cell="true"]',
+      );
+      const target = Array.from(cells ?? []).find(
+        (cell) =>
+          Number(cell.dataset.gridRowIndex) === activeCell.row &&
+          Number(cell.dataset.gridColumnIndex) === activeCell.column,
+      );
+      if (target && shouldRestoreGridFocusRef.current) {
+        target.focus();
+      }
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [activeCell, gridMode, onGridActiveRowIndexChange, tableScrollContainerRef]);
+
+  const moveGridFocus = React.useCallback(
+    (event: React.KeyboardEvent<HTMLElement>, row: number, column: number) => {
+      if (event.defaultPrevented || event.target !== event.currentTarget) return;
+      const pageRows = Math.max(
+        1,
+        gridPageSize ?? (
+          Math.floor(
+            (tableScrollElement?.clientHeight || 0) /
+              Math.max(1, (tableScrollElement?.querySelector("tr") as HTMLElement | null)?.offsetHeight || 48),
+          ) || 10),
+      );
+      const lastRow = Math.max(0, displayRowCount - 1);
+      const lastColumn = Math.max(0, visibleLeafColumnCount - 1);
+      let nextRow = row;
+      let nextColumn = column;
+      switch (event.key) {
+        case "ArrowUp": nextRow--; break;
+        case "ArrowDown": nextRow++; break;
+        case "ArrowLeft": nextColumn--; break;
+        case "ArrowRight": nextColumn++; break;
+        case "Home":
+          if (event.ctrlKey || event.metaKey) { nextRow = 0; nextColumn = 0; } else nextColumn = 0;
+          break;
+        case "End":
+          if (event.ctrlKey || event.metaKey) { nextRow = lastRow; nextColumn = lastColumn; } else nextColumn = lastColumn;
+          break;
+        case "PageUp": nextRow -= pageRows; break;
+        case "PageDown": nextRow += pageRows; break;
+        default: return;
+      }
+      event.preventDefault();
+      setActiveCell({
+        row: Math.min(lastRow, Math.max(0, nextRow)),
+        column: Math.min(lastColumn, Math.max(0, nextColumn)),
+      });
+    },
+    [displayRowCount, gridPageSize, tableScrollElement, visibleLeafColumnCount],
   );
   const renderBodyRow = (
     row: Row<TData>,
@@ -214,6 +297,12 @@ export function DataTableTablePanel<TData>({
         uiClassNames={uiClassNames}
         visibleCells={row.getVisibleCells()}
         visibleLeafColumnCount={visibleLeafColumnCount}
+        gridMode={gridMode}
+        gridRowIndex={rowIndex}
+        gridRowAriaIndex={headerRowCount + gridRowOffset + rowIndex + 1}
+        activeGridCell={activeCell}
+        onGridCellFocus={handleGridCellFocus}
+        onGridCellKeyDown={moveGridFocus}
       />
     );
   };
@@ -245,6 +334,16 @@ export function DataTableTablePanel<TData>({
             <Table
               aria-describedby={ariaDescribedBy}
               aria-labelledby={ariaLabelledBy}
+              role={gridMode ? "grid" : undefined}
+              aria-colcount={gridMode ? visibleLeafColumnCount : undefined}
+              aria-rowcount={
+                gridMode
+                  ?
+                      headerRowCount +
+                      (totalRowCount ?? displayRowCount) +
+                      summaryRows.length
+                  : undefined
+              }
               className={cn(
                 "w-full table-fixed border-separate border-spacing-0",
                 tableClassName,
@@ -261,6 +360,7 @@ export function DataTableTablePanel<TData>({
                 })}
               </colgroup>
               <TableHeader
+                role={gridMode ? "rowgroup" : undefined}
                 className={cn(
                   stickyHeader
                     ? (uiClassNames.tableStickyHeader ??
@@ -269,7 +369,7 @@ export function DataTableTablePanel<TData>({
                 )}
               >
                 {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id}>
+                  <TableRow key={headerGroup.id} role={gridMode ? "row" : undefined} aria-rowindex={gridMode ? headerGroup.depth + 1 : undefined}>
                     {headerGroup.headers.map((header) => (
                       <DataTableHeaderCell
                         key={header.id}
@@ -298,19 +398,27 @@ export function DataTableTablePanel<TData>({
                         }
                         TableHead={TableHead}
                         uiClassNames={uiClassNames}
+                        gridMode={gridMode}
+                        gridColumnIndex={
+                          header.isPlaceholder || header.subHeaders.length
+                            ? undefined
+                            : table.getVisibleLeafColumns().findIndex(
+                                (column) => column.id === header.column.id,
+                              ) + 1
+                        }
                       />
                     ))}
                   </TableRow>
                 ))}
               </TableHeader>
-              <TableBody>
+              <TableBody role={gridMode ? "rowgroup" : undefined}>
                 {topPinnedRows.length || renderedRows.length || bottomPinnedRows.length ? (
                   <>
                     {topPinnedRows.map((row, index) =>
                       renderBodyRow(row, index, "top"),
                     )}
                     {virtualPaddingTop > 0 ? (
-                      <TableRow aria-hidden="true">
+                      <TableRow aria-hidden="true" role={gridMode ? "presentation" : undefined}>
                         <TableCell
                           colSpan={Math.max(1, visibleLeafColumnCount)}
                           className="border-b-0 p-0"
@@ -322,7 +430,7 @@ export function DataTableTablePanel<TData>({
                       renderBodyRow(row, rowIndex + topPinnedRows.length),
                     )}
                     {virtualPaddingBottom > 0 ? (
-                      <TableRow aria-hidden="true">
+                      <TableRow aria-hidden="true" role={gridMode ? "presentation" : undefined}>
                         <TableCell
                           colSpan={Math.max(1, visibleLeafColumnCount)}
                           className="border-b-0 p-0"
@@ -339,8 +447,10 @@ export function DataTableTablePanel<TData>({
                     )}
                   </>
                 ) : (
-                  <TableRow>
+                  <TableRow role={gridMode ? "row" : undefined} aria-rowindex={gridMode ? headerRowCount + 1 : undefined}>
                     <TableCell
+                      role={gridMode ? "gridcell" : undefined}
+                      aria-colindex={gridMode ? 1 : undefined}
                       colSpan={Math.max(1, visibleLeafColumnCount)}
                       className="h-full grow"
                     >
@@ -365,9 +475,20 @@ export function DataTableTablePanel<TData>({
                 )}
               </TableBody>
               {summaryRows.length ? (
-                <TableFooter>
-                  {summaryRows.map((summaryRow) => (
-                    <TableRow key={summaryRow.key}>
+                <TableFooter role={gridMode ? "rowgroup" : undefined}>
+                  {summaryRows.map((summaryRow, summaryIndex) => (
+                    <TableRow
+                      key={summaryRow.key}
+                      role={gridMode ? "row" : undefined}
+                      aria-rowindex={
+                        gridMode
+                          ? headerRowCount +
+                            (totalRowCount ?? displayRowCount) +
+                            summaryIndex +
+                            1
+                          : undefined
+                      }
+                    >
                       {visibleLeafColumns.map((column, index) => {
                         const content =
                           summaryRow.cells[column.id] ??
@@ -375,6 +496,8 @@ export function DataTableTablePanel<TData>({
                         return (
                           <TableCell
                             key={`${summaryRow.key}-${column.id}`}
+                            role={gridMode ? "gridcell" : undefined}
+                            aria-colindex={gridMode ? index + 1 : undefined}
                             className={cn(
                               "border-b font-medium",
                               uiClassNames.cellBorder,

@@ -61,6 +61,16 @@ export function DataTableVirtualTablePanel<TData>(
           (virtualItems.at(-1)?.end ?? virtualPaddingTop),
       )
     : 0;
+  const handleGridActiveRowIndexChange = React.useCallback(
+    (gridRowIndex: number) => {
+      if (!props.gridMode || !shouldUseVirtualRows) return;
+      rowVirtualizer.scrollToIndex(
+        Math.max(0, gridRowIndex - props.topPinnedRows.length),
+        { align: "auto" },
+      );
+    },
+    [props.gridMode, props.topPinnedRows.length, rowVirtualizer, shouldUseVirtualRows],
+  );
 
   return (
     <DataTableTablePanel
@@ -68,6 +78,7 @@ export function DataTableVirtualTablePanel<TData>(
       rowsToRender={rowsToRender}
       virtualPaddingBottom={virtualPaddingBottom}
       virtualPaddingTop={virtualPaddingTop}
+      onGridActiveRowIndexChange={handleGridActiveRowIndexChange}
     />
   );
 }

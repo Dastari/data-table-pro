@@ -25,6 +25,8 @@ type DataTableHeaderCellProps<TData> = {
   draggedColumnIdRef: React.MutableRefObject<string | null>;
   enableColumnReordering: boolean;
   enableColumnResizing: boolean;
+  gridColumnIndex?: number;
+  gridMode: boolean;
   header: Header<TData, unknown>;
   headerGroupHeaders: Array<Header<TData, unknown>>;
   layout: DataTableColumnLayout;
@@ -47,6 +49,8 @@ function DataTableHeaderCellInner<TData>({
   draggedColumnIdRef,
   enableColumnReordering,
   enableColumnResizing,
+  gridColumnIndex,
+  gridMode,
   header,
   headerGroupHeaders,
   layout,
@@ -85,6 +89,8 @@ function DataTableHeaderCellInner<TData>({
       scope={
         header.isPlaceholder ? undefined : isColumnGroup ? "colgroup" : "col"
       }
+      role={gridMode ? "columnheader" : undefined}
+      aria-colindex={gridMode ? gridColumnIndex : undefined}
       aria-hidden={header.isPlaceholder || undefined}
       aria-description={isColumnGroup ? groupDefinition?.description : undefined}
       aria-labelledby={
@@ -337,6 +343,8 @@ function areDataTableHeaderCellsEqual<TData>(
     previous.dir === next.dir &&
     previous.enableColumnReordering === next.enableColumnReordering &&
     previous.enableColumnResizing === next.enableColumnResizing &&
+    previous.gridMode === next.gridMode &&
+    previous.gridColumnIndex === next.gridColumnIndex &&
     previous.TableHead === next.TableHead &&
     previous.uiClassNames === next.uiClassNames &&
     previous.draggedColumnIdRef === next.draggedColumnIdRef &&
