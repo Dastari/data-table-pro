@@ -163,6 +163,84 @@ export type DataTableLeafColumn<TData> = {
   index: number;
 };
 
+export type DataTableColumnGroupPathSegment = {
+  id: string;
+  freeReordering: boolean;
+};
+
+export type DataTableColumnGroupPaths = ReadonlyMap<
+  string,
+  ReadonlyArray<DataTableColumnGroupPathSegment>
+>;
+
+/**
+ * Returns the nested shared-header path for every leaf. The path deliberately
+ * uses stable column ids rather than header text so it also works with custom
+ * header render functions.
+ */
+export function getDataTableColumnGroupPaths<TData>(
+  columns: Array<DataTableColumnDef<TData, unknown>>,
+): DataTableColumnGroupPaths {
+  const paths = new Map<
+    string,
+    ReadonlyArray<DataTableColumnGroupPathSegment>
+  >();
+
+  const visit = (
+    currentColumns: Array<DataTableColumnDef<TData, unknown>>,
+    parentPath: ReadonlyArray<DataTableColumnGroupPathSegment>,
+  ) => {
+    currentColumns.forEach((column, index) => {
+      if ("columns" in column && column.columns?.length) {
+        const group = column as DataTableColumnDef<TData, unknown> & {
+          freeReordering?: boolean;
+        };
+        visit(column.columns, [
+          ...parentPath,
+          {
+            id: getColumnId(column, index),
+            freeReordering: group.freeReordering === true,
+          },
+        ]);
+        return;
+      }
+
+      paths.set(getColumnId(column, index), parentPath);
+    });
+  };
+
+  visit(columns, []);
+  return paths;
+}
+
+/**
+ * Locked groups preserve their shared heading by default. Reordering within a
+ * common group path is always allowed; leaving or entering a group requires
+ * each crossed group to explicitly opt into `freeReordering`.
+ */
+export function canReorderDataTableColumn(
+  sourceColumnId: string,
+  targetColumnId: string,
+  groupPaths: DataTableColumnGroupPaths,
+) {
+  const sourcePath = groupPaths.get(sourceColumnId) ?? [];
+  const targetPath = groupPaths.get(targetColumnId) ?? [];
+  let commonLength = 0;
+
+  while (
+    commonLength < sourcePath.length &&
+    commonLength < targetPath.length &&
+    sourcePath[commonLength]?.id === targetPath[commonLength]?.id
+  ) {
+    commonLength += 1;
+  }
+
+  return [
+    ...sourcePath.slice(commonLength),
+    ...targetPath.slice(commonLength),
+  ].every((group) => group.freeReordering);
+}
+
 export function getDataTableLeafColumns<TData>(
   columns: Array<DataTableColumnDef<TData, unknown>>,
 ) {

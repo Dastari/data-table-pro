@@ -4,6 +4,7 @@ import { IconChevronDown, IconSelector } from "../icons";
 import type { Header, SortingState } from "@tanstack/react-table";
 import type {
   DataTableColumnDef,
+  DataTableColumnGroupDef,
   DataTableDensity,
   DataTableProps,
 } from "../types";
@@ -17,6 +18,7 @@ import {
 import { headerAlignClassName, hideOnClassName } from "../types";
 
 type DataTableHeaderCellProps<TData> = {
+  columnGroupHeaderHeight: DataTableProps<TData>["columnGroupHeaderHeight"];
   currentDensity: DataTableDensity;
   currentSorting: SortingState;
   dir: NonNullable<DataTableProps<TData>["dir"]>;
@@ -38,6 +40,7 @@ type DataTableHeaderCellProps<TData> = {
 };
 
 function DataTableHeaderCellInner<TData>({
+  columnGroupHeaderHeight,
   currentDensity,
   currentSorting,
   dir,
@@ -59,6 +62,9 @@ function DataTableHeaderCellInner<TData>({
   const headerContentId = React.useId();
   const isColumnGroup =
     !header.isPlaceholder && header.subHeaders.length > 0;
+  const groupDefinition = isColumnGroup
+    ? (header.column.columnDef as DataTableColumnGroupDef<TData>)
+    : undefined;
   const canSort = header.column.getCanSort();
   const sortingState = header.column.getIsSorted();
   const sortingIndex = currentSorting.findIndex(
@@ -80,6 +86,7 @@ function DataTableHeaderCellInner<TData>({
         header.isPlaceholder ? undefined : isColumnGroup ? "colgroup" : "col"
       }
       aria-hidden={header.isPlaceholder || undefined}
+      aria-description={isColumnGroup ? groupDefinition?.description : undefined}
       aria-labelledby={
         !header.isPlaceholder &&
         !layout.isUtilityColumn &&
@@ -88,6 +95,7 @@ function DataTableHeaderCellInner<TData>({
           : undefined
       }
       data-column-id={header.column.id}
+      data-column-group-id={isColumnGroup ? groupDefinition?.id : undefined}
       data-header-depth={header.depth}
       data-dtp-slot={
         isColumnGroup
@@ -104,9 +112,22 @@ function DataTableHeaderCellInner<TData>({
         hideClassName,
         headerAlignClassName(header.getContext()),
         meta?.headerClassName,
+        isColumnGroup && groupDefinition?.headerClassName,
         meta?.responsiveClassName,
       )}
-      style={{ ...meta?.headerStyle, ...layout.headerStyle }}
+      style={{
+        ...meta?.headerStyle,
+        ...(isColumnGroup ? groupDefinition?.headerStyle : undefined),
+        ...(isColumnGroup &&
+        (groupDefinition?.headerHeight ?? columnGroupHeaderHeight) !== undefined
+          ? {
+              height:
+                groupDefinition?.headerHeight ?? columnGroupHeaderHeight,
+            }
+          : undefined),
+        ...layout.headerStyle,
+      }}
+      title={isColumnGroup ? groupDefinition?.description : undefined}
       aria-sort={
         sortingState === "asc"
           ? "ascending"
@@ -312,6 +333,7 @@ function areDataTableHeaderCellsEqual<TData>(
     previous.header.isPlaceholder === next.header.isPlaceholder &&
     sameSubHeaders(previous.header, next.header) &&
     previous.currentDensity === next.currentDensity &&
+    previous.columnGroupHeaderHeight === next.columnGroupHeaderHeight &&
     previous.dir === next.dir &&
     previous.enableColumnReordering === next.enableColumnReordering &&
     previous.enableColumnResizing === next.enableColumnResizing &&

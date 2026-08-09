@@ -948,6 +948,10 @@ for (const suite of suites) {
       const identityGroup: DataTableColumnGroupDef<GroupedRow> = {
         id: "identity",
         header: "Identity",
+        description: "Name and email contact details",
+        headerClassName: "identity-group-heading",
+        headerStyle: { color: "rgb(4, 5, 6)" },
+        headerHeight: 44,
         meta: {
           align: "center",
           headerClassName: "custom-group-heading",
@@ -1005,6 +1009,7 @@ for (const suite of suites) {
             columnVisibility={{ email: false }}
             enableColumnReordering
             enableColumnResizing
+            columnGroupHeaderHeight={36}
             toolbarQueryDebounceMs={100}
           />
         </TooltipProvider>,
@@ -1023,7 +1028,17 @@ for (const suite of suites) {
       expect(identityHeader.getAttribute("colspan")).toBe("1");
       expect(identityHeader.getAttribute("scope")).toBe("colgroup");
       expect(identityHeader.className).toContain("custom-group-heading");
+      expect(identityHeader.className).toContain("identity-group-heading");
       expect(identityHeader.style.backgroundColor).toBe("rgb(1, 2, 3)");
+      expect(identityHeader.style.color).toBe("rgb(4, 5, 6)");
+      expect(identityHeader.style.height).toBe("44px");
+      expect(identityHeader.getAttribute("title")).toBe(
+        "Name and email contact details",
+      );
+      expect(identityHeader.getAttribute("aria-description")).toBe(
+        "Name and email contact details",
+      );
+      expect(personHeader.style.height).toBe("36px");
       expect(identityHeader.getAttribute("tabindex")).toBeNull();
       expect(nameHeader.getAttribute("scope")).toBe("col");
       expect(screen.queryByRole("columnheader", { name: "Email" })).toBeNull();
@@ -1081,6 +1096,98 @@ for (const suite of suites) {
       });
 
       expect(onColumnOrderChange).toHaveBeenCalledWith(["role", "name"]);
+    });
+
+    it("keeps locked group leaves together for pointer and keyboard reordering", () => {
+      const onColumnOrderChange = vi.fn();
+      const groupedColumns: Array<DataTableColumnDef<TestRow, unknown>> = [
+        {
+          id: "identity",
+          header: "Identity",
+          columns: [
+            { id: "name", header: "Name", accessorFn: (row) => row.name },
+            { id: "email", header: "Email", accessorFn: (row) => row.name },
+          ],
+        } as DataTableColumnGroupDef<TestRow>,
+        {
+          id: "work",
+          header: "Work",
+          columns: [
+            { id: "role", header: "Role", accessorFn: (row) => row.name },
+          ],
+        } as DataTableColumnGroupDef<TestRow>,
+      ];
+
+      renderTable({
+        columns: groupedColumns,
+        enableColumnReordering: true,
+        onColumnOrderChange,
+      });
+
+      const nameHeader = screen.getByRole("columnheader", { name: "Name" });
+      const roleHeader = screen.getByRole("columnheader", { name: "Role" });
+      fireEvent.dragStart(nameHeader, {
+        dataTransfer: { effectAllowed: "none" },
+      });
+      fireEvent.drop(roleHeader, { dataTransfer: {} });
+
+      expect(onColumnOrderChange).not.toHaveBeenCalled();
+
+      fireEvent.keyDown(nameHeader, {
+        key: "ArrowRight",
+        altKey: true,
+      });
+
+      expect(onColumnOrderChange).toHaveBeenCalledWith([
+        "email",
+        "name",
+        "role",
+      ]);
+    });
+
+    it("permits crossing group boundaries only when both groups opt in", () => {
+      const onColumnOrderChange = vi.fn();
+      const groupedColumns: Array<DataTableColumnDef<TestRow, unknown>> = [
+        {
+          id: "identity",
+          header: "Identity",
+          freeReordering: true,
+          columns: [
+            { id: "name", header: "Name", accessorFn: (row) => row.name },
+          ],
+        } as DataTableColumnGroupDef<TestRow>,
+        {
+          id: "work",
+          header: "Work",
+          freeReordering: true,
+          columns: [
+            { id: "role", header: "Role", accessorFn: (row) => row.name },
+          ],
+        } as DataTableColumnGroupDef<TestRow>,
+      ];
+
+      renderTable({
+        columns: groupedColumns,
+        enableColumnReordering: true,
+        onColumnOrderChange,
+      });
+
+      fireEvent.keyDown(screen.getByRole("columnheader", { name: "Name" }), {
+        key: "ArrowRight",
+        altKey: true,
+      });
+
+      expect(onColumnOrderChange).toHaveBeenCalledWith(["role", "name"]);
+
+      onColumnOrderChange.mockClear();
+      const nameHeader = screen.getByRole("columnheader", { name: "Name" });
+      const roleHeader = screen.getByRole("columnheader", { name: "Role" });
+      fireEvent.dragStart(roleHeader, {
+        dataTransfer: { effectAllowed: "none" },
+      });
+      fireEvent.drop(nameHeader, { dataTransfer: {} });
+
+      expect(onColumnOrderChange).toHaveBeenCalledWith(["name", "role"]);
     });
 
     it("keeps header sort icons constrained to normal icon size", () => {

@@ -26,6 +26,7 @@ export type DataTableTablePanelProps<TData> = {
     "Checkbox" | "Input" | "Skeleton" | "TableCell" | "TableRow"
   >;
   columnLayouts: ReadonlyMap<string, DataTableColumnLayout>;
+  columnGroupHeaderHeight: DataTableProps<TData>["columnGroupHeaderHeight"];
   currentDensity: DataTableDensity;
   currentSorting: DataTableProps<TData>["sorting"];
   dir: NonNullable<DataTableProps<TData>["dir"]>;
@@ -88,6 +89,7 @@ export function DataTableTablePanel<TData>({
   ariaLabelledBy,
   bodyRowComponents,
   columnLayouts,
+  columnGroupHeaderHeight,
   currentDensity,
   currentSorting = [],
   dir,
@@ -211,6 +213,7 @@ export function DataTableTablePanel<TData>({
                     {headerGroup.headers.map((header) => (
                       <DataTableHeaderCell
                         key={header.id}
+                        columnGroupHeaderHeight={columnGroupHeaderHeight}
                         currentDensity={currentDensity}
                         currentSorting={currentSorting}
                         dir={dir}
