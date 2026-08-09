@@ -252,7 +252,9 @@ Projects upgrading to `3.0.0` should review these changes:
 2. React peers are now `react@^19.2.0` and `react-dom@^19.2.0`.
 3. `nuqs` is an optional peer required only when importing `data-table-pro/url-state`.
 4. Toolbar search filters local rows by default. Use `manualFiltering` for server-side tables or `enableToolbarQueryFiltering={false}` when the toolbar input should be display-only.
-5. `column.meta.filter` now renders built-in toolbar filters for text, select, and multi-select filter controls.
+5. `column.meta.filter` renders built-in toolbar filters for text, select,
+   multi-select, boolean, numeric-range, and date-range controls. Range filter
+   state uses serializable `{ from, to }` objects with inclusive bounds.
 6. New optional APIs cover row expansion, column ordering/pinning, CSV export, density, labels, summary rows, RTL direction, and column preference persistence.
 
 ## 2.0.1 Breaking Changes

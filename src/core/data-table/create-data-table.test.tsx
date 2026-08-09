@@ -617,6 +617,146 @@ for (const suite of suites) {
       expect(screen.getByText("Grace")).not.toBeNull();
     });
 
+    it("applies configured text filter operators", () => {
+      type FilterRow = TestRow & { status: string };
+      const filterColumns: Array<DataTableColumnDef<FilterRow, unknown>> = [
+        { accessorKey: "name", header: "Name" },
+        {
+          accessorKey: "status",
+          header: "Status",
+          meta: {
+            filter: {
+              type: "text",
+              operator: "startsWith",
+            },
+          },
+        },
+      ];
+
+      render(
+        <TooltipProvider>
+          <DataTable
+            columns={filterColumns}
+            data={[
+              { id: "1", name: "Ada", status: "active" },
+              { id: "2", name: "Grace", status: "inactive" },
+            ]}
+            getRowId={(row) => row.id}
+          />
+        </TooltipProvider>,
+      );
+
+      fireEvent.change(screen.getByLabelText("Filters: Status"), {
+        target: { value: "act" },
+      });
+
+      expect(screen.getByText("Ada")).not.toBeNull();
+      expect(screen.queryByText("Grace")).toBeNull();
+    });
+
+    it("filters numeric and date columns with serializable range values", () => {
+      type FilterRow = TestRow & {
+        age: number;
+        joinedAt: string;
+      };
+      const filterColumns: Array<DataTableColumnDef<FilterRow, unknown>> = [
+        { accessorKey: "name", header: "Name" },
+        {
+          accessorKey: "age",
+          header: "Age",
+          meta: { filter: { type: "numberRange", min: 0, step: 1 } },
+        },
+        {
+          accessorKey: "joinedAt",
+          header: "Joined",
+          meta: { filter: { type: "dateRange" } },
+        },
+      ];
+
+      render(
+        <TooltipProvider>
+          <DataTable
+            columns={filterColumns}
+            data={[
+              { id: "1", name: "Ada", age: 24, joinedAt: "2023-06-01" },
+              { id: "2", name: "Grace", age: 36, joinedAt: "2024-02-15" },
+              { id: "3", name: "Linus", age: 52, joinedAt: "2025-01-10" },
+            ]}
+            getRowId={(row) => row.id}
+          />
+        </TooltipProvider>,
+      );
+
+      fireEvent.change(screen.getByLabelText("Age: From"), {
+        target: { value: "30" },
+      });
+      fireEvent.change(screen.getByLabelText("Age: To"), {
+        target: { value: "40" },
+      });
+
+      expect(screen.queryByText("Ada")).toBeNull();
+      expect(screen.getByText("Grace")).not.toBeNull();
+      expect(screen.queryByText("Linus")).toBeNull();
+
+      fireEvent.change(screen.getByLabelText("Age: From"), {
+        target: { value: "" },
+      });
+      fireEvent.change(screen.getByLabelText("Age: To"), {
+        target: { value: "" },
+      });
+      fireEvent.change(screen.getByLabelText("Joined: From"), {
+        target: { value: "2024-01-01" },
+      });
+      fireEvent.change(screen.getByLabelText("Joined: To"), {
+        target: { value: "2024-12-31" },
+      });
+
+      expect(screen.queryByText("Ada")).toBeNull();
+      expect(screen.getByText("Grace")).not.toBeNull();
+      expect(screen.queryByText("Linus")).toBeNull();
+    });
+
+    it("renders localized boolean filters and filters false values", () => {
+      type FilterRow = TestRow & { active: boolean };
+      const filterColumns: Array<DataTableColumnDef<FilterRow, unknown>> = [
+        { accessorKey: "name", header: "Name" },
+        {
+          accessorKey: "active",
+          header: "Active",
+          meta: {
+            filter: {
+              type: "boolean",
+              trueLabel: "Enabled",
+              falseLabel: "Disabled",
+            },
+          },
+        },
+      ];
+
+      const { container } = render(
+        <TooltipProvider>
+          <DataTable
+            columns={filterColumns}
+            data={[
+              { id: "1", name: "Ada", active: true },
+              { id: "2", name: "Grace", active: false },
+            ]}
+            getRowId={(row) => row.id}
+          />
+        </TooltipProvider>,
+      );
+
+      const filterButton = container.querySelector(
+        '[data-dtp-slot="data-table-toolbar-filters"] button',
+      );
+      fireEvent.pointerDown(filterButton!);
+      fireEvent.click(screen.getByText("Disabled"));
+
+      expect(screen.queryByText("Ada")).toBeNull();
+      expect(screen.getByText("Grace")).not.toBeNull();
+      expect(screen.getByRole("button", { name: "Active: Disabled" })).not.toBeNull();
+    });
+
     it("renders expanded table detail rows", () => {
       renderTable({
         renderExpandedRow: ({ row }) => <div>Details for {row.name}</div>,

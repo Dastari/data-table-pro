@@ -442,6 +442,37 @@ One parent requirement remains unavoidable: the nearest containing layout must e
 | `customToolbar` | `React.ReactNode` | `undefined` | Optional secondary toolbar row rendered below the main toolbar. |
 | `compactToolbar` | `React.ReactNode` | `undefined` | Optional mobile compact-toolbar content rendered inline with the collapsed toolbar control strip. Use this for icon-only filter/action controls in narrow container widths. |
 
+Column metadata supports six built-in filter controls: `text`, `select`,
+`multi`, `boolean`, `numberRange`, and `dateRange`. Range controls store plain
+`{ from, to }` objects so controlled state, URL state, and server requests stay
+serializable. Numeric range bounds are inclusive and accept `min`, `max`, and
+`step`; date bounds are inclusive `YYYY-MM-DD` values. Boolean controls accept
+optional `trueLabel` and `falseLabel` overrides. Text filters accept an
+`operator` of `contains` (the default), `equals`, `startsWith`, or `endsWith`.
+
+```tsx
+const columns = [
+  {
+    accessorKey: "active",
+    meta: {
+      filter: {
+        type: "boolean",
+        trueLabel: "Active",
+        falseLabel: "Inactive",
+      },
+    },
+  },
+  {
+    accessorKey: "score",
+    meta: { filter: { type: "numberRange", min: 0, max: 100, step: 1 } },
+  },
+  {
+    accessorKey: "createdAt",
+    meta: { filter: { type: "dateRange", min: "2020-01-01" } },
+  },
+] satisfies Array<DataTableColumnDef<Row, unknown>>;
+```
+
 Built-in toolbar controls automatically compact in narrow container widths:
 
 - the search input collapses to a search button and can expand inline on demand

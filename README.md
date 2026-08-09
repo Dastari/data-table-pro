@@ -543,7 +543,7 @@ intentional, regenerate the snapshot with
 Toolbar query note:
 
 - `toolbarQueryValue` and `onToolbarQueryValueChange` control the toolbar search input only
-- toolbar query and `column.meta.filter` controls filter client-side rows by default
+- toolbar query and `column.meta.filter` controls filter client-side rows by default, including text, option, boolean, numeric-range, and date-range filters
 - use `manualFiltering` for server-side filtering
 
 Cell overflow note:

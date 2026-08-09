@@ -14,6 +14,10 @@ export const DATA_TABLE_DEFAULT_LABELS: ResolvedDataTableLabels = {
   columns: "Columns",
   filters: "Filters",
   clearFilters: "Clear filters",
+  filterFrom: "From",
+  filterTo: "To",
+  filterTrue: "Yes",
+  filterFalse: "No",
   selectedRows: (count) =>
     `${count} record${count === 1 ? "" : "s"} selected`,
   showHiddenRows: (label) => `Show ${label}`,

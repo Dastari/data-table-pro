@@ -30,7 +30,18 @@ export type DataTableCellOverflow =
   | "clip"
   | "wrap"
   | "visible";
-export type DataTableColumnFilterType = "text" | "select" | "multi";
+export type DataTableColumnFilterType =
+  | "text"
+  | "select"
+  | "multi"
+  | "boolean"
+  | "numberRange"
+  | "dateRange";
+export type DataTableColumnFilterOperator =
+  | "contains"
+  | "equals"
+  | "startsWith"
+  | "endsWith";
 export type DataTableCsvExportScope =
   | "filtered"
   | "page"
@@ -79,6 +90,11 @@ export type DataTableColumnFilterOption = {
   value: string;
 };
 
+export type DataTableColumnFilterRangeValue<TValue extends number | string> = {
+  from?: TValue;
+  to?: TValue;
+};
+
 export type DataTableColumnFilterConfig<TData, TValue> = {
   type: DataTableColumnFilterType;
   label?: string;
@@ -87,6 +103,12 @@ export type DataTableColumnFilterConfig<TData, TValue> = {
     | Array<DataTableColumnFilterOption | string>
     | ((context: { rows: Array<TData> }) => Array<DataTableColumnFilterOption | string>);
   getOptionValue?: (value: TValue | undefined, row: TData) => string;
+  operator?: DataTableColumnFilterOperator;
+  trueLabel?: string;
+  falseLabel?: string;
+  min?: number | string;
+  max?: number | string;
+  step?: number;
 };
 
 export type DataTableColumnMeta<TData, TValue> = {
@@ -449,6 +471,10 @@ export type DataTableLabels = {
   columns: string;
   filters: string;
   clearFilters: string;
+  filterFrom?: string;
+  filterTo?: string;
+  filterTrue?: string;
+  filterFalse?: string;
   selectedRows: (count: number) => string;
   showHiddenRows: (label: string) => string;
   recordsPerPage: string;

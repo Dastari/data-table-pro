@@ -27,6 +27,11 @@ export type DataTableToolbarColumnFilter = {
   value: unknown;
   placeholder?: string;
   options: Array<{ label: string; value: string }>;
+  trueLabel?: string;
+  falseLabel?: string;
+  min?: number | string;
+  max?: number | string;
+  step?: number;
 };
 
 type DataTableToolbarProps<TData> = {
@@ -731,18 +736,93 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
       );
     }
 
+    if (filter.type === "numberRange" || filter.type === "dateRange") {
+      const range = normalizeToolbarRangeValue(filter.value);
+      const inputType = filter.type === "numberRange" ? "number" : "date";
+      const fromLabel =
+        labels.filterFrom ?? DATA_TABLE_DEFAULT_LABELS.filterFrom;
+      const toLabel = labels.filterTo ?? DATA_TABLE_DEFAULT_LABELS.filterTo;
+
+      return (
+        <div
+          role="group"
+          aria-label={`${labels.filters}: ${filter.label}`}
+          className="flex min-w-0 items-center gap-1.5"
+        >
+          <InputGroup className="min-w-32 max-w-44">
+            <InputGroupInput
+              type={inputType}
+              inputMode={inputType === "number" ? "decimal" : undefined}
+              value={range.from ?? ""}
+              min={filter.min}
+              max={filter.max}
+              step={inputType === "number" ? filter.step : undefined}
+              onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                onColumnFilterChange(filter.id, {
+                  ...range,
+                  from: parseRangeInputValue(event.target.value, inputType),
+                });
+              }}
+              aria-label={`${filter.label}: ${fromLabel}`}
+            />
+            <InputGroupAddon align="inline-start">{fromLabel}</InputGroupAddon>
+          </InputGroup>
+          <InputGroup className="min-w-32 max-w-44">
+            <InputGroupInput
+              type={inputType}
+              inputMode={inputType === "number" ? "decimal" : undefined}
+              value={range.to ?? ""}
+              min={filter.min}
+              max={filter.max}
+              step={inputType === "number" ? filter.step : undefined}
+              onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                onColumnFilterChange(filter.id, {
+                  ...range,
+                  to: parseRangeInputValue(event.target.value, inputType),
+                });
+              }}
+              aria-label={`${filter.label}: ${toLabel}`}
+            />
+            <InputGroupAddon align="inline-start">{toLabel}</InputGroupAddon>
+          </InputGroup>
+        </div>
+      );
+    }
+
+    const isBoolean = filter.type === "boolean";
+    const booleanOptions = [
+      {
+        label:
+          filter.trueLabel ??
+          labels.filterTrue ??
+          DATA_TABLE_DEFAULT_LABELS.filterTrue,
+        value: "true",
+      },
+      {
+        label:
+          filter.falseLabel ??
+          labels.filterFalse ??
+          DATA_TABLE_DEFAULT_LABELS.filterFalse,
+        value: "false",
+      },
+    ];
+    const options = isBoolean ? booleanOptions : filter.options;
+    const selectedValue =
+      typeof filter.value === "string" || typeof filter.value === "boolean"
+        ? String(filter.value)
+        : "";
     const selectedValues = Array.isArray(filter.value)
       ? filter.value.map(String)
-      : typeof filter.value === "string" && filter.value
-        ? [filter.value]
+      : selectedValue
+        ? [selectedValue]
         : [];
     const selectedLabel =
       selectedValues.length === 0
         ? filter.label
         : `${filter.label}: ${
             selectedValues.length === 1
-              ? (filter.options.find(
-                  (option) => option.value === selectedValues[0],
+              ? (options.find(
+                  (option) => option.value === String(selectedValues[0]),
                 )?.label ?? selectedValues[0])
               : selectedValues.length
           }`;
@@ -757,7 +837,7 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
         <DropdownMenuContent align="start" className="w-56">
           <DropdownMenuLabel>{filter.label}</DropdownMenuLabel>
           <DropdownMenuGroup>
-            {filter.type === "select" ? (
+            {filter.type === "select" || isBoolean ? (
               <DropdownMenuItem
                 onClick={() => {
                   onColumnFilterChange(filter.id, "");
@@ -767,12 +847,12 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
                   DATA_TABLE_DEFAULT_LABELS.allFilterOptions}
               </DropdownMenuItem>
             ) : null}
-            {filter.options.map((option) => (
+            {options.map((option) => (
               <DropdownMenuCheckboxItem
                 key={option.value}
                 checked={selectedValues.includes(option.value)}
                 onCheckedChange={(checked: boolean | "indeterminate") => {
-                  if (filter.type === "select") {
+                  if (filter.type === "select" || isBoolean) {
                     onColumnFilterChange(
                       filter.id,
                       checked === true ? option.value : "",
@@ -804,5 +884,40 @@ function hasColumnFilterValue(value: unknown) {
     return value.length > 0;
   }
 
+  if (value && typeof value === "object") {
+    if ("from" in value || "to" in value) {
+      return Object.values(value).some(hasColumnFilterValue);
+    }
+
+    return true;
+  }
+
   return value !== undefined && value !== null && value !== "";
+}
+
+function normalizeToolbarRangeValue(value: unknown): {
+  from?: number | string;
+  to?: number | string;
+} {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+
+  const range = value as { from?: unknown; to?: unknown };
+  return {
+    ...(typeof range.from === "number" || typeof range.from === "string"
+      ? { from: range.from }
+      : {}),
+    ...(typeof range.to === "number" || typeof range.to === "string"
+      ? { to: range.to }
+      : {}),
+  };
+}
+
+function parseRangeInputValue(value: string, inputType: "number" | "date") {
+  if (!value) {
+    return undefined;
+  }
+
+  return inputType === "number" ? Number(value) : value;
 }

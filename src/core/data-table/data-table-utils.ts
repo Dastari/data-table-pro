@@ -107,9 +107,53 @@ export function decorateFilterableColumn<TData>(
         return optionValue === String(filterValue);
       }
 
-      return normalizeFilterValue(value)
-        .toLowerCase()
-        .includes(String(filterValue).toLowerCase());
+      if (filter.type === "boolean") {
+        return optionValue === String(filterValue);
+      }
+
+      if (filter.type === "numberRange") {
+        const range = normalizeRangeFilterValue(filterValue);
+        const numericValue = Number(optionValue);
+        const from = range.from === "" ? undefined : Number(range.from);
+        const to = range.to === "" ? undefined : Number(range.to);
+
+        if (Number.isNaN(numericValue)) {
+          return false;
+        }
+
+        return (
+          (from === undefined || Number.isNaN(from) || numericValue >= from) &&
+          (to === undefined || Number.isNaN(to) || numericValue <= to)
+        );
+      }
+
+      if (filter.type === "dateRange") {
+        const range = normalizeRangeFilterValue(filterValue);
+        const dateValue = normalizeDateFilterValue(optionValue);
+
+        if (!dateValue) {
+          return false;
+        }
+
+        return (
+          (!range.from || dateValue >= String(range.from)) &&
+          (!range.to || dateValue <= String(range.to))
+        );
+      }
+
+      const normalizedValue = optionValue.toLowerCase();
+      const normalizedQuery = String(filterValue).toLowerCase();
+
+      switch (filter.operator ?? "contains") {
+        case "equals":
+          return normalizedValue === normalizedQuery;
+        case "startsWith":
+          return normalizedValue.startsWith(normalizedQuery);
+        case "endsWith":
+          return normalizedValue.endsWith(normalizedQuery);
+        default:
+          return normalizedValue.includes(normalizedQuery);
+      }
     },
   };
 }
@@ -184,7 +228,50 @@ export function hasFilterValue(value: unknown) {
     return value.length > 0;
   }
 
+  if (value && typeof value === "object") {
+    if ("from" in value || "to" in value) {
+      return Object.values(value).some(hasFilterValue);
+    }
+
+    return true;
+  }
+
   return value !== undefined && value !== null && value !== "";
+}
+
+function normalizeRangeFilterValue(value: unknown): {
+  from?: string | number;
+  to?: string | number;
+} {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+
+  const range = value as { from?: unknown; to?: unknown };
+  return {
+    ...(typeof range.from === "string" || typeof range.from === "number"
+      ? { from: range.from }
+      : {}),
+    ...(typeof range.to === "string" || typeof range.to === "number"
+      ? { to: range.to }
+      : {}),
+  };
+}
+
+function normalizeDateFilterValue(value: unknown) {
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return value.toISOString().slice(0, 10);
+  }
+
+  const normalized = normalizeFilterValue(value);
+  if (/^\d{4}-\d{2}-\d{2}/.test(normalized)) {
+    return normalized.slice(0, 10);
+  }
+
+  const timestamp = Date.parse(normalized);
+  return Number.isNaN(timestamp)
+    ? ""
+    : new Date(timestamp).toISOString().slice(0, 10);
 }
 
 export function dataTableGlobalFilterFn<TData>(

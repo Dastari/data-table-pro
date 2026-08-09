@@ -113,6 +113,11 @@ export function useDataTableToolbarFeatures<TData>({
           value: state?.value,
           placeholder: filter.placeholder,
           options: normalizeColumnFilterOptions(rawOptions),
+          trueLabel: filter.trueLabel,
+          falseLabel: filter.falseLabel,
+          min: filter.min,
+          max: filter.max,
+          step: filter.step,
         },
       ];
     });
