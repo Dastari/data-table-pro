@@ -42,6 +42,16 @@ type DataTableBodyRowProps<TData> = {
   dragAndDrop: DataTableProps<TData>["dragAndDrop"];
   explicitCustomCellColumnIds: ReadonlySet<string>;
   getRowClassName: DataTableProps<TData>["getRowClassName"];
+  gridMode: boolean;
+  gridRowAriaIndex: number;
+  gridRowIndex: number;
+  activeGridCell: { row: number; column: number };
+  onGridCellFocus: (cell: { row: number; column: number }) => void;
+  onGridCellKeyDown: (
+    event: React.KeyboardEvent<HTMLElement>,
+    row: number,
+    column: number,
+  ) => void;
   isDraggable: boolean;
   isDetailExpanded: boolean;
   isEditing: boolean;
@@ -71,6 +81,12 @@ function DataTableBodyRowInner<TData>({
   dragAndDrop,
   explicitCustomCellColumnIds,
   getRowClassName,
+  gridMode,
+  gridRowAriaIndex,
+  gridRowIndex,
+  activeGridCell,
+  onGridCellFocus,
+  onGridCellKeyDown,
   isDraggable,
   isDetailExpanded,
   isEditing,
@@ -119,6 +135,8 @@ function DataTableBodyRowInner<TData>({
         data-state={
           isInitialLoadingRow ? undefined : isSelected ? "selected" : undefined
         }
+        role={gridMode ? "row" : undefined}
+        aria-rowindex={gridMode ? gridRowAriaIndex : undefined}
         tabIndex={onRowClick && !isInitialLoadingRow ? 0 : undefined}
         className={cn(
           !isInitialLoadingRow &&
@@ -196,7 +214,7 @@ function DataTableBodyRowInner<TData>({
           });
         }}
       >
-        {visibleCells.map((cell) => {
+        {visibleCells.map((cell, columnIndex) => {
           const meta = (
             cell.column.columnDef as DataTableColumnDef<TData, unknown>
           ).meta;
@@ -221,6 +239,39 @@ function DataTableBodyRowInner<TData>({
           return (
             <TableCell
               key={cell.id}
+              role={gridMode ? "gridcell" : undefined}
+              aria-colindex={gridMode ? columnIndex + 1 : undefined}
+              aria-selected={gridMode && !isInitialLoadingRow ? isSelected : undefined}
+              data-dtp-grid-cell={gridMode ? "true" : undefined}
+              data-grid-row-index={gridMode ? gridRowIndex : undefined}
+              data-grid-column-index={gridMode ? columnIndex : undefined}
+              tabIndex={
+                gridMode && !isInitialLoadingRow
+                  ? activeGridCell.row === gridRowIndex &&
+                    activeGridCell.column === columnIndex
+                    ? 0
+                    : -1
+                  : undefined
+              }
+              onFocus={
+                gridMode
+                  ? () => onGridCellFocus({ row: gridRowIndex, column: columnIndex })
+                  : undefined
+              }
+              onKeyDown={
+                gridMode
+                  ? (event: React.KeyboardEvent<HTMLTableCellElement>) => {
+                      if (event.target !== event.currentTarget) {
+                        if (event.key === "Escape") {
+                          event.preventDefault();
+                          event.currentTarget.focus();
+                        }
+                        return;
+                      }
+                      onGridCellKeyDown(event, gridRowIndex, columnIndex);
+                    }
+                  : undefined
+              }
               className={cn(
                 "border-b",
                 getDensityCellClassName(currentDensity),
@@ -362,6 +413,13 @@ function areDataTableBodyRowsEqual<TData>(
     previous.onRowClick === next.onRowClick &&
     previous.dragAndDrop === next.dragAndDrop &&
     previous.getRowClassName === next.getRowClassName &&
+    previous.gridMode === next.gridMode &&
+    previous.gridRowAriaIndex === next.gridRowAriaIndex &&
+    previous.gridRowIndex === next.gridRowIndex &&
+    previous.activeGridCell.row === next.activeGridCell.row &&
+    previous.activeGridCell.column === next.activeGridCell.column &&
+    previous.onGridCellFocus === next.onGridCellFocus &&
+    previous.onGridCellKeyDown === next.onGridCellKeyDown &&
     previous.stripedRows === next.stripedRows &&
     previous.uiClassNames === next.uiClassNames &&
     previous.explicitCustomCellColumnIds === next.explicitCustomCellColumnIds &&

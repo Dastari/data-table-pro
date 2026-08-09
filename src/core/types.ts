@@ -20,6 +20,23 @@ import type {
 
 export type DataTableViewMode = "table" | "card";
 
+/** Accessibility behavior for the table view. Native table semantics remain the default. */
+export type DataTableAccessibilityOptions = {
+  /**
+   * `grid` enables spreadsheet-like roving focus and keyboard navigation.
+   * `native` (the default) retains ordinary HTML table keyboard behavior.
+   */
+  mode?: "native" | "grid";
+  /** Number of rows moved by PageUp/PageDown when layout cannot be measured. */
+  pageSize?: number;
+};
+
+/** Shorthand configuration for the interactive ARIA grid mode. */
+export type DataTableInteractiveGridOptions = Omit<
+  DataTableAccessibilityOptions,
+  "mode"
+>;
+
 export type DataTableAlign = "start" | "center" | "end";
 export type DataTableColumnType = "text" | "numeric" | "date";
 export type DataTableColumnFixed = "left" | "right";
@@ -795,6 +812,10 @@ export type DataTableProps<TData> = {
   dragAndDrop?: DataTableDragAndDropConfig<TData>;
   fileUpload?: DataTableFileUploadConfig;
   virtualization?: boolean | DataTableVirtualizationConfig;
+  /** Opt in to ARIA grid semantics and roving keyboard navigation. */
+  accessibility?: DataTableAccessibilityOptions;
+  /** Shorthand for `accessibility={{ mode: "grid" }}`. */
+  interactiveGrid?: boolean | DataTableInteractiveGridOptions;
 };
 
 export function isRowVisible<TData>(
