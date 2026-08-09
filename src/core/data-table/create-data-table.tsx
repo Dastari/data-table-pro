@@ -1112,9 +1112,14 @@ export function createDataTableWithPanels(
         copyDataTableToClipboard({
           clipboard:
             options ??
-            (currentCellSelection
-              ? { ...(clipboard?.copy === true ? {} : clipboard?.copy), scope: "cellSelection" }
-              : clipboard?.copy ?? true),
+            (clipboard?.copy === false
+              ? false
+              : currentCellSelection
+                ? {
+                    ...(clipboard?.copy === true ? {} : clipboard?.copy),
+                    scope: "cellSelection",
+                  }
+                : clipboard?.copy ?? true),
           cellSelection: currentCellSelection,
           table,
         }),

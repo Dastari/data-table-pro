@@ -312,7 +312,10 @@ function DataTableBodyRowInner<TData>({
                   : undefined
               }
               onPointerDown={
-                gridMode && cellSelectionEnabled
+                gridMode &&
+                cellSelectionEnabled &&
+                !layout?.isUtilityColumn &&
+                !isSpacerColumn
                   ? (event: React.PointerEvent<HTMLTableCellElement>) => {
                       if (isDataTableInteractiveTarget(event.target, event.currentTarget)) return;
                       event.currentTarget.focus();
@@ -321,7 +324,10 @@ function DataTableBodyRowInner<TData>({
                   : undefined
               }
               onPointerEnter={
-                gridMode && cellSelectionEnabled
+                gridMode &&
+                cellSelectionEnabled &&
+                !layout?.isUtilityColumn &&
+                !isSpacerColumn
                   ? (event: React.PointerEvent<HTMLTableCellElement>) => {
                       if (isDataTableInteractiveTarget(event.target, event.currentTarget)) return;
                       onGridCellPointerEnter(event, gridRowIndex, columnIndex);

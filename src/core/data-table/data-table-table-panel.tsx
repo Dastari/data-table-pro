@@ -21,7 +21,7 @@ import {
 } from "./data-table-body-row";
 import { DataTableHeaderCell } from "./data-table-header-cell";
 import type { DataTableColumnLayout } from "./use-column-layout";
-import { isDataTableLoadingRow } from "./data-table-utils";
+import { isDataTableLoadingRow, isUtilityColumnId } from "./data-table-utils";
 import type { DataTableLabels } from "../types";
 
 export type DataTableTablePanelProps<TData> = {
@@ -202,7 +202,12 @@ export function DataTableTablePanel<TData>({
     (rowIndex: number, columnIndex: number) => {
       const row = gridRows[rowIndex];
       const column = visibleLeafColumns[columnIndex];
-      return row && column ? { rowId: row.id, columnId: column.id } : undefined;
+      return row &&
+        column &&
+        !isUtilityColumnId(column.id) &&
+        column.id !== "__spacer__"
+        ? { rowId: row.id, columnId: column.id }
+        : undefined;
     },
     [gridRows, visibleLeafColumns],
   );

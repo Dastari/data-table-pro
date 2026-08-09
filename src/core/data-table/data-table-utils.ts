@@ -507,8 +507,8 @@ export async function copyDataTableToClipboard<TData>({
   const requestedColumnIds = options.columns
     ? new Set(options.columns)
     : undefined;
-  const visibleColumns = table
-    .getVisibleLeafColumns()
+  const allVisibleColumns = table.getVisibleLeafColumns();
+  const visibleColumns = allVisibleColumns
     .filter(
       (column) =>
         !isUtilityColumnId(column.id) &&
@@ -517,7 +517,7 @@ export async function copyDataTableToClipboard<TData>({
     );
   const selectedRange =
     scope === "cellSelection"
-      ? getDataTableCellSelectionRange(table, visibleColumns, cellSelection)
+      ? getDataTableCellSelectionRange(table, allVisibleColumns, cellSelection)
       : undefined;
   const columns = selectedRange?.columns ?? visibleColumns;
   const rows =
@@ -589,7 +589,9 @@ function getDataTableCellSelectionRange<TData>(
   selection: DataTableCellSelection | null | undefined,
 ) {
   if (!selection) return undefined;
-  const rows = table.getRowModel().rows;
+  // flatRows preserves expanded tree/group display order, whereas `rows` only
+  // contains top-level entries and would omit selected descendants.
+  const rows = table.getRowModel().flatRows;
   const anchorRow = rows.findIndex((row) => row.id === selection.anchor.rowId);
   const focusRow = rows.findIndex((row) => row.id === selection.focus.rowId);
   const anchorColumn = columns.findIndex(
@@ -603,10 +605,15 @@ function getDataTableCellSelectionRange<TData>(
   }
   return {
     rows: rows.slice(Math.min(anchorRow, focusRow), Math.max(anchorRow, focusRow) + 1),
-    columns: columns.slice(
-      Math.min(anchorColumn, focusColumn),
-      Math.max(anchorColumn, focusColumn) + 1,
-    ),
+    columns: columns
+      .slice(
+        Math.min(anchorColumn, focusColumn),
+        Math.max(anchorColumn, focusColumn) + 1,
+      )
+      .filter(
+        (column) =>
+          !isUtilityColumnId(column.id) && column.id !== "__spacer__",
+      ),
   };
 }
 

@@ -216,4 +216,92 @@ describe("interactive grid accessibility", () => {
     expect(undo).toHaveBeenCalledWith(expect.objectContaining({ cellSelection: selection }));
     expect(redo).toHaveBeenCalledWith(expect.objectContaining({ cellSelection: selection }));
   });
+
+  it("keeps imperative copy disabled when clipboard.copy is false", async () => {
+    const apiRef = React.createRef<DataTableApi<Person>>();
+    render(
+      <ShadcnDataTable
+        apiRef={apiRef}
+        columns={columns}
+        data={data}
+        getRowId={(row) => row.id}
+        interactiveGrid
+        cellSelection={{
+          anchor: { rowId: "ada", columnId: "name" },
+          focus: { rowId: "ada", columnId: "name" },
+        }}
+        clipboard={{ copy: false }}
+      />,
+    );
+    await expect(apiRef.current?.copyToClipboard()).resolves.toBeUndefined();
+  });
+
+  it("copies an expanded tree range in displayed parent-to-child order", async () => {
+    type TreePerson = Person & { children?: Array<TreePerson> };
+    const treeColumns: Array<DataTableColumnDef<TreePerson, unknown>> = [
+      { accessorKey: "name", header: "Name" },
+    ];
+    const treeData: Array<TreePerson> = [
+      {
+        id: "parent",
+        name: "Parent",
+        age: 1,
+        children: [{ id: "child", name: "Child", age: 2 }],
+      },
+    ];
+    const apiRef = React.createRef<DataTableApi<TreePerson>>();
+    const onCopy = vi.fn();
+    render(
+      <ShadcnDataTable
+        apiRef={apiRef}
+        columns={treeColumns}
+        data={treeData}
+        getRowId={(row) => row.id}
+        getSubRows={(row) => row.children}
+        initialState={{ expanded: { parent: true } }}
+        interactiveGrid
+        cellSelection={{
+          anchor: { rowId: "parent", columnId: "name" },
+          focus: { rowId: "child", columnId: "name" },
+        }}
+      />,
+    );
+    await apiRef.current?.copyToClipboard({ scope: "cellSelection", onCopy });
+    const copyContext = onCopy.mock.calls[0]?.[0] as { text: string };
+    expect(copyContext.text).toBe("Parent\nChild");
+  });
+
+  it("ignores utility-cell pointers and filters utility bounds from range copy", async () => {
+    const onCellSelectionChange = vi.fn();
+    const onCopy = vi.fn();
+    const apiRef = React.createRef<DataTableApi<Person>>();
+    render(
+      <ShadcnDataTable
+        apiRef={apiRef}
+        columns={columns}
+        data={data}
+        getRowId={(row) => row.id}
+        interactiveGrid
+        enableCellSelection
+        enableRowSelection
+        onCellSelectionChange={onCellSelectionChange}
+      />,
+    );
+    const cells = screen.getAllByRole("gridcell");
+    fireEvent.pointerDown(cells[0], { button: 0 });
+    expect(onCellSelectionChange).not.toHaveBeenCalled();
+    apiRef.current?.setCellSelection({
+      anchor: { rowId: "ada", columnId: "__select__" },
+      focus: { rowId: "ada", columnId: "name" },
+    });
+    await waitFor(() =>
+      expect(apiRef.current?.getCellSelection()).toEqual({
+        anchor: { rowId: "ada", columnId: "__select__" },
+        focus: { rowId: "ada", columnId: "name" },
+      }),
+    );
+    await apiRef.current?.copyToClipboard({ scope: "cellSelection", onCopy });
+    const copyContext = onCopy.mock.calls[0]?.[0] as { text: string };
+    expect(copyContext.text).toBe("Ada");
+  });
 });
