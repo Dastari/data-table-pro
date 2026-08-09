@@ -18,6 +18,7 @@ import {
 } from "data-table-pro";
 
 import { useDataTableUrlState } from "data-table-pro/url-state";
+import { useDataTableDataSource } from "data-table-pro/data-source";
 import type { DataTableProps as DataTablePropsFromSubpath } from "data-table-pro/types";
 ```
 
@@ -151,6 +152,7 @@ The Gridcn consumers must also import a host-managed The Gridcn theme or token s
 - `data-table-pro/virtual`, `data-table-pro/heroui/virtual`, and
   `data-table-pro/thegridcn/virtual` export the eager-virtual `DataTable`
 - `data-table-pro/url-state` exports `useDataTableUrlState`
+- `data-table-pro/data-source` exports `useDataTableDataSource`
 - `data-table-pro/adapter` exports `createDataTable` and `primitiveUiKit`
 - `data-table-pro/adapter/virtual` exports `createVirtualDataTable`
 - `data-table-pro/advanced` exports `createDataTable`, `primitiveUiKit`,
@@ -167,6 +169,51 @@ replacement; no advanced import is removed in 4.0.
 The URL-state subpath also exports the
 `UseDataTableUrlStateOptions`, `DataTableUrlStateSlice`,
 `DataTableUrlEnhancedState`, and `DataTableUrlStateMigrationPayload` types.
+
+## Server data sources
+
+Use `data-table-pro/data-source` when sorting, filtering, and pagination are
+performed by your backend. The hook accepts either offset or cursor requests,
+cancels superseded work, ignores stale responses, deduplicates a repeated
+in-flight request, and caches successful results per hook instance (30 seconds
+by default). `refresh()` bypasses a fresh cache entry and `invalidate()` removes
+one cache key or all cache entries.
+
+```tsx
+const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 25 });
+const [sorting, setSorting] = useState<SortingState>([]);
+const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+
+const users = useDataTableDataSource({
+  mode: "offset",
+  pagination,
+  sorting,
+  columnFilters,
+  query: { organizationId },
+  source: async ({ offset, limit, sorting, columnFilters, query, signal }) => {
+    const response = await fetch("/api/users", {
+      method: "POST",
+      signal,
+      body: JSON.stringify({ offset, limit, sorting, columnFilters, ...query }),
+    });
+    return response.json(); // { rows, rowCount?, nextCursor?, facets? }
+  },
+  onPageIndexChange: (pageIndex) =>
+    setPagination((current) => ({ ...current, pageIndex })),
+  onPageSizeChange: (pageSize) =>
+    setPagination({ pageIndex: 0, pageSize }),
+  onSortingChange: setSorting,
+  onColumnFiltersChange: setColumnFilters,
+});
+
+<DataTable columns={columns} getRowId={(user) => user.id} {...users.tableProps} />;
+```
+
+For cursor APIs, set `mode: "cursor"` and pass the cursor for the requested
+page as `cursor`; the hook exposes the backend's `nextCursor`. Memoize `source`
+with `useCallback`, or include all of its changing inputs in `query`, so a
+changed request is observable. Provide `getRequestKey` when `query` contains a
+non-serializable value.
 
 ## Type Exports
 
