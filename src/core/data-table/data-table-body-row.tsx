@@ -137,7 +137,9 @@ function DataTableBodyRowInner<TData>({
         }
         role={gridMode ? "row" : undefined}
         aria-rowindex={gridMode ? gridRowAriaIndex : undefined}
-        tabIndex={onRowClick && !isInitialLoadingRow ? 0 : undefined}
+        tabIndex={
+          !gridMode && onRowClick && !isInitialLoadingRow ? 0 : undefined
+        }
         className={cn(
           !isInitialLoadingRow &&
             getRowClassName?.(originalRow, {
