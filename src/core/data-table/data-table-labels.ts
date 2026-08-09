@@ -61,6 +61,13 @@ export const DATA_TABLE_DEFAULT_LABELS: ResolvedDataTableLabels = {
   pinRowToBottom: "Pin row to bottom",
   unpinRow: "Unpin row",
   resizeColumn: (columnLabel) => `Resize ${columnLabel}`,
+  grouping: "Grouping",
+  groupBy: (columnLabel) => `Group by ${columnLabel}`,
+  ungroup: (columnLabel) => `Ungroup ${columnLabel}`,
+  removeGrouping: (columnLabel) => `Remove ${columnLabel} grouping`,
+  moveGroupingEarlier: (columnLabel) => `Move ${columnLabel} grouping earlier`,
+  moveGroupingLater: (columnLabel) => `Move ${columnLabel} grouping later`,
+  facetSearch: (columnLabel) => `Search ${columnLabel} options`,
 };
 
 export function resolveDataTableLabels(

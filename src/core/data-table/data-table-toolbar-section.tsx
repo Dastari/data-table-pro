@@ -13,6 +13,7 @@ type DataTableToolbarSectionProps<TData> = {
   descriptionId: string | undefined;
   effectiveToolbarActions: Array<unknown>;
   enableColumnPinning: boolean;
+  enableGrouping: boolean;
   enableDensityToggle: boolean;
   enableViewToggle: boolean;
   hiddenRowsLabel: string | undefined;
@@ -50,6 +51,7 @@ export function DataTableToolbarSection<TData>({
   descriptionId,
   effectiveToolbarActions,
   enableColumnPinning,
+  enableGrouping,
   enableDensityToggle,
   enableViewToggle,
   hiddenRowsLabel,
@@ -103,6 +105,7 @@ export function DataTableToolbarSection<TData>({
           table.getColumn(columnId)?.toggleVisibility(visible);
         }}
         enableColumnPinning={enableColumnPinning}
+        enableGrouping={enableGrouping}
         onColumnPinningChange={onColumnPinningChange}
         columnFilters={columnFilters}
         onColumnFilterChange={onColumnFilterChange}
@@ -113,6 +116,7 @@ export function DataTableToolbarSection<TData>({
         labels={labels}
         toolbarVisibility={toolbarVisibility}
         openFileDialog={openFileDialog}
+        table={table}
       />
     </div>
   );

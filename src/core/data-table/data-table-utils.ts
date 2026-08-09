@@ -121,7 +121,7 @@ export function decorateFilterableColumn<TData>(
         filter.getOptionValue?.(value, row.original) ??
         normalizeFilterValue(value);
 
-      if (filter.type === "multi") {
+      if (filter.type === "multi" || filter.type === "faceted") {
         return Array.isArray(filterValue)
           ? filterValue.map(String).includes(optionValue)
           : true;

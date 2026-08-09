@@ -17,6 +17,8 @@ afterEach(() => {
 
 describe("useDataTableDataSource", () => {
   it("sends a typed offset request and returns manual table props", async () => {
+    const onGlobalFilterChange = vi.fn();
+    const onGroupingChange = vi.fn();
     const source = vi.fn(() => ({
       aggregates: { salary: 120_000 },
       metadata: { revision: "users-v2" },
@@ -34,6 +36,8 @@ describe("useDataTableDataSource", () => {
         aggregations: { salary: "sum" },
         expansionPath: ["engineering"],
         mode: "offset",
+        onGlobalFilterChange,
+        onGroupingChange,
         pagination: { pageIndex: 1, pageSize: 10 },
         query: { organizationId: "org_1" },
         sorting: [{ desc: true, id: "createdAt" }],
@@ -62,12 +66,19 @@ describe("useDataTableDataSource", () => {
     expect(result?.tableProps).toMatchObject({
       data: [{ id: "ada" }],
       manualFiltering: true,
+      manualGrouping: true,
       manualPagination: true,
       manualSorting: true,
       pageIndex: 1,
       pageSize: 10,
+      grouping: ["department"],
+      toolbarQueryValue: "ada",
       totalRowCount: 31,
     });
+    result?.tableProps.onToolbarQueryValueChange?.("grace");
+    result?.tableProps.onGroupingChange?.(["role"]);
+    expect(onGlobalFilterChange).toHaveBeenCalledWith("grace");
+    expect(onGroupingChange).toHaveBeenCalledWith(["role"]);
     expect(result?.tableProps.hasNextPage).toBe(true);
     expect(result?.aggregates).toEqual({ salary: 120_000 });
     expect(result?.metadata).toEqual({ revision: "users-v2" });

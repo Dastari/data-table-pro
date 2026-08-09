@@ -282,6 +282,11 @@ export function DataTableTablePanel<TData>({
         dragAndDrop={dragAndDrop}
         explicitCustomCellColumnIds={explicitCustomCellColumnIds}
         getRowClassName={getRowClassName}
+        groupToggleLabel={
+          row.getIsExpanded()
+            ? resolvedLabels.collapseRow
+            : resolvedLabels.expandRow
+        }
         isDraggable={isDraggable}
         isDetailExpanded={
           currentDetailExpanded === true ||

@@ -122,6 +122,12 @@ export function createDataTableWithPanels(
     sorting,
     onSortingChange,
     manualSorting = false,
+    grouping,
+    onGroupingChange,
+    manualGrouping = false,
+    enableGrouping = false,
+    groupedColumnMode = "reorder",
+    aggregationFns,
     pageIndex,
     pageSize,
     onPageIndexChange,
@@ -231,6 +237,7 @@ export function createDataTableWithPanels(
     const resolvedToolbarQueryValue =
       toolbarQueryValue ?? unifiedState?.globalFilter;
     const resolvedSorting = sorting ?? unifiedState?.sorting;
+    const resolvedGrouping = grouping ?? unifiedState?.grouping;
     const resolvedPageIndex =
       pageIndex ?? unifiedState?.pagination?.pageIndex;
     const resolvedPageSize = pageSize ?? unifiedState?.pagination?.pageSize;
@@ -266,6 +273,7 @@ export function createDataTableWithPanels(
       columnVisibility: columnVisibility !== undefined,
       density: density !== undefined,
       expanded: expanded !== undefined,
+      grouping: grouping !== undefined,
       globalFilter: toolbarQueryValue !== undefined,
       pagination: pageIndex !== undefined || pageSize !== undefined,
       rowSelection: rowSelection !== undefined,
@@ -281,6 +289,11 @@ export function createDataTableWithPanels(
     const handleSortingPropChange = useDataTableStateSliceChange(
       "sorting",
       onSortingChange,
+      onStateChange,
+    );
+    const handleGroupingPropChange = useDataTableStateSliceChange(
+      "grouping",
+      onGroupingChange,
       onStateChange,
     );
     const handleRowSelectionPropChange = useDataTableStateSliceChange(
@@ -429,6 +442,7 @@ export function createDataTableWithPanels(
       currentColumnVisibility,
       currentDensity,
       currentExpanded,
+      currentGrouping,
       currentPagination,
       currentRowSelection,
       currentShowHiddenRows,
@@ -450,6 +464,7 @@ export function createDataTableWithPanels(
       setCurrentRowPinning,
       setCurrentColumnVisibility,
       setCurrentExpanded,
+      setCurrentGrouping,
       setCurrentRowSelection,
       setCurrentSorting,
       setLocalColumnSizing,
@@ -475,6 +490,7 @@ export function createDataTableWithPanels(
       enableRowSelection,
       enableToolbarQueryFiltering,
       expanded: resolvedExpanded,
+      grouping: resolvedGrouping,
       getSubRows,
       getRowId,
       hiddenRows,
@@ -490,6 +506,7 @@ export function createDataTableWithPanels(
       onColumnVisibilityChange: handleColumnVisibilityPropChange,
       onDensityChange: handleDensityPropChange,
       onExpandedChange: handleExpandedPropChange,
+      onGroupingChange: handleGroupingPropChange,
       onPageIndexChange: handlePageIndexPropChange,
       onRowSelectionChange: handleRowSelectionPropChange,
       onShowHiddenRowsChange: handleShowHiddenRowsPropChange,
@@ -653,6 +670,7 @@ export function createDataTableWithPanels(
       currentRowPinning,
       currentColumnSizing,
       currentExpanded,
+      currentGrouping,
       currentPagination,
       currentRowSelection,
       currentSorting,
@@ -667,6 +685,8 @@ export function createDataTableWithPanels(
       getRowCanSelect,
       getRowCanExpand,
       getSubRows,
+      aggregationFns,
+      groupedColumnMode,
       globalFilterFn,
       globalFilterValue,
       hasNextPage,
@@ -676,9 +696,11 @@ export function createDataTableWithPanels(
       handleRowPinningChange: setCurrentRowPinning,
       handleColumnVisibilityChange: setCurrentColumnVisibility,
       handleExpandedChange: setCurrentExpanded,
+      handleGroupingChange: setCurrentGrouping,
       infiniteScroll,
       keepPinnedRows,
       manualFiltering,
+      manualGrouping,
       manualExpanding,
       manualPagination,
       manualSorting,
@@ -861,6 +883,7 @@ export function createDataTableWithPanels(
         columnVisibility: currentColumnVisibility,
         columnFilters: currentColumnFilters,
         expanded: currentExpanded,
+        grouping: currentGrouping,
         columnOrder: currentColumnOrder,
         columnPinning: currentColumnPinning,
         rowPinning: currentRowPinning,
@@ -879,6 +902,7 @@ export function createDataTableWithPanels(
         currentColumnVisibility,
         currentDensity,
         currentExpanded,
+        currentGrouping,
         currentPagination,
         currentRowSelection,
         currentShowHiddenRows,
@@ -910,6 +934,9 @@ export function createDataTableWithPanels(
         }
         if (nextState.expanded !== undefined) {
           table.setExpanded(nextState.expanded);
+        }
+        if (nextState.grouping !== undefined) {
+          table.setGrouping(nextState.grouping);
         }
         if (nextState.columnOrder !== undefined) {
           table.setColumnOrder(nextState.columnOrder);
@@ -986,6 +1013,7 @@ export function createDataTableWithPanels(
           columnVisibility: initialState?.columnVisibility ?? {},
           columnFilters: initialState?.columnFilters ?? [],
           expanded: initialState?.expanded ?? {},
+          grouping: initialState?.grouping ?? [],
           columnOrder: initialState?.columnOrder ?? [],
           columnPinning:
             initialState?.columnPinning ?? getInitialColumnPinning(columns),
@@ -1289,6 +1317,7 @@ export function createDataTableWithPanels(
                   descriptionId={descriptionId}
                   effectiveToolbarActions={guardedToolbarActions}
                   enableColumnPinning={enableColumnPinning}
+                  enableGrouping={enableGrouping}
                   enableDensityToggle={enableDensityToggle}
                   enableViewToggle={enableViewToggle && Boolean(cardRenderer)}
                   hiddenRowsLabel={hiddenRows?.label}
@@ -1551,6 +1580,7 @@ function cloneDataTableState(state: DataTableState): DataTableState {
       typeof state.expanded === "boolean"
         ? state.expanded
         : { ...state.expanded },
+    grouping: [...state.grouping],
     columnOrder: [...state.columnOrder],
     columnPinning: {
       left: state.columnPinning.left

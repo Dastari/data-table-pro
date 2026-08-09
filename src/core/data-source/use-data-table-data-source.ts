@@ -138,15 +138,20 @@ export type DataTableDataSourceTableProps<TData> = Pick<
   | "hasNextPage"
   | "isLoading"
   | "manualFiltering"
+  | "manualGrouping"
   | "manualPagination"
   | "manualSorting"
   | "onColumnFiltersChange"
+  | "onGroupingChange"
   | "onPageIndexChange"
   | "onPageSizeChange"
   | "onSortingChange"
   | "pageIndex"
   | "pageSize"
   | "sorting"
+  | "grouping"
+  | "toolbarQueryValue"
+  | "onToolbarQueryValueChange"
   | "totalRowCount"
 >;
 
@@ -459,22 +464,31 @@ export function useDataTableDataSource<
       hasNextPage,
       isLoading: enabled && state.status === "loading",
       manualFiltering: true,
+      manualGrouping: true,
       manualPagination: true,
       manualSorting: true,
       onColumnFiltersChange: options.onColumnFiltersChange,
+      onGroupingChange: options.onGroupingChange,
       onPageIndexChange: options.onPageIndexChange,
       onPageSizeChange: options.onPageSizeChange,
       onSortingChange: options.onSortingChange,
+      onToolbarQueryValueChange: options.onGlobalFilterChange,
       pageIndex: pagination.pageIndex,
       pageSize: pagination.pageSize,
       sorting,
+      grouping,
+      toolbarQueryValue: globalFilter,
       totalRowCount: state.rowCount,
     }),
     [
       columnFilters,
       enabled,
+      globalFilter,
+      grouping,
       hasNextPage,
       options.onColumnFiltersChange,
+      options.onGlobalFilterChange,
+      options.onGroupingChange,
       options.onPageIndexChange,
       options.onPageSizeChange,
       options.onSortingChange,
