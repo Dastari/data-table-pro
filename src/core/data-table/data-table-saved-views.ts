@@ -13,6 +13,7 @@ const DEFAULT_SLICES: Array<DataTableSavedViewSlice> = [
   "sorting",
   "columnVisibility",
   "columnFilters",
+  "grouping",
   "columnOrder",
   "columnPinning",
   "rowPinning",
@@ -263,6 +264,8 @@ function validateState(
   }
   const filters = validateFilters(value.columnFilters);
   if (selected.has("columnFilters") && filters) state.columnFilters = filters;
+  const grouping = validateStringArray(value.grouping);
+  if (selected.has("grouping") && grouping) state.grouping = grouping;
   const expanded =
     value.expanded === true
       ? true

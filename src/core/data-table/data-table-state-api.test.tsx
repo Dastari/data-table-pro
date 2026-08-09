@@ -744,6 +744,7 @@ describe("DataTable unified state API", () => {
     act(() => {
       apiRef.current?.restore({
         sorting: [{ id: "name", desc: true }],
+        grouping: ["name"],
         columnVisibility: { name: false },
         pagination: { pageIndex: 1, pageSize: 1 },
         rowSelection: { "1": true },
@@ -758,6 +759,7 @@ describe("DataTable unified state API", () => {
 
     expect(savedView?.name).toBe("My view");
     expect(savedView?.state.sorting).toEqual([{ id: "name", desc: true }]);
+    expect(savedView?.state.grouping).toEqual(["name"]);
     expect(savedView?.state.columnVisibility).toEqual({ name: false });
     expect(savedView?.state.pagination).toBeUndefined();
     expect(savedView?.state.rowSelection).toBeUndefined();
@@ -771,6 +773,7 @@ describe("DataTable unified state API", () => {
     act(() => {
       apiRef.current?.restore({
         sorting: [],
+        grouping: [],
         columnVisibility: {},
       });
     });
@@ -780,6 +783,7 @@ describe("DataTable unified state API", () => {
     expect(apiRef.current?.getState().sorting).toEqual([
       { id: "name", desc: true },
     ]);
+    expect(apiRef.current?.getState().grouping).toEqual(["name"]);
     expect(onApply).toHaveBeenCalledWith(
       expect.objectContaining({ id: savedView?.id }),
     );
