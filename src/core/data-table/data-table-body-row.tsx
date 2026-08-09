@@ -17,6 +17,7 @@ import {
   isDataTableLoadingRow,
 } from "./data-table-utils";
 import { renderEditableCell } from "./use-row-editing";
+import { useDataTableVirtualRowMeasurement } from "./data-table-virtual-row-measurement";
 import { cellAlignClassName, hideOnClassName } from "../types";
 
 export type DataTableRowEditingContext<TData> = {
@@ -109,6 +110,8 @@ function DataTableBodyRowInner<TData>({
   visibleLeafColumnCount,
 }: DataTableBodyRowProps<TData>) {
   const { Checkbox, Input, Skeleton, TableCell, TableRow } = components;
+  const virtualRowMeasurement = useDataTableVirtualRowMeasurement();
+  const measureElement = pinnedPosition ? undefined : virtualRowMeasurement;
   const firstDataColumnId = visibleCells.find(
     (cell) => !columnLayouts.get(cell.column.id)?.isUtilityColumn,
   )?.column.id;
@@ -116,7 +119,9 @@ function DataTableBodyRowInner<TData>({
   return (
     <React.Fragment>
       <TableRow
+        ref={measureElement}
         data-row-id={row.id}
+        data-index={measureElement ? rowIndex : undefined}
         data-tree-depth={
           !isInitialLoadingRow && row.depth > 0 ? row.depth : undefined
         }

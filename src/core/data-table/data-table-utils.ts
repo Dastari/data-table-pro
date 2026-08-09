@@ -394,6 +394,10 @@ export function dataTableGlobalFilterFn<TData>(
     .includes(normalizedQuery);
 }
 
+export function normalizeDataTableSearchText(value: unknown) {
+  return normalizeFilterValue(value).trim().toLowerCase();
+}
+
 export async function exportDataTableCsv<TData>({
   csvExport,
   table,

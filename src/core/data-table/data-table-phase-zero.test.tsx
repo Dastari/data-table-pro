@@ -113,6 +113,59 @@ describe("DataTable phase-zero contracts", () => {
     expect(globalFilterFn).toHaveBeenCalled();
   });
 
+  it("caches normalized built-in search values across query changes", () => {
+    const getAccessorValue = vi.fn((row: TestRow) => row.name);
+    const searchColumns: Array<DataTableColumnDef<TestRow, unknown>> = [
+      {
+        id: "name",
+        accessorFn: getAccessorValue,
+        header: "Name",
+      },
+    ];
+
+    render(
+      <DataTable
+        columns={searchColumns}
+        data={[
+          { id: "1", name: "Ada" },
+          { id: "2", name: "Grace" },
+        ]}
+        getRowId={(row) => row.id}
+      />,
+    );
+
+    fireEvent.change(screen.getByPlaceholderText("Search rows..."), {
+      target: { value: "ada" },
+    });
+    expect(screen.getByText("Ada")).not.toBeNull();
+    expect(getAccessorValue).toHaveBeenCalledTimes(2);
+
+    fireEvent.change(screen.getByPlaceholderText("Search rows..."), {
+      target: { value: "ad" },
+    });
+    expect(screen.getByText("Ada")).not.toBeNull();
+    expect(getAccessorValue).toHaveBeenCalledTimes(2);
+  });
+
+  it("warns in development when row identity cannot safely anchor table state", () => {
+    const warning = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    render(
+      <DataTable
+        columns={columns}
+        data={[
+          { id: "duplicate", name: "Ada" },
+          { id: "duplicate", name: "Grace" },
+        ]}
+        getRowId={(row) => row.id}
+      />,
+    );
+
+    expect(warning).toHaveBeenCalledWith(
+      expect.stringContaining("Duplicate row id \"duplicate\""),
+    );
+  });
+
   it("searches nested leaf columns with the real row index", () => {
     type NestedRow = {
       id: string;
@@ -497,6 +550,11 @@ describe("DataTable phase-zero contracts", () => {
     fireEvent.click(screen.getByRole("button", { name: "Archive" }));
     fireEvent.pointerDown(screen.getByRole("button", { name: "Row actions" }));
     fireEvent.click(screen.getByText("Edit row"));
+    const editInput = container.querySelector("tbody input:not([type=checkbox])");
+    expect(editInput).not.toBeNull();
+    fireEvent.change(editInput!, {
+      target: { value: "Ada Lovelace" },
+    });
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     const fileInput = container.querySelector('input[type="file"]');

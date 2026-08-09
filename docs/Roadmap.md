@@ -281,9 +281,9 @@ considered shipped.
 
 ### Phase 3: performance and package architecture (3.3)
 
-Status: first code-splitting slice delivered on `main`; runtime benchmarks,
-search indexing, measured variable-height virtualization, and two-axis
-virtualization remain.
+Status: code-splitting, benchmark fixtures, cached client search, deferred
+client filtering, and measured variable-height row/card virtualization are
+delivered. Two-axis/column virtualization remains intentionally deferred.
 
 Delivered in the first slice:
 
@@ -301,7 +301,7 @@ Delivered in the first slice:
 - Added CI budgets for static package graphs, adapter deltas, URL state, demo
   initial JavaScript, and explicit TanStack Virtual import boundaries.
 
-Measure first:
+Measure first (delivered in `benchmarks/`):
 
 - Add reproducible React Profiler and browser benchmarks for 1k, 10k, 50k,
   and 100k rows; 20, 100, and 500 columns; client filtering/sorting/grouping;
@@ -310,7 +310,7 @@ Measure first:
   dropped frames.
 - Publish benchmark fixtures and compare every performance PR to the baseline.
 
-Runtime work:
+Runtime work (delivered except where noted):
 
 - Cache searchable values by data/column identity and expose a custom indexing
   hook for expensive domain data.
@@ -318,7 +318,10 @@ Runtime work:
   server callbacks.
 - Dynamically measure variable-height table/card rows and preserve scroll
   position across expansion, editing, and responsive changes.
-- Add optional column virtualization and a two-axis virtual layout.
+- Add optional column virtualization and a two-axis virtual layout. Deferred:
+  a correct native-table implementation must preserve grouped headers, pinned
+  and resized columns, detail rows, and screen-reader semantics together; the
+  wide-column benchmark is the executable evidence until that design exists.
 - Document immutable row/column identity requirements and warn in development
   for common unstable inputs.
 - Profile memo comparators and remove memoization whose comparison cost exceeds

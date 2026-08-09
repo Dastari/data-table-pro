@@ -47,6 +47,7 @@ import { clearDataTableColumnPrefs } from "./use-data-table-column-prefs";
 import { useDataTableToolbarFeatures } from "./use-data-table-toolbar-features";
 import { useColumnLayout } from "./use-column-layout";
 import { useRowEditing } from "./use-row-editing";
+import { useDataTablePerformanceDiagnostics } from "./use-data-table-performance-diagnostics";
 
 type CreateDataTableOptions = {
   CardPanel?: typeof DefaultDataTableCardPanel;
@@ -229,6 +230,7 @@ export function createDataTableWithPanels(
     const lastSelectedRowIdRef = React.useRef<string | null>(null);
     const generatedTitleId = React.useId();
     const generatedDescriptionId = React.useId();
+    useDataTablePerformanceDiagnostics({ columns, data, getRowId });
     React.useMemo(() => validateDataTableColumnIds(columns), [columns]);
     const resolvedLabels = React.useMemo(
       () => resolveDataTableLabels(labels),

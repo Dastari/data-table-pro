@@ -84,6 +84,7 @@
   },
   "scripts": {
     "build": "tsup",
+    "bench": "playwright test --config benchmarks/playwright.config.ts",
     "bundle:check": "node scripts/check-bundle-size.mjs",
     "api:check": "node scripts/public-api-snapshot.mjs",
     "api:update": "node scripts/public-api-snapshot.mjs --update",
