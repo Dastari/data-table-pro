@@ -118,7 +118,7 @@ describe("DataTable unified state API", () => {
     expect(screen.getByText("Grace")).not.toBeNull();
   });
 
-  it("derives an opt-in controlled page size from the scroll viewport", () => {
+  it("derives an opt-in controlled page size from the scroll viewport", async () => {
     const clientHeight = Object.getOwnPropertyDescriptor(
       HTMLElement.prototype,
       "clientHeight",
@@ -154,8 +154,10 @@ describe("DataTable unified state API", () => {
         />,
       );
 
-      expect(onPageIndexChange).toHaveBeenCalledWith(0);
-      expect(onPageSizeChange).toHaveBeenCalledWith(5);
+      await waitFor(() => {
+        expect(onPageIndexChange).toHaveBeenCalledWith(0);
+        expect(onPageSizeChange).toHaveBeenCalledWith(5);
+      });
     } finally {
       frame.mockRestore();
       if (clientHeight) {
@@ -530,8 +532,8 @@ describe("DataTable unified state API", () => {
     );
     await waitFor(() => expect(requestFullscreen).toHaveBeenCalled());
 
-    expect(screen.getByRole("alert")).not.toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(await screen.findByRole("alert")).not.toBeNull();
+    fireEvent.click(await screen.findByRole("button", { name: "Retry" }));
     expect(retry).toHaveBeenCalled();
   });
 

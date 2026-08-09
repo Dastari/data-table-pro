@@ -7,8 +7,10 @@ import type {
   DataTableActionErrorContext,
   DataTableApi,
   DataTableCellSelection,
+  DataTableLabels,
   DataTableProps,
   DataTableState,
+  DataTableStateOverlay as DataTableStateOverlayConfig,
 } from "../types";
 import type { DataTableUiKit } from "../ui-kit";
 import { cn } from "../../lib/utils";
@@ -46,9 +48,11 @@ import { clearDataTableColumnPrefs } from "./use-data-table-column-prefs";
 import { useDataTableToolbarFeatures } from "./use-data-table-toolbar-features";
 import { useColumnLayout } from "./use-column-layout";
 import { useRowEditing } from "./use-row-editing";
-import { useDataTableAutoPageSize } from "./use-data-table-auto-page-size";
 import { useDataTablePerformanceDiagnostics } from "./use-data-table-performance-diagnostics";
-import { createDataTableStateOverlay } from "./data-table-state-overlay";
+
+const DataTableAutoPageSize = React.lazy(
+  () => import("./data-table-auto-page-size"),
+);
 
 type CreateDataTableOptions = {
   CardPanel?: typeof DefaultDataTableCardPanel;
@@ -93,7 +97,17 @@ export function createDataTableWithPanels(
   const { DataTableFooter } = createDataTablePagination(ui);
   const DataTableToolbar = createDataTableToolbar(ui);
   const DataTableCardView = createDataTableCardView(ui, DataTableRowActions);
-  const DataTableStateOverlay = createDataTableStateOverlay(ui);
+  const DataTableStateOverlay = React.lazy(async () => {
+    const { createDataTableStateOverlay } = await import(
+      "./data-table-state-overlay"
+    );
+    return { default: createDataTableStateOverlay(ui) };
+  }) as unknown as <TOverlayData>(props: {
+    labels: DataTableLabels;
+    overlay: DataTableStateOverlayConfig<TOverlayData>;
+    rows: Array<TOverlayData>;
+    toolbarQueryValue: string;
+  }) => React.ReactElement | null;
   const defaultColumn = {
     minSize: 80,
     size: 180,
@@ -647,14 +661,8 @@ export function createDataTableWithPanels(
         setLocalPagination,
       ],
     );
-    useDataTableAutoPageSize({
-      config: autoPageSizeConfig,
-      currentPageSize: currentPagination.pageSize,
-      enabled: autoPageSize === true || autoPageSizeConfig !== undefined,
-      onPageSizeChange: handleAutoPageSizeChange,
-      viewportElement: tableScrollElement,
-      viewportHeight,
-    });
+    const autoPageSizeEnabled =
+      autoPageSize === true || autoPageSizeConfig !== undefined;
     const print = React.useCallback(() => {
       if (typeof window === "undefined" || typeof window.print !== "function") {
         return false;
@@ -931,13 +939,15 @@ export function createDataTableWithPanels(
           : undefined,
       [runAction, stateOverlay],
     );
-    const stateOverlayNode = guardedStateOverlay ? (
-      <DataTableStateOverlay
-        labels={resolvedLabels}
-        overlay={guardedStateOverlay}
-        rows={filteredData}
-        toolbarQueryValue={localSearchValue}
-      />
+    const stateOverlayNode = guardedStateOverlay?.error != null ? (
+      <React.Suspense fallback={null}>
+        <DataTableStateOverlay
+          labels={resolvedLabels}
+          overlay={guardedStateOverlay}
+          rows={filteredData}
+          toolbarQueryValue={localSearchValue}
+        />
+      </React.Suspense>
     ) : undefined;
     const {
       columnVisibilityOptions,
@@ -1484,6 +1494,18 @@ export function createDataTableWithPanels(
             );
           }}
         >
+          {autoPageSizeEnabled ? (
+            <React.Suspense fallback={null}>
+              <DataTableAutoPageSize
+                config={autoPageSizeConfig}
+                currentPageSize={currentPagination.pageSize}
+                enabled
+                onPageSizeChange={handleAutoPageSizeChange}
+                viewportElement={tableScrollElement}
+                viewportHeight={viewportHeight}
+              />
+            </React.Suspense>
+          ) : null}
           {fileUpload ? (
             <input
               ref={fileInputRef}
