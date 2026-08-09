@@ -2,6 +2,7 @@ import * as React from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { DataTableTablePanel } from "./data-table-table-panel";
 import type { DataTableTablePanelProps } from "./data-table-table-panel";
+import { DataTableVirtualRowMeasurementProvider } from "./data-table-virtual-row-measurement";
 
 export function DataTableVirtualTablePanel<TData>(
   props: DataTableTablePanelProps<TData>,
@@ -61,13 +62,25 @@ export function DataTableVirtualTablePanel<TData>(
           (virtualItems.at(-1)?.end ?? virtualPaddingTop),
       )
     : 0;
+  const measureRow = React.useCallback<React.RefCallback<HTMLTableRowElement>>(
+    (element) => {
+      if (element) {
+        rowVirtualizer.measureElement(element);
+      }
+    },
+    [rowVirtualizer],
+  );
 
   return (
-    <DataTableTablePanel
-      {...props}
-      rowsToRender={rowsToRender}
-      virtualPaddingBottom={virtualPaddingBottom}
-      virtualPaddingTop={virtualPaddingTop}
-    />
+    <DataTableVirtualRowMeasurementProvider
+      measureRow={shouldUseVirtualRows ? measureRow : undefined}
+    >
+      <DataTableTablePanel
+        {...props}
+        rowsToRender={rowsToRender}
+        virtualPaddingBottom={virtualPaddingBottom}
+        virtualPaddingTop={virtualPaddingTop}
+      />
+    </DataTableVirtualRowMeasurementProvider>
   );
 }

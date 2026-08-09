@@ -26,7 +26,6 @@ import type {
 import type { DataTableProps } from "../types";
 import {
   canReorderDataTableColumn,
-  dataTableGlobalFilterFn,
   getColumnId,
   getDataTableLeafColumns,
   isDataTableLoadingRow,
@@ -36,6 +35,7 @@ import {
 import type { DataTableColumnGroupPaths } from "./data-table-utils";
 import { useDataTableInfiniteScroll } from "./use-data-table-infinite-scroll";
 import { useDataTablePaginationClamp } from "./use-data-table-pagination-clamp";
+import { useDataTableSearchIndex } from "./use-data-table-search-index";
 
 export function useDataTableInstance<TData>({
   autoResetPageIndex,
@@ -169,6 +169,7 @@ export function useDataTableInstance<TData>({
   virtualization: DataTableProps<TData>["virtualization"];
   viewportHeight: number;
 }) {
+  const cachedGlobalFilterFn = useDataTableSearchIndex<TData>();
   const generatedColumnIds = React.useMemo(() => {
     return getDataTableLeafColumns(
       tableColumns as DataTableProps<TData>["columns"],
@@ -367,7 +368,7 @@ export function useDataTableInstance<TData>({
     getRowCanExpand: getSubRows
       ? (row) => getRowCanExpand?.(row.original) ?? row.subRows.length > 0
       : undefined,
-    globalFilterFn: globalFilterFn ?? dataTableGlobalFilterFn,
+    globalFilterFn: globalFilterFn ?? cachedGlobalFilterFn,
     getColumnCanGlobalFilter: (column) =>
       column.columnDef.enableGlobalFilter !== false &&
       typeof column.accessorFn === "function",

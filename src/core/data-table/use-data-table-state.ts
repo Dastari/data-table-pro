@@ -303,8 +303,13 @@ export function useDataTableState<TData>({
     1,
     loadingRowCount ?? Math.min(5, currentPagination.pageSize),
   );
+  // Keep input/callback state eager. Only the client row-model input is
+  // deferred, so server/manual callbacks never wait behind a large filter.
+  const deferredSearchValue = React.useDeferredValue(localSearchValue);
   const globalFilterValue = enableToolbarQueryFiltering
-    ? localSearchValue
+    ? manualFiltering
+      ? localSearchValue
+      : deferredSearchValue
     : "";
   const handleViewModeChange = React.useCallback(
     (nextViewMode: "table" | "card") => {

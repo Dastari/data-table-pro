@@ -234,6 +234,15 @@ Card mode can virtualize large card sets:
 
 `virtualization.card.lanes` accepts a positive number or `"auto"`. `"auto"` derives lanes from the card viewport width. Before the scroll viewport is measurable, `fallbackCardCount` bounds first-paint work so large card collections do not mount in full.
 
+Virtual rows are measured after mount, including variable-height wrapped table
+cells and card lanes. Keep `getRowId`, row objects, and column definitions
+stable and immutable: row ids are the virtual scroll keys and built-in search
+indexes values by row/column identity. Development builds warn about duplicate
+row ids and common identity churn. See [the benchmark harness](benchmarks/README.md)
+for repeatable row- and column-scale measurements. Column virtualization is not
+currently offered because it would compromise the native table's grouped-header,
+pinned-column, resize, detail-row, and accessibility contracts.
+
 ## Adapter Requirements
 
 ### `data-table-pro`

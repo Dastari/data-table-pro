@@ -729,6 +729,20 @@ capped at 20 table rows or 12 cards so SSR and first paint remain useful
 without mounting the complete dataset. Override those caps with
 `fallbackRowCount` and `fallbackCardCount`.
 
+Rendered virtual table rows and card lanes are measured after mount, so wrapped
+cells and variable-height cards correct their estimates while scrolling. Stable,
+unique `getRowId` values are required: they are virtual item keys and let the
+virtualizer retain the scroll anchor when measurements change. Treat `data`,
+row objects, column definitions, and `getRowId` as immutable/memoized inputs.
+Development builds warn about common identity churn and duplicate row ids.
+
+Column virtualization is intentionally not available in 4.3. The table panel
+preserves native table layout, grouped headers, pinned/resized columns, detail
+rows, and accessibility semantics; slicing only body columns would break those
+contracts. Use the included 20/100/500-column benchmark to establish whether
+pagination, responsive visibility, or server projection is the appropriate
+wide-table strategy for an application.
+
 Import behavior:
 
 - a base adapter dynamically loads the virtual panels only after
