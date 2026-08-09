@@ -1,6 +1,7 @@
 import * as React from "react";
 import type {
   ColumnFiltersState,
+  GroupingState,
   PaginationState,
   SortingState,
 } from "@tanstack/react-table";
@@ -24,6 +25,14 @@ export type DataTableDataSourceQuery<TQuery = undefined, TCursor = string> = {
   cursor: TCursor | null;
   sorting: SortingState;
   columnFilters: ColumnFiltersState;
+  /** Server-owned global filter value, normally the table toolbar query. */
+  globalFilter?: string;
+  /** Server-owned row grouping state. */
+  grouping?: GroupingState;
+  /** Requested aggregate functions keyed by result/column identifier. */
+  aggregations?: Record<string, string>;
+  /** Stable ancestor/group identifiers for lazy child or group loading. */
+  expansionPath?: Array<string>;
   /** Application-owned request parameters, such as a tenant or parent ID. */
   query: TQuery | undefined;
 };
@@ -47,6 +56,12 @@ export type DataTableDataSourceResponse<
   nextCursor?: TCursor | null;
   /** Backend-provided facet/count metadata for filter UIs. */
   facets?: TFacets;
+  /** Stable row identifiers in response order when IDs are server-projected. */
+  rowIds?: Array<string>;
+  /** Backend-provided aggregate values keyed by result/column identifier. */
+  aggregates?: Record<string, unknown>;
+  /** Application-owned response metadata such as revision or timing data. */
+  metadata?: Record<string, unknown>;
 };
 
 export type DataTableDataSource<
@@ -112,6 +127,8 @@ export type UseDataTableDataSourceOptions<
   onPageSizeChange?: (pageSize: number) => void;
   onSortingChange?: (sorting: SortingState) => void;
   onColumnFiltersChange?: (filters: ColumnFiltersState) => void;
+  onGlobalFilterChange?: (globalFilter: string) => void;
+  onGroupingChange?: (grouping: GroupingState) => void;
 };
 
 export type DataTableDataSourceTableProps<TData> = Pick<
@@ -134,6 +151,7 @@ export type DataTableDataSourceTableProps<TData> = Pick<
 >;
 
 export type UseDataTableDataSourceResult<TData, TCursor = string, TFacets = unknown> = {
+  aggregates: Record<string, unknown> | undefined;
   data: Array<TData>;
   error: unknown;
   facets: TFacets | undefined;
@@ -144,6 +162,8 @@ export type UseDataTableDataSourceResult<TData, TCursor = string, TFacets = unkn
   isFetching: boolean;
   isSuccess: boolean;
   nextCursor: TCursor | null | undefined;
+  metadata: Record<string, unknown> | undefined;
+  rowIds: Array<string> | undefined;
   rowCount: number | undefined;
   /** Starts a network request, bypassing a fresh cache entry. */
   refresh: () => Promise<DataTableDataSourceResponse<TData, TCursor, TFacets> | undefined>;
@@ -167,13 +187,16 @@ type ActiveRequest<TData, TQuery, TCursor, TFacets> = {
 };
 
 type SourceState<TData, TCursor, TFacets> = {
+  aggregates: Record<string, unknown> | undefined;
   data: Array<TData>;
   error: unknown;
   facets: TFacets | undefined;
   isFetching: boolean;
+  metadata: Record<string, unknown> | undefined;
   nextCursor: TCursor | null | undefined;
   responseKey: string | null;
   rowCount: number | undefined;
+  rowIds: Array<string> | undefined;
   status: "idle" | "loading" | "success" | "error";
 };
 
@@ -193,10 +216,14 @@ export function useDataTableDataSource<
   options: UseDataTableDataSourceOptions<TData, TQuery, TCursor, TFacets>,
 ): UseDataTableDataSourceResult<TData, TCursor, TFacets> {
   const {
+    aggregations,
     columnFilters,
     cursor,
     enabled = true,
+    expansionPath,
     getRequestKey,
+    globalFilter,
+    grouping,
     initialData = [],
     mode,
     pagination,
@@ -217,21 +244,28 @@ export function useDataTableDataSource<
   const mountedRef = React.useRef(true);
   const [state, setState] = React.useState<SourceState<TData, TCursor, TFacets>>(
     () => ({
+      aggregates: undefined,
       data: initialData,
       error: null,
       facets: undefined,
       isFetching: false,
+      metadata: undefined,
       nextCursor: undefined,
       responseKey: null,
       rowCount: undefined,
+      rowIds: undefined,
       status: initialData.length > 0 ? "success" : "idle",
     }),
   );
 
   const requestQuery = React.useMemo<DataTableDataSourceQuery<TQuery, TCursor>>(
     () => ({
+      aggregations,
       columnFilters,
       cursor: cursor ?? null,
+      expansionPath,
+      globalFilter,
+      grouping,
       limit: pagination.pageSize,
       mode,
       offset: pagination.pageIndex * pagination.pageSize,
@@ -239,7 +273,18 @@ export function useDataTableDataSource<
       query,
       sorting,
     }),
-    [columnFilters, cursor, mode, pagination, query, sorting],
+    [
+      aggregations,
+      columnFilters,
+      cursor,
+      expansionPath,
+      globalFilter,
+      grouping,
+      mode,
+      pagination,
+      query,
+      sorting,
+    ],
   );
   const requestKey = getRequestKey
     ? getRequestKey(requestQuery)
@@ -251,8 +296,12 @@ export function useDataTableDataSource<
     ): Promise<DataTableDataSourceResponse<TData, TCursor, TFacets> | undefined> => {
       const currentOptions = latestOptionsRef.current;
       const currentQuery: DataTableDataSourceQuery<TQuery, TCursor> = {
+        aggregations: currentOptions.aggregations,
         columnFilters: currentOptions.columnFilters,
         cursor: currentOptions.cursor ?? null,
+        expansionPath: currentOptions.expansionPath,
+        globalFilter: currentOptions.globalFilter,
+        grouping: currentOptions.grouping,
         limit: currentOptions.pagination.pageSize,
         mode: currentOptions.mode,
         offset:
@@ -279,13 +328,16 @@ export function useDataTableDataSource<
       if (!force && cached && cacheSettings && isCacheFresh(cached, cacheSettings)) {
         if (mountedRef.current) {
           setState({
+            aggregates: cached.response.aggregates,
             data: cached.response.rows,
             error: null,
             facets: cached.response.facets,
             isFetching: false,
+            metadata: cached.response.metadata,
             nextCursor: cached.response.nextCursor,
             responseKey: currentKey,
             rowCount: cached.response.rowCount,
+            rowIds: cached.response.rowIds,
             status: "success",
           });
         }
@@ -323,13 +375,16 @@ export function useDataTableDataSource<
           }
           if (mountedRef.current) {
             setState({
+              aggregates: response.aggregates,
               data: response.rows,
               error: null,
               facets: response.facets,
               isFetching: false,
+              metadata: response.metadata,
               nextCursor: response.nextCursor,
               responseKey: currentKey,
               rowCount: response.rowCount,
+              rowIds: response.rowIds,
               status: "success",
             });
           }
@@ -433,6 +488,7 @@ export function useDataTableDataSource<
   );
 
   return {
+    aggregates: state.aggregates,
     data: state.data,
     error: state.error,
     facets: state.facets,
@@ -441,9 +497,11 @@ export function useDataTableDataSource<
     isFetching: enabled && state.isFetching,
     isLoading: enabled && state.status === "loading",
     isSuccess: state.status === "success",
+    metadata: state.metadata,
     nextCursor: state.nextCursor,
     refresh,
     rowCount: state.rowCount,
+    rowIds: state.rowIds,
     tableProps,
   };
 }

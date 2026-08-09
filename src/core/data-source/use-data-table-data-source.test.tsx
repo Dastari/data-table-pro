@@ -18,7 +18,10 @@ afterEach(() => {
 describe("useDataTableDataSource", () => {
   it("sends a typed offset request and returns manual table props", async () => {
     const source = vi.fn(() => ({
+      aggregates: { salary: 120_000 },
+      metadata: { revision: "users-v2" },
       rows: [{ id: "ada" }],
+      rowIds: ["ada"],
       rowCount: 31,
     }));
     let result: UseDataTableDataSourceResult<User> | undefined;
@@ -26,6 +29,10 @@ describe("useDataTableDataSource", () => {
     function Harness() {
       result = useDataTableDataSource({
         columnFilters: [{ id: "role", value: "admin" }],
+        globalFilter: "ada",
+        grouping: ["department"],
+        aggregations: { salary: "sum" },
+        expansionPath: ["engineering"],
         mode: "offset",
         pagination: { pageIndex: 1, pageSize: 10 },
         query: { organizationId: "org_1" },
@@ -41,6 +48,10 @@ describe("useDataTableDataSource", () => {
     expect(source).toHaveBeenCalledWith(
       expect.objectContaining({
         columnFilters: [{ id: "role", value: "admin" }],
+        globalFilter: "ada",
+        grouping: ["department"],
+        aggregations: { salary: "sum" },
+        expansionPath: ["engineering"],
         limit: 10,
         mode: "offset",
         offset: 10,
@@ -58,6 +69,9 @@ describe("useDataTableDataSource", () => {
       totalRowCount: 31,
     });
     expect(result?.tableProps.hasNextPage).toBe(true);
+    expect(result?.aggregates).toEqual({ salary: 120_000 });
+    expect(result?.metadata).toEqual({ revision: "users-v2" });
+    expect(result?.rowIds).toEqual(["ada"]);
   });
 
   it("cancels superseded work and ignores a late response", async () => {
