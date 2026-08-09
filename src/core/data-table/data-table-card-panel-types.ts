@@ -35,6 +35,7 @@ export type DataTableCardPanelProps<TData> = {
   setCurrentDetailExpanded: OnChangeFn<ExpandedState>;
   setEditingRowId: React.Dispatch<React.SetStateAction<string | null>>;
   shouldRenderInitialLoading: boolean;
+  stateOverlayNode?: React.ReactNode;
   tableContainerClassName: string | undefined;
   uiClassNames: DataTableUiClassNames;
   virtualization: DataTableProps<TData>["virtualization"];

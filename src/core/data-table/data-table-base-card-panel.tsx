@@ -34,6 +34,7 @@ export function DataTableBaseCardPanel<TData>({
   setCurrentRowSelection,
   setEditingRowId,
   shouldRenderInitialLoading,
+  stateOverlayNode,
   tableContainerClassName,
   uiClassNames,
 }: DataTableCardPanelProps<TData>) {
@@ -81,7 +82,7 @@ export function DataTableBaseCardPanel<TData>({
       ref={cardScrollContainerRef}
       data-dtp-slot="data-table-card-shell"
       className={cn(
-        "box-border border-2 border-transparent transition-colors",
+        "relative box-border border-2 border-transparent transition-colors",
         flexGrow ? "flex min-h-0 flex-1 flex-col" : "h-full",
         dragAndDrop?.isDragging &&
           (uiClassNames.dragActive ?? "rounded-md border-dashed"),
@@ -137,6 +138,7 @@ export function DataTableBaseCardPanel<TData>({
           ) : null}
         </div>
       </ScrollArea>
+      {stateOverlayNode}
     </div>
   );
 }

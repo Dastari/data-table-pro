@@ -112,7 +112,8 @@ export type DataTableActionErrorSource =
   | "clipboardCopy"
   | "clipboardPaste"
   | "fileUpload"
-  | "infiniteScroll";
+  | "infiniteScroll"
+  | "retry";
 
 export const DATA_TABLE_CONTAINER_BREAKPOINT_WIDTHS: Record<
   DataTableContainerBreakpoint,
@@ -133,6 +134,32 @@ export type DataTableRowLoadingState = {
 export type DataTableLoadingState = {
   isLoading: boolean;
   loadingRowCount?: number;
+};
+
+export type DataTableAutoPageSizeConfig = {
+  minRows?: number;
+  maxRows?: number;
+  estimateRowHeight?: number;
+};
+
+export type DataTableStateOverlayContext<TData> = {
+  rows: Array<TData>;
+  toolbarQueryValue: string;
+  error: unknown;
+  isRetrying: boolean;
+  retry: (() => void | Promise<void>) | undefined;
+};
+
+export type DataTableStateOverlay<TData> = {
+  empty?:
+    | React.ReactNode
+    | ((context: DataTableEmptyStateContext<TData>) => React.ReactNode);
+  error?: unknown;
+  isRetrying?: boolean;
+  onRetry?: () => void | Promise<void>;
+  renderError?: (
+    context: DataTableStateOverlayContext<TData>,
+  ) => React.ReactNode;
 };
 
 export type DataTableCellEditRenderProps<TData, TValue> = {
@@ -663,6 +690,12 @@ export type DataTableLabels = {
   expandRowDetails?: string;
   collapseRowDetails?: string;
   exportCsv: string;
+  print?: string;
+  enterFullscreen?: string;
+  exitFullscreen?: string;
+  errorTitle?: string;
+  errorDescription?: string;
+  retry?: string;
   density: string;
   compactDensity: string;
   comfortableDensity: string;
@@ -740,6 +773,8 @@ export type DataTableProps<TData> = {
   aggregationFns?: Record<string, AggregationFn<TData>>;
   pageIndex?: number;
   pageSize?: number;
+  /** Sizes an opt-in page from the measurable table scroll viewport. */
+  autoPageSize?: boolean | DataTableAutoPageSizeConfig;
   onPageIndexChange?: (pageIndex: number) => void;
   onPageSizeChange?: (pageSize: number) => void;
   pageCount?: number;
@@ -813,9 +848,13 @@ export type DataTableProps<TData> = {
   viewMode?: DataTableViewMode;
   onViewModeChange?: (viewMode: DataTableViewMode) => void;
   enableViewToggle?: boolean;
+  enablePrint?: boolean;
+  enableFullscreen?: boolean;
   emptyState?:
     | React.ReactNode
     | ((context: DataTableEmptyStateContext<TData>) => React.ReactNode);
+  /** Explicit empty/error/retry rendering contract. */
+  stateOverlay?: DataTableStateOverlay<TData>;
   isLoading?: boolean;
   loadingRowCount?: number;
   getRowLoadingState?: (

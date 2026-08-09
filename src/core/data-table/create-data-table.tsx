@@ -47,7 +47,9 @@ import { clearDataTableColumnPrefs } from "./use-data-table-column-prefs";
 import { useDataTableToolbarFeatures } from "./use-data-table-toolbar-features";
 import { useColumnLayout } from "./use-column-layout";
 import { useRowEditing } from "./use-row-editing";
+import { useDataTableAutoPageSize } from "./use-data-table-auto-page-size";
 import { useDataTablePerformanceDiagnostics } from "./use-data-table-performance-diagnostics";
+import { createDataTableStateOverlay } from "./data-table-state-overlay";
 
 type CreateDataTableOptions = {
   CardPanel?: typeof DefaultDataTableCardPanel;
@@ -92,6 +94,7 @@ export function createDataTableWithPanels(
   const { DataTableFooter } = createDataTablePagination(ui);
   const DataTableToolbar = createDataTableToolbar(ui);
   const DataTableCardView = createDataTableCardView(ui, DataTableRowActions);
+  const DataTableStateOverlay = createDataTableStateOverlay(ui);
   const defaultColumn = {
     minSize: 80,
     size: 180,
@@ -131,6 +134,7 @@ export function createDataTableWithPanels(
     aggregationFns,
     pageIndex,
     pageSize,
+    autoPageSize = false,
     onPageIndexChange,
     onPageSizeChange,
     pageCount,
@@ -187,7 +191,10 @@ export function createDataTableWithPanels(
     viewMode,
     onViewModeChange,
     enableViewToggle = false,
+    enablePrint = false,
+    enableFullscreen = false,
     emptyState,
+    stateOverlay,
     isLoading = false,
     loadingRowCount,
     getRowLoadingState,
@@ -593,6 +600,69 @@ export function createDataTableWithPanels(
     );
     const { viewportElement: tableScrollElement, viewportHeight } =
       useDataTableScrollViewport(tableScrollContainerRef, currentViewMode);
+    const autoPageSizeConfig =
+      typeof autoPageSize === "object" ? autoPageSize : undefined;
+    const handleAutoPageSizeChange = React.useCallback(
+      (nextPageSize: number) => {
+        if (nextPageSize === currentPagination.pageSize) {
+          return;
+        }
+        if (currentPagination.pageIndex !== 0) {
+          handlePageIndexPropChange(0);
+        }
+        handlePageSizePropChange(nextPageSize);
+        if (resolvedPageSize === undefined) {
+          setLocalPagination({ pageIndex: 0, pageSize: nextPageSize });
+        }
+      },
+      [
+        currentPagination.pageIndex,
+        currentPagination.pageSize,
+        handlePageIndexPropChange,
+        handlePageSizePropChange,
+        resolvedPageSize,
+        setLocalPagination,
+      ],
+    );
+    useDataTableAutoPageSize({
+      config: autoPageSizeConfig,
+      currentPageSize: currentPagination.pageSize,
+      enabled: autoPageSize === true || autoPageSizeConfig !== undefined,
+      onPageSizeChange: handleAutoPageSizeChange,
+      viewportElement: tableScrollElement,
+      viewportHeight,
+    });
+    const print = React.useCallback(() => {
+      if (typeof window === "undefined" || typeof window.print !== "function") {
+        return false;
+      }
+      window.print();
+      return true;
+    }, []);
+    const toggleFullscreen = React.useCallback(async () => {
+      const element = containerRef.current;
+      if (!element || typeof document === "undefined") {
+        return false;
+      }
+      if (document.fullscreenElement) {
+        if (typeof document.exitFullscreen !== "function") return false;
+        await document.exitFullscreen();
+        return true;
+      }
+      if (typeof element.requestFullscreen !== "function") return false;
+      await element.requestFullscreen();
+      return true;
+    }, []);
+    const [isFullscreen, setIsFullscreen] = React.useState(false);
+    React.useEffect(() => {
+      if (!enableFullscreen || typeof document === "undefined") return;
+      const update = () => {
+        setIsFullscreen(document.fullscreenElement === containerRef.current);
+      };
+      update();
+      document.addEventListener("fullscreenchange", update);
+      return () => document.removeEventListener("fullscreenchange", update);
+    }, [enableFullscreen]);
     const openFileDialog = React.useCallback(() => {
       if (fileUpload?.disabled) {
         return;
@@ -814,13 +884,38 @@ export function createDataTableWithPanels(
     const filteredData = table
       .getFilteredRowModel()
       .rows.map((row) => row.original);
+    const configuredEmptyState = stateOverlay?.empty ?? emptyState;
     const emptyNode =
-      typeof emptyState === "function"
-      ? emptyState({
+      typeof configuredEmptyState === "function"
+      ? configuredEmptyState({
           rows: filteredData,
           toolbarQueryValue: localSearchValue,
         })
-        : emptyState;
+        : configuredEmptyState;
+    const guardedStateOverlay = React.useMemo(
+      () =>
+        stateOverlay
+          ? {
+              ...stateOverlay,
+              onRetry: stateOverlay.onRetry
+                ? () =>
+                    runAction(
+                      { source: "retry" },
+                      stateOverlay.onRetry!,
+                    )
+                : undefined,
+            }
+          : undefined,
+      [runAction, stateOverlay],
+    );
+    const stateOverlayNode = guardedStateOverlay ? (
+      <DataTableStateOverlay
+        labels={resolvedLabels}
+        overlay={guardedStateOverlay}
+        rows={filteredData}
+        toolbarQueryValue={localSearchValue}
+      />
+    ) : undefined;
     const {
       columnVisibilityOptions,
       effectiveToolbarActions,
@@ -844,7 +939,33 @@ export function createDataTableWithPanels(
     });
     const guardedToolbarActions = React.useMemo(
       () =>
-        effectiveToolbarActions.map((action) => ({
+        [
+          ...effectiveToolbarActions,
+          ...(enablePrint
+            ? [
+                {
+                  key: "__print__",
+                  label: resolvedLabels.print,
+                  placement: "trailing" as const,
+                  onClick: () => {
+                    print();
+                  },
+                },
+              ]
+            : []),
+          ...(enableFullscreen
+            ? [
+                {
+                  key: "__fullscreen__",
+                  label: isFullscreen
+                    ? resolvedLabels.exitFullscreen
+                    : resolvedLabels.enterFullscreen,
+                  placement: "trailing" as const,
+                  onClick: () => toggleFullscreen(),
+                },
+              ]
+            : []),
+        ].map((action) => ({
           ...action,
           onClick: (context: {
             rows: Array<TData>;
@@ -859,7 +980,18 @@ export function createDataTableWithPanels(
             );
           },
         })),
-      [effectiveToolbarActions, runAction],
+      [
+        effectiveToolbarActions,
+        enableFullscreen,
+        enablePrint,
+        isFullscreen,
+        print,
+        resolvedLabels.enterFullscreen,
+        resolvedLabels.exitFullscreen,
+        resolvedLabels.print,
+        runAction,
+        toggleFullscreen,
+      ],
     );
     const guardedSelectionActions = React.useMemo(
       () =>
@@ -1099,31 +1231,6 @@ export function createDataTableWithPanels(
         }),
       [clipboard?.copy, table],
     );
-    const print = React.useCallback(() => {
-      if (typeof window === "undefined" || typeof window.print !== "function") {
-        return false;
-      }
-      window.print();
-      return true;
-    }, []);
-    const toggleFullscreen = React.useCallback(async () => {
-      const element = containerRef.current;
-      if (!element || typeof document === "undefined") {
-        return false;
-      }
-      if (document.fullscreenElement) {
-        if (typeof document.exitFullscreen !== "function") {
-          return false;
-        }
-        await document.exitFullscreen();
-        return true;
-      }
-      if (typeof element.requestFullscreen !== "function") {
-        return false;
-      }
-      await element.requestFullscreen();
-      return true;
-    }, []);
     const pinRow = React.useCallback<DataTableApi<TData>["pinRow"]>(
       (rowId, position = "top") => {
         try {
@@ -1365,6 +1472,7 @@ export function createDataTableWithPanels(
                   editableRows={editableRows}
                   editingRowId={editingRowId}
                   emptyNode={emptyNode}
+                  stateOverlayNode={stateOverlayNode}
                   enableRowSelection={enableRowSelection}
                   flexGrow={flexGrow}
                   getRowClassName={getRowClassName}
@@ -1405,6 +1513,7 @@ export function createDataTableWithPanels(
                   editingRowId={editingRowId}
                   editingContext={rowEditingContext}
                   emptyNode={emptyNode}
+                  stateOverlayNode={stateOverlayNode}
                   enableColumnReordering={enableColumnReordering}
                   enableColumnResizing={enableColumnResizing}
                   explicitCustomCellColumnIds={explicitCustomCellColumnIds}

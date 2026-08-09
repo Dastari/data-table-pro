@@ -24,6 +24,7 @@ import {
   type DataTablePersistenceStorage,
   type DataTableState,
 } from "../../index";
+import { useDataTableAutoPageSize } from "./use-data-table-auto-page-size";
 
 type TestRow = {
   id: string;
@@ -115,6 +116,99 @@ describe("DataTable unified state API", () => {
     );
     expect(screen.queryByText("Ada")).toBeNull();
     expect(screen.getByText("Grace")).not.toBeNull();
+  });
+
+  it("derives an opt-in controlled page size from the scroll viewport", () => {
+    const clientHeight = Object.getOwnPropertyDescriptor(
+      HTMLElement.prototype,
+      "clientHeight",
+    );
+    const frame = vi
+      .spyOn(window, "requestAnimationFrame")
+      .mockImplementation((callback) => {
+        callback(0);
+        return 1;
+      });
+    Object.defineProperty(HTMLElement.prototype, "clientHeight", {
+      configurable: true,
+      get: function getClientHeight(this: HTMLElement) {
+        return this.getAttribute("data-slot") === "scroll-area-viewport"
+          ? 100
+          : 0;
+      },
+    });
+    const onPageIndexChange = vi.fn();
+    const onPageSizeChange = vi.fn();
+
+    try {
+      render(
+        <DataTable
+          autoPageSize={{ estimateRowHeight: 20 }}
+          columns={columns}
+          data={rows}
+          getRowId={(row) => row.id}
+          onPageIndexChange={onPageIndexChange}
+          onPageSizeChange={onPageSizeChange}
+          pageIndex={1}
+          pageSize={10}
+        />,
+      );
+
+      expect(onPageIndexChange).toHaveBeenCalledWith(0);
+      expect(onPageSizeChange).toHaveBeenCalledWith(5);
+    } finally {
+      frame.mockRestore();
+      if (clientHeight) {
+        Object.defineProperty(HTMLElement.prototype, "clientHeight", clientHeight);
+      } else {
+        delete (HTMLElement.prototype as { clientHeight?: number }).clientHeight;
+      }
+    }
+  });
+
+  it("does not recursively grow a content-sized auto page", () => {
+    const onPageSizeChange = vi.fn();
+    const frame = vi
+      .spyOn(window, "requestAnimationFrame")
+      .mockImplementation((callback) => {
+        callback(0);
+        return 1;
+      });
+
+    function Harness() {
+      const [element, setElement] = React.useState<HTMLDivElement | null>(null);
+      const [pageSize, setPageSize] = React.useState(1);
+      const [height, setHeight] = React.useState(100);
+      const setViewport = React.useCallback((node: HTMLDivElement | null) => {
+        if (!node) return;
+        Object.defineProperty(node, "clientHeight", {
+          configurable: true,
+          get: () => height,
+        });
+        setElement(node);
+      }, [height]);
+      useDataTableAutoPageSize({
+        config: { estimateRowHeight: 20 },
+        currentPageSize: pageSize,
+        enabled: true,
+        onPageSizeChange: (nextPageSize) => {
+          onPageSizeChange(nextPageSize);
+          setPageSize(nextPageSize);
+          setHeight(200);
+        },
+        viewportElement: element,
+        viewportHeight: height,
+      });
+      return <div ref={setViewport} />;
+    }
+
+    try {
+      render(<Harness />);
+      expect(onPageSizeChange).toHaveBeenCalledTimes(1);
+      expect(onPageSizeChange).toHaveBeenCalledWith(5);
+    } finally {
+      frame.mockRestore();
+    }
   });
 
   it("supports unified controlled state with legacy-prop precedence", () => {
@@ -404,6 +498,52 @@ describe("DataTable unified state API", () => {
     });
     await expect(apiRef.current?.toggleFullscreen()).resolves.toBe(true);
     expect(requestFullscreen).toHaveBeenCalled();
+  });
+
+  it("renders opt-in print/fullscreen toolbar controls and an error retry overlay", async () => {
+    const print = vi.spyOn(window, "print").mockImplementation(() => {});
+    const requestFullscreen = vi.fn().mockResolvedValue(undefined);
+    const retry = vi.fn();
+    Object.defineProperty(HTMLElement.prototype, "requestFullscreen", {
+      configurable: true,
+      value: requestFullscreen,
+    });
+
+    render(
+      <DataTable
+        columns={columns}
+        data={rows}
+        getRowId={(row) => row.id}
+        enablePrint
+        enableFullscreen
+        stateOverlay={{ error: new Error("Offline"), onRetry: retry }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Print table" }));
+    expect(print).toHaveBeenCalled();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Enter fullscreen" }),
+    );
+    await waitFor(() => expect(requestFullscreen).toHaveBeenCalled());
+
+    expect(screen.getByRole("alert")).not.toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(retry).toHaveBeenCalled();
+  });
+
+  it("does not render an error overlay for a null data-source error", () => {
+    render(
+      <DataTable
+        columns={columns}
+        data={rows}
+        getRowId={(row) => row.id}
+        stateOverlay={{ error: null }}
+      />,
+    );
+
+    expect(screen.queryByRole("alert")).toBeNull();
   });
 
   it("validates edits and rolls back failed optimistic saves", async () => {
