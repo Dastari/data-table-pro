@@ -29,6 +29,7 @@ const columns: Array<DataTableColumnDef<TestRow, unknown>> = [
     header: "Name",
   },
 ];
+const getRowId = (row: TestRow) => row.id;
 
 class ResizeObserverMock {
   observe() {}
@@ -163,6 +164,26 @@ describe("DataTable phase-zero contracts", () => {
 
     expect(warning).toHaveBeenCalledWith(
       expect.stringContaining("Duplicate row id \"duplicate\""),
+    );
+  });
+
+  it("does not mistake genuinely changed rows for array identity churn", () => {
+    const warning = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const firstRows = [{ id: "1", name: "Ada" }];
+    const { rerender } = render(
+      <DataTable columns={columns} data={firstRows} getRowId={getRowId} />,
+    );
+
+    rerender(
+      <DataTable
+        columns={columns}
+        data={[{ id: "1", name: "Ada Lovelace" }]}
+        getRowId={getRowId}
+      />,
+    );
+
+    expect(warning).not.toHaveBeenCalledWith(
+      expect.stringContaining("data array identity changed"),
     );
   });
 

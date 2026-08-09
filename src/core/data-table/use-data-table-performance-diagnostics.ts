@@ -16,14 +16,22 @@ export function useDataTablePerformanceDiagnostics<TData>({
     }
 
     const last = previous.current;
-    if (last.data !== data && !warned.current.has("data")) {
+    if (
+      last.data !== data &&
+      haveSameItems(last.data, data) &&
+      !warned.current.has("data")
+    ) {
       warn(
         warned.current,
         "data",
         "The data array identity changed. Keep rows immutable and memoize unchanged data so filtering, row models, and virtual measurements can be reused.",
       );
     }
-    if (last.columns !== columns && !warned.current.has("columns")) {
+    if (
+      last.columns !== columns &&
+      haveSameItems(last.columns, columns) &&
+      !warned.current.has("columns")
+    ) {
       warn(
         warned.current,
         "columns",
@@ -53,6 +61,13 @@ export function useDataTablePerformanceDiagnostics<TData>({
     }
     previous.current = { columns, data, getRowId };
   }, [columns, data, getRowId]);
+}
+
+function haveSameItems<T>(previous: Array<T>, next: Array<T>) {
+  return (
+    previous.length === next.length &&
+    previous.every((item, index) => Object.is(item, next[index]))
+  );
 }
 
 function warn(warned: Set<string>, key: string, message: string) {
