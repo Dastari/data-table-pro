@@ -673,6 +673,37 @@ for (const suite of suites) {
       ).toBe("compact");
     });
 
+    it("supports virtualization-safe striped rows and row styling context", () => {
+      const getRowClassName = vi.fn(
+        (_row: TestRow, context: { rowIndex: number }) =>
+          context.rowIndex === 1 ? "second-row" : undefined,
+      );
+      const { container } = renderTable({
+        data: [
+          { id: "1", name: "Ada" },
+          { id: "2", name: "Grace" },
+        ],
+        getRowClassName,
+        pageSize: 2,
+        stripedRows: true,
+      });
+
+      const root = container.querySelector(
+        '[data-dtp-slot="data-table-root"]',
+      );
+      const firstRow = container.querySelector('tr[data-row-id="1"]');
+      const secondRow = container.querySelector('tr[data-row-id="2"]');
+      expect(root?.getAttribute("data-dtp-striped-rows")).toBe("true");
+      expect(firstRow?.getAttribute("data-row-parity")).toBe("odd");
+      expect(secondRow?.getAttribute("data-row-parity")).toBe("even");
+      expect(secondRow?.className).toContain("second-row");
+      expect(
+        getRowClassName.mock.calls.some(
+          ([, context]) => context.rowIndex === 1,
+        ),
+      ).toBe(true);
+    });
+
     it("activates clickable table rows with the keyboard", () => {
       const onRowClick = vi.fn();
       renderTable({ onRowClick });
@@ -687,6 +718,29 @@ for (const suite of suites) {
       fireEvent.keyDown(row, { key: " " });
 
       expect(onRowClick).toHaveBeenCalledTimes(2);
+    });
+
+    it("does not activate rows from consumer interactive cell content", () => {
+      const onRowClick = vi.fn();
+      const onButtonClick = vi.fn();
+      renderTable({
+        columns: [
+          {
+            accessorKey: "name",
+            header: "Name",
+            cell: () => (
+              <button type="button" onClick={onButtonClick}>
+                Open profile
+              </button>
+            ),
+          },
+        ],
+        onRowClick,
+      });
+
+      fireEvent.click(screen.getByRole("button", { name: "Open profile" }));
+      expect(onButtonClick).toHaveBeenCalledOnce();
+      expect(onRowClick).not.toHaveBeenCalled();
     });
 
     it("does not re-render sibling rows while typing in an edit input", () => {
@@ -983,7 +1037,7 @@ for (const suite of suites) {
       expect(selectionHeader?.style.minWidth).toBe("50px");
       expect(selectionHeader?.style.maxWidth).toBe("50px");
       expect(recordHeader?.textContent).toContain("Record");
-      expect(recordHeader?.style.insetInlineStart).toBe("50px");
+      expect(recordHeader?.style.left).toBe("50px");
       expect(actionsHeader?.textContent).toContain("Actions");
       expect(actionsHeader?.style.width).toBe("50px");
       expect(actionsHeader?.style.minWidth).toBe("50px");
@@ -1035,7 +1089,7 @@ for (const suite of suites) {
 
       const primaryButton = screen.getByRole("button", { name: "Export" });
       expect(primaryButton.className).toContain("size-7");
-      expect(primaryButton.className).toContain("@md/data-table:size-8");
+      expect(primaryButton.className).toContain("@min-[768px]/data-table:size-8");
       expect(primaryButton.className).not.toContain("w-fit");
     });
 
@@ -1756,7 +1810,7 @@ for (const suite of suites) {
       });
     });
 
-    it("renders table rows when virtualization is enabled before viewport discovery", () => {
+    it("caps table rows while a virtual viewport is being discovered", () => {
       renderTable({
         data: Array.from({ length: 50 }, (_, index) => ({
           id: String(index + 1),
@@ -1768,7 +1822,9 @@ for (const suite of suites) {
       });
 
       expect(screen.getByText("Row 1")).not.toBeNull();
-      expect(screen.getByText("Row 50")).not.toBeNull();
+      expect(screen.getByText("Row 20")).not.toBeNull();
+      expect(screen.queryByText("Row 21")).toBeNull();
+      expect(screen.queryByText("Row 50")).toBeNull();
     });
 
     it("uses the last fixed data column as the fill column before actions", () => {
@@ -1925,11 +1981,11 @@ for (const suite of suites) {
       expect(
         container.querySelector('[data-dtp-slot="data-table-toolbar-compact-custom"]')
           ?.className,
-      ).toContain("@lg/data-table:hidden");
+      ).toContain("@min-[1024px]/data-table:hidden");
       expect(
         container.querySelector('[data-dtp-slot="data-table-toolbar-desktop-custom"]')
           ?.className,
-      ).toContain("@lg/data-table:flex");
+      ).toContain("@min-[1024px]/data-table:flex");
     });
   });
 }

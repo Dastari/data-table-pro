@@ -65,6 +65,25 @@ afterEach(() => {
 });
 
 describe("DataTable phase-zero contracts", () => {
+  it("associates table titles and descriptions with the native table", () => {
+    render(
+      <DataTable
+        columns={columns}
+        data={[{ id: "1", name: "Ada" }]}
+        description="Current engineering employees"
+        getRowId={(row) => row.id}
+        title="Employees"
+      />,
+    );
+
+    const table = screen.getByRole("table", { name: "Employees" });
+    const descriptionId = table.getAttribute("aria-describedby");
+    expect(descriptionId).toBeTruthy();
+    expect(document.getElementById(descriptionId!)?.textContent).toBe(
+      "Current engineering employees",
+    );
+  });
+
   it("applies a custom globalFilterFn to the toolbar query", () => {
     const globalFilterFn = vi.fn<FilterFn<TestRow>>(
       (row, _columnId, filterValue) =>

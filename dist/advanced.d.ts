@@ -3,14 +3,15 @@ import * as React from 'react';
 import * as _tanstack_react_table from '@tanstack/react-table';
 import { Row, ColumnSizingState, Column, Table, Cell, PaginationState, SortingState, Header, Updater, ColumnDef, ColumnFiltersState, ColumnOrderState, ColumnPinningState, ExpandedState, VisibilityState, FilterFnOption, OnChangeFn } from '@tanstack/react-table';
 import { DataTableProps, DataTableLabels, DataTableColumnDef, DataTableDensity, DataTableRowLoadingState, DataTableEditableRowsConfig, DataTableRowAction } from './types.js';
-export { DATA_TABLE_CONTAINER_BREAKPOINT_WIDTHS, DataTableActionErrorContext, DataTableActionErrorSource, DataTableAlign, DataTableApi, DataTableCardRendererProps, DataTableCardSizing, DataTableCardVirtualizationConfig, DataTableCellEditRenderProps, DataTableCellOverflow, DataTableColumnFilterConfig, DataTableColumnFilterOption, DataTableColumnFilterType, DataTableColumnFixed, DataTableColumnGroupDef, DataTableColumnMeta, DataTableColumnPrefs, DataTableColumnType, DataTableColumnVisibilityOption, DataTableContainerBreakpoint, DataTableCsvExportOptions, DataTableCsvExportScope, DataTableDragAndDropConfig, DataTableEmptyStateContext, DataTableExpandedRowProps, DataTableFileUploadConfig, DataTableHiddenRowsConfig, DataTableInfiniteScroll, DataTableInitialState, DataTableLoadingState, DataTablePersistenceConfig, DataTablePersistenceOperation, DataTablePersistencePayload, DataTablePersistenceSlice, DataTablePersistenceStorage, DataTableResetOptions, DataTableSavedView, DataTableSavedViewSlice, DataTableSavedViewsChangeOperation, DataTableSavedViewsConfig, DataTableSavedViewsPayload, DataTableSelectionAction, DataTableState, DataTableSummaryRow, DataTableToolbarAction, DataTableToolbarVisibility, DataTableViewMode, DataTableVirtualizationConfig, alignClassName, canEditRow, canUseRowAction, cellAlignClassName, headerAlignClassName, hideOnClassName, isHiddenAtContainerWidth, isRowVisible, resolveColumnAlign, resolveRowActionLabel, rowSelectionStateFromRows } from './types.js';
-import { D as DataTableUiKit, a as DataTableUiClassNames } from './ui-kit-B3pF-Pxw.js';
+export { DATA_TABLE_CONTAINER_BREAKPOINT_WIDTHS, DataTableActionErrorContext, DataTableActionErrorSource, DataTableAlign, DataTableApi, DataTableCardRendererProps, DataTableCardSizing, DataTableCardVirtualizationConfig, DataTableCellEditRenderProps, DataTableCellOverflow, DataTableColumnFilterConfig, DataTableColumnFilterOption, DataTableColumnFilterType, DataTableColumnFixed, DataTableColumnGroupDef, DataTableColumnMeta, DataTableColumnPrefs, DataTableColumnType, DataTableColumnVisibilityOption, DataTableContainerBreakpoint, DataTableCsvExportOptions, DataTableCsvExportScope, DataTableDragAndDropConfig, DataTableEmptyStateContext, DataTableExpandedRowProps, DataTableFileUploadConfig, DataTableHiddenRowsConfig, DataTableInfiniteScroll, DataTableInitialState, DataTableLoadingState, DataTablePersistenceConfig, DataTablePersistenceOperation, DataTablePersistencePayload, DataTablePersistenceSlice, DataTablePersistenceStorage, DataTableResetOptions, DataTableRowClassNameContext, DataTableSavedView, DataTableSavedViewSlice, DataTableSavedViewsChangeOperation, DataTableSavedViewsConfig, DataTableSavedViewsPayload, DataTableSelectionAction, DataTableState, DataTableSummaryRow, DataTableToolbarAction, DataTableToolbarVisibility, DataTableViewMode, DataTableVirtualizationConfig, alignClassName, canEditRow, canUseRowAction, cellAlignClassName, headerAlignClassName, hideOnClassName, isHiddenAtContainerWidth, isRowVisible, resolveColumnAlign, resolveRowActionLabel, rowSelectionStateFromRows } from './types.js';
+import { D as DataTableUiKit, a as DataTableUiClassNames } from './ui-kit-D2knVOJ4.js';
 
 type DataTableCardPanelProps<TData> = {
     cardClassName: string | undefined;
     cardGridClassName: string | undefined;
     cardSizing: DataTableProps<TData>["cardSizing"];
     cardRenderer: NonNullable<DataTableProps<TData>["cardRenderer"]>;
+    containerWidth: number;
     currentRowSelection: Record<string, boolean>;
     DataTableCardView: React.ElementType;
     DataTableEmptyState: React.ElementType;
@@ -74,10 +75,13 @@ declare function useColumnLayout<TData>({ columns, columnSizing, editableRows, e
 };
 
 type DataTableTablePanelProps<TData> = {
+    ariaDescribedBy: string | undefined;
+    ariaLabelledBy: string | undefined;
     bodyRowComponents: Pick<DataTableUiKit, "Checkbox" | "Input" | "Skeleton" | "TableCell" | "TableRow">;
     columnLayouts: ReadonlyMap<string, DataTableColumnLayout>;
     currentDensity: DataTableDensity;
     currentSorting: DataTableProps<TData>["sorting"];
+    dir: NonNullable<DataTableProps<TData>["dir"]>;
     DataTableEmptyState: React.ElementType;
     dragAndDrop: DataTableProps<TData>["dragAndDrop"];
     draggedColumnIdRef: React.RefObject<string | null>;
@@ -112,6 +116,7 @@ type DataTableTablePanelProps<TData> = {
     setDraftValues: React.Dispatch<React.SetStateAction<Record<string, unknown>>>;
     shouldRenderInitialLoading: boolean;
     stickyHeader: boolean;
+    stripedRows: boolean;
     summaryRows: NonNullable<DataTableProps<TData>["summaryRows"]>;
     table: Table<TData>;
     tableClassName: string | undefined;
@@ -133,7 +138,7 @@ type DataTableTablePanelProps<TData> = {
     visibleLeafColumnCount: number;
     visibleLeafColumns: Array<Column<TData, unknown>>;
 };
-declare function DataTableTablePanel<TData>({ bodyRowComponents, columnLayouts, currentDensity, currentSorting, DataTableEmptyState, dragAndDrop, draggedColumnIdRef, draftValues, editingRowId, emptyNode, enableColumnReordering, enableColumnResizing, explicitCustomCellColumnIds, fillMinWidth, flexGrow, getColumnLayout, getRowClassName, getRowLoadingState, infiniteScroll, layoutMode, localSearchValue, onRowClick, primeColumnForResize, renderedRows, renderExpandedRow, reorderColumn, resetColumnSize, resolvedLabels, rowsToRender, ScrollArea, ScrollBar, sentinelRef, setDraftValues, shouldRenderInitialLoading, stickyHeader, summaryRows, table, tableClassName, tableContainerClassName, Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow, tableScrollContainerRef, uiClassNames, virtualPaddingBottom, virtualPaddingTop, visibleLeafColumnCount, visibleLeafColumns, }: DataTableTablePanelProps<TData>): React.JSX.Element;
+declare function DataTableTablePanel<TData>({ ariaDescribedBy, ariaLabelledBy, bodyRowComponents, columnLayouts, currentDensity, currentSorting, dir, DataTableEmptyState, dragAndDrop, draggedColumnIdRef, draftValues, editingRowId, emptyNode, enableColumnReordering, enableColumnResizing, explicitCustomCellColumnIds, fillMinWidth, flexGrow, getColumnLayout, getRowClassName, getRowLoadingState, infiniteScroll, layoutMode, localSearchValue, onRowClick, primeColumnForResize, renderedRows, renderExpandedRow, reorderColumn, resetColumnSize, resolvedLabels, rowsToRender, ScrollArea, ScrollBar, sentinelRef, setDraftValues, shouldRenderInitialLoading, stickyHeader, stripedRows, summaryRows, table, tableClassName, tableContainerClassName, Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow, tableScrollContainerRef, uiClassNames, virtualPaddingBottom, virtualPaddingTop, visibleLeafColumnCount, visibleLeafColumns, }: DataTableTablePanelProps<TData>): React.JSX.Element;
 
 type DataTableBodyRowProps<TData> = {
     columnLayouts: ReadonlyMap<string, DataTableColumnLayout>;
@@ -155,11 +160,12 @@ type DataTableBodyRowProps<TData> = {
     row: Row<TData>;
     rowIndex: number;
     setDraftValues: React.Dispatch<React.SetStateAction<Record<string, unknown>>>;
+    stripedRows: boolean;
     uiClassNames: DataTableUiClassNames;
     visibleCells: Array<Cell<TData, unknown>>;
     visibleLeafColumnCount: number;
 };
-declare function DataTableBodyRowInner<TData>({ columnLayouts, components, currentDensity, draftValues, dragAndDrop, explicitCustomCellColumnIds, getRowClassName, isDraggable, isEditing, isExpanded, isInitialLoadingRow, isSelected, loadingState, onRowClick, originalRow, renderExpandedRow, row, setDraftValues, uiClassNames, visibleCells, visibleLeafColumnCount, }: DataTableBodyRowProps<TData>): React.JSX.Element;
+declare function DataTableBodyRowInner<TData>({ columnLayouts, components, currentDensity, draftValues, dragAndDrop, explicitCustomCellColumnIds, getRowClassName, isDraggable, isEditing, isExpanded, isInitialLoadingRow, isSelected, loadingState, onRowClick, originalRow, renderExpandedRow, row, rowIndex, setDraftValues, stripedRows, uiClassNames, visibleCells, visibleLeafColumnCount, }: DataTableBodyRowProps<TData>): React.JSX.Element;
 declare const DataTableBodyRow: typeof DataTableBodyRowInner;
 
 type DataTableFooterSectionProps = {
@@ -180,6 +186,7 @@ declare function DataTableFooterSection({ children, currentPagination, DataTable
 type DataTableHeaderCellProps<TData> = {
     currentDensity: DataTableDensity;
     currentSorting: SortingState;
+    dir: NonNullable<DataTableProps<TData>["dir"]>;
     draggedColumnIdRef: React.MutableRefObject<string | null>;
     enableColumnReordering: boolean;
     enableColumnResizing: boolean;
@@ -188,12 +195,13 @@ type DataTableHeaderCellProps<TData> = {
     layout: DataTableColumnLayout;
     primeColumnForResize: (columnId: string, currentSize: number) => void;
     reorderColumn: (sourceColumnId: string, targetColumnId: string) => void;
+    resizeColumnLabel: string;
     resetColumnSize: (columnId: string) => void;
     selectionState?: boolean | "indeterminate";
     TableHead: DataTableUiKit["TableHead"];
     uiClassNames: DataTableUiClassNames;
 };
-declare function DataTableHeaderCellInner<TData>({ currentDensity, currentSorting, draggedColumnIdRef, enableColumnReordering, enableColumnResizing, header, headerGroupHeaders, layout, primeColumnForResize, reorderColumn, resetColumnSize, TableHead, uiClassNames, }: DataTableHeaderCellProps<TData>): React.JSX.Element;
+declare function DataTableHeaderCellInner<TData>({ currentDensity, currentSorting, dir, draggedColumnIdRef, enableColumnReordering, enableColumnResizing, header, headerGroupHeaders, layout, primeColumnForResize, reorderColumn, resizeColumnLabel, resetColumnSize, TableHead, uiClassNames, }: DataTableHeaderCellProps<TData>): React.JSX.Element;
 declare const DataTableHeaderCell: typeof DataTableHeaderCellInner;
 
 type DataTableToolbarSectionProps<TData> = {
@@ -204,6 +212,7 @@ type DataTableToolbarSectionProps<TData> = {
     customToolbar: React.ReactNode;
     DataTableToolbar: React.ElementType;
     description: string | undefined;
+    descriptionId: string | undefined;
     effectiveToolbarActions: Array<unknown>;
     enableColumnPinning: boolean;
     enableDensityToggle: boolean;
@@ -223,13 +232,14 @@ type DataTableToolbarSectionProps<TData> = {
     showHiddenRows: boolean;
     table: Table<TData>;
     title: string | undefined;
+    titleId: string | undefined;
     toolbarQueryPlaceholder: string;
     toolbarQueryValue: string;
     toolbarVisibility: DataTableProps<TData>["toolbarVisibility"];
     density: "compact" | "comfortable" | "spacious";
     viewMode: "table" | "card";
 };
-declare function DataTableToolbarSection<TData>({ allRows, columnFilters, columnVisibilityOptions, compactToolbar, customToolbar, DataTableToolbar, description, effectiveToolbarActions, enableColumnPinning, enableDensityToggle, enableViewToggle, hiddenRowsLabel, labels, onClearColumnFilters, onColumnFilterChange, onColumnPinningChange, onDensityChange, onShowHiddenRowsChange, onToolbarQueryValueChange, onViewModeChange, openFileDialog, selectedRows, selectionActions, showHiddenRows, table, title, toolbarQueryPlaceholder, toolbarQueryValue, toolbarVisibility, density, viewMode, }: DataTableToolbarSectionProps<TData>): React.JSX.Element;
+declare function DataTableToolbarSection<TData>({ allRows, columnFilters, columnVisibilityOptions, compactToolbar, customToolbar, DataTableToolbar, description, descriptionId, effectiveToolbarActions, enableColumnPinning, enableDensityToggle, enableViewToggle, hiddenRowsLabel, labels, onClearColumnFilters, onColumnFilterChange, onColumnPinningChange, onDensityChange, onShowHiddenRowsChange, onToolbarQueryValueChange, onViewModeChange, openFileDialog, selectedRows, selectionActions, showHiddenRows, table, title, titleId, toolbarQueryPlaceholder, toolbarQueryValue, toolbarVisibility, density, viewMode, }: DataTableToolbarSectionProps<TData>): React.JSX.Element;
 
 declare function useControllableState<T>({ defaultValue, onChange, value, }: {
     defaultValue: T | (() => T);
@@ -269,9 +279,10 @@ declare function useDataTableColumns<TData>({ Button, Checkbox, DataTableRowActi
     tableRef: React.RefObject<Table<TData> | null>;
 }): ColumnDef<TData, unknown>[];
 
-declare function useDataTableInstance<TData>({ autoResetPageIndex, columnResizeMode, currentColumnFilters, currentColumnOrder, currentColumnPinning, currentColumnSizing, currentExpanded, currentPagination, currentRowSelection, currentSorting, defaultColumn, effectiveColumnVisibility, enableColumnResizing, enableRowSelection, getRowCanExpand, globalFilterFn, globalFilterValue, hasNextPage, handleColumnFiltersChange, handleColumnOrderChange, handleColumnPinningChange, handleColumnVisibilityChange, handleExpandedChange, infiniteScroll, manualFiltering, manualPagination, manualSorting, onActionError, onPageIndexChange, onPageSizeChange, pageCount, pageIndex, pageSize, renderExpandedRow, setCurrentRowSelection, setCurrentSorting, setLocalColumnSizing, setLocalPagination, shouldRenderInitialLoading, tableColumns, tableData, tableGetRowId, tableRef, totalRowCount, }: {
+declare function useDataTableInstance<TData>({ autoResetPageIndex, columnResizeMode, dir, currentColumnFilters, currentColumnOrder, currentColumnPinning, currentColumnSizing, currentExpanded, currentPagination, currentRowSelection, currentSorting, defaultColumn, effectiveColumnVisibility, enableColumnResizing, enableRowSelection, getRowCanExpand, globalFilterFn, globalFilterValue, hasNextPage, handleColumnFiltersChange, handleColumnOrderChange, handleColumnPinningChange, handleColumnVisibilityChange, handleExpandedChange, infiniteScroll, manualFiltering, manualPagination, manualSorting, onActionError, onPageIndexChange, onPageSizeChange, pageCount, pageIndex, pageSize, renderExpandedRow, setCurrentRowSelection, setCurrentSorting, setLocalColumnSizing, setLocalPagination, shouldRenderInitialLoading, tableColumns, tableData, tableGetRowId, tableRef, totalRowCount, virtualization, }: {
     autoResetPageIndex: boolean;
     columnResizeMode: DataTableProps<TData>["columnResizeMode"];
+    dir: NonNullable<DataTableProps<TData>["dir"]>;
     currentColumnFilters: ColumnFiltersState;
     currentColumnOrder: ColumnOrderState;
     currentColumnPinning: ColumnPinningState;
@@ -393,6 +404,7 @@ declare function useDataTableState<TData>({ columnFilters, columnOrder, columnPi
     viewMode: DataTableProps<TData>["viewMode"];
     containerRef: React.RefObject<HTMLDivElement | null>;
 }): {
+    containerWidth: number;
     currentColumnFilters: ColumnFiltersState;
     currentColumnOrder: ColumnOrderState;
     currentColumnPinning: ColumnPinningState;

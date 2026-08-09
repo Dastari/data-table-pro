@@ -22,9 +22,10 @@ import { DataTable } from "data-table-pro/virtual";
 
 Equivalent eager entrypoints are `data-table-pro/heroui/virtual` and
 `data-table-pro/thegridcn/virtual`. Props, types, styling, state, and adapter
-behavior are unchanged. During on-demand loading, the base entry renders the
-complete non-virtual rows/cards as its Suspense fallback, so table state stays
-in the parent component.
+behavior are unchanged. During on-demand loading, the base entry keeps table
+state in the parent component and renders a bounded initial fallback (20 rows
+or 12 cards by default). Use `fallbackRowCount` or `fallbackCardCount` when a
+different first-paint cap is appropriate.
 
 Adapter authors can move from the broad compatibility surface to:
 

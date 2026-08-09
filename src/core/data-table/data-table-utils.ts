@@ -348,7 +348,7 @@ export function getInitialColumnPinning<TData>(
 
 export function getColumnId<TData>(
   column: DataTableColumnDef<TData, unknown>,
-  index: number,
+  _index?: number,
 ) {
   if (column.id) {
     return column.id;
@@ -356,10 +356,50 @@ export function getColumnId<TData>(
 
   const accessorKey = getAccessorKey(column);
   if (accessorKey) {
-    return accessorKey;
+    return accessorKey.replace(/\./g, "_");
   }
 
-  return `column-${index}`;
+  if (typeof column.header === "string") {
+    return column.header;
+  }
+
+  throw new Error(
+    "Data table columns using an accessor function or non-string header must define a unique id.",
+  );
+}
+
+const RESERVED_DATA_TABLE_COLUMN_IDS = new Set([
+  "__select__",
+  "__expand__",
+  "__actions__",
+  "__spacer__",
+]);
+
+export function validateDataTableColumnIds<TData>(
+  columns: Array<DataTableColumnDef<TData, unknown>>,
+) {
+  const ids = new Set<string>();
+
+  const visit = (currentColumns: Array<DataTableColumnDef<TData, unknown>>) => {
+    currentColumns.forEach((column, index) => {
+      const id = getColumnId(column, index);
+      if (RESERVED_DATA_TABLE_COLUMN_IDS.has(id)) {
+        throw new Error(
+          `Data table column id "${id}" is reserved for an internal column.`,
+        );
+      }
+      if (ids.has(id)) {
+        throw new Error(`Duplicate data table column id "${id}".`);
+      }
+      ids.add(id);
+
+      if ("columns" in column && column.columns?.length) {
+        visit(column.columns);
+      }
+    });
+  };
+
+  visit(columns);
 }
 
 export function getAccessorKey<TData>(
@@ -414,6 +454,37 @@ export function isUtilityColumnId(columnId: string) {
     columnId === "__select__" ||
     columnId === "__expand__" ||
     columnId === "__actions__"
+  );
+}
+
+const DATA_TABLE_INTERACTIVE_TARGET_SELECTOR = [
+  "[data-row-click-ignore='true']",
+  "a[href]",
+  "button",
+  "input",
+  "select",
+  "summary",
+  "textarea",
+  "[contenteditable='true']",
+  "[role='button']",
+  "[role='link']",
+].join(",");
+
+export function isDataTableInteractiveTarget(
+  target: EventTarget | null,
+  boundary: Element,
+) {
+  if (!(target instanceof Element)) {
+    return false;
+  }
+
+  const interactiveTarget = target.closest(
+    DATA_TABLE_INTERACTIVE_TARGET_SELECTOR,
+  );
+  return Boolean(
+    interactiveTarget &&
+      interactiveTarget !== boundary &&
+      boundary.contains(interactiveTarget),
   );
 }
 

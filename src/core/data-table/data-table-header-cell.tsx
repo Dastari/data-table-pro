@@ -5,6 +5,7 @@ import type { Header, SortingState } from "@tanstack/react-table";
 import type {
   DataTableColumnDef,
   DataTableDensity,
+  DataTableProps,
 } from "../types";
 import type { DataTableUiClassNames, DataTableUiKit } from "../ui-kit";
 import { cn } from "../../lib/utils";
@@ -18,6 +19,7 @@ import { headerAlignClassName, hideOnClassName } from "../types";
 type DataTableHeaderCellProps<TData> = {
   currentDensity: DataTableDensity;
   currentSorting: SortingState;
+  dir: NonNullable<DataTableProps<TData>["dir"]>;
   draggedColumnIdRef: React.MutableRefObject<string | null>;
   enableColumnReordering: boolean;
   enableColumnResizing: boolean;
@@ -26,6 +28,7 @@ type DataTableHeaderCellProps<TData> = {
   layout: DataTableColumnLayout;
   primeColumnForResize: (columnId: string, currentSize: number) => void;
   reorderColumn: (sourceColumnId: string, targetColumnId: string) => void;
+  resizeColumnLabel: string;
   resetColumnSize: (columnId: string) => void;
   // Rendered through flexRender inside the header def; carried as a prop so
   // the memo comparator re-renders the selection header when it changes.
@@ -37,6 +40,7 @@ type DataTableHeaderCellProps<TData> = {
 function DataTableHeaderCellInner<TData>({
   currentDensity,
   currentSorting,
+  dir,
   draggedColumnIdRef,
   enableColumnReordering,
   enableColumnResizing,
@@ -45,12 +49,14 @@ function DataTableHeaderCellInner<TData>({
   layout,
   primeColumnForResize,
   reorderColumn,
+  resizeColumnLabel,
   resetColumnSize,
   TableHead,
   uiClassNames,
 }: DataTableHeaderCellProps<TData>) {
   const meta = (header.column.columnDef as DataTableColumnDef<TData, unknown>)
     .meta;
+  const headerContentId = React.useId();
   const isColumnGroup =
     !header.isPlaceholder && header.subHeaders.length > 0;
   const canSort = header.column.getCanSort();
@@ -74,6 +80,13 @@ function DataTableHeaderCellInner<TData>({
         header.isPlaceholder ? undefined : isColumnGroup ? "colgroup" : "col"
       }
       aria-hidden={header.isPlaceholder || undefined}
+      aria-labelledby={
+        !header.isPlaceholder &&
+        !layout.isUtilityColumn &&
+        !layout.isSpacerColumn
+          ? headerContentId
+          : undefined
+      }
       data-column-id={header.column.id}
       data-header-depth={header.depth}
       data-dtp-slot={
@@ -104,7 +117,13 @@ function DataTableHeaderCellInner<TData>({
               : undefined
       }
       draggable={canReorderColumn}
-      tabIndex={canReorderColumn ? 0 : undefined}
+      tabIndex={
+        canReorderColumn &&
+        !canSort &&
+        !(enableColumnResizing && header.column.getCanResize())
+          ? 0
+          : undefined
+      }
       onDragStart={
         canReorderColumn
           ? (event: React.DragEvent<HTMLTableCellElement>) => {
@@ -154,7 +173,7 @@ function DataTableHeaderCellInner<TData>({
               );
               const target =
                 headers[
-                  event.key === "ArrowLeft"
+                  (event.key === "ArrowLeft") !== (dir === "rtl")
                     ? currentIndex - 1
                     : currentIndex + 1
                 ];
@@ -174,7 +193,7 @@ function DataTableHeaderCellInner<TData>({
           )}
           onClick={header.column.getToggleSortingHandler()}
         >
-          <span className="truncate">
+          <span id={headerContentId} className="truncate">
             {flexRender(header.column.columnDef.header, header.getContext())}
           </span>
           {sortingState ? (
@@ -201,13 +220,26 @@ function DataTableHeaderCellInner<TData>({
           )}
         </button>
       ) : (
-        flexRender(header.column.columnDef.header, header.getContext())
+        layout.isUtilityColumn || layout.isSpacerColumn ? (
+          flexRender(header.column.columnDef.header, header.getContext())
+        ) : (
+          <span id={headerContentId}>
+            {flexRender(header.column.columnDef.header, header.getContext())}
+          </span>
+        )
       )}
 
       {enableColumnResizing &&
       !header.isPlaceholder &&
       header.column.getCanResize() ? (
         <div
+          aria-label={resizeColumnLabel}
+          aria-orientation="vertical"
+          aria-valuemax={getHeaderMaximumSize(header)}
+          aria-valuemin={getHeaderMinimumSize(header)}
+          aria-valuenow={Math.round(header.getSize())}
+          role="separator"
+          tabIndex={0}
           onDoubleClick={() => {
             for (const leafHeader of getResizableLeafHeaders(header)) {
               resetColumnSize(leafHeader.column.id);
@@ -231,8 +263,32 @@ function DataTableHeaderCellInner<TData>({
             }
             header.getResizeHandler()(event);
           }}
+          onKeyDown={(event) => {
+            if (event.altKey) {
+              return;
+            }
+            if (event.key === "Home") {
+              event.preventDefault();
+              for (const leafHeader of getResizableLeafHeaders(header)) {
+                resetColumnSize(leafHeader.column.id);
+              }
+              return;
+            }
+            if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") {
+              return;
+            }
+
+            event.preventDefault();
+            event.stopPropagation();
+            const grows =
+              (event.key === "ArrowRight") !== (dir === "rtl");
+            resizeHeaderBy(
+              header,
+              (grows ? 1 : -1) * (event.shiftKey ? 25 : 10),
+            );
+          }}
           className={cn(
-            "absolute inset-y-0 right-0 z-50 h-full w-3 translate-x-1/2 cursor-col-resize touch-none select-none after:absolute after:top-0 after:left-1/2 after:h-full after:w-px after:-translate-x-1/2",
+            "absolute inset-y-0 z-50 h-full w-3 cursor-col-resize touch-none select-none ltr:right-0 ltr:translate-x-1/2 rtl:left-0 rtl:-translate-x-1/2 after:absolute after:top-0 after:left-1/2 after:h-full after:w-px after:-translate-x-1/2",
             uiClassNames.resizeHandle ??
               "after:bg-current after:opacity-20 hover:after:opacity-70",
             header.column.getIsResizing() &&
@@ -256,6 +312,7 @@ function areDataTableHeaderCellsEqual<TData>(
     previous.header.isPlaceholder === next.header.isPlaceholder &&
     sameSubHeaders(previous.header, next.header) &&
     previous.currentDensity === next.currentDensity &&
+    previous.dir === next.dir &&
     previous.enableColumnReordering === next.enableColumnReordering &&
     previous.enableColumnResizing === next.enableColumnResizing &&
     previous.TableHead === next.TableHead &&
@@ -263,6 +320,7 @@ function areDataTableHeaderCellsEqual<TData>(
     previous.draggedColumnIdRef === next.draggedColumnIdRef &&
     previous.primeColumnForResize === next.primeColumnForResize &&
     previous.reorderColumn === next.reorderColumn &&
+    previous.resizeColumnLabel === next.resizeColumnLabel &&
     previous.resetColumnSize === next.resetColumnSize &&
     previous.selectionState === next.selectionState &&
     sameSorting(previous.currentSorting, next.currentSorting) &&
@@ -282,6 +340,46 @@ function getResizableLeafHeaders<TData>(header: Header<TData, unknown>) {
   return header
     .getLeafHeaders()
     .filter((leafHeader) => !leafHeader.subHeaders.length);
+}
+
+function getHeaderMinimumSize<TData>(header: Header<TData, unknown>) {
+  return getResizableLeafHeaders(header).reduce(
+    (total, leafHeader) =>
+      total + (leafHeader.column.columnDef.minSize ?? 20),
+    0,
+  );
+}
+
+function getHeaderMaximumSize<TData>(header: Header<TData, unknown>) {
+  return getResizableLeafHeaders(header).reduce(
+    (total, leafHeader) =>
+      total + (leafHeader.column.columnDef.maxSize ?? Number.MAX_SAFE_INTEGER),
+    0,
+  );
+}
+
+function resizeHeaderBy<TData>(
+  header: Header<TData, unknown>,
+  delta: number,
+) {
+  const leafHeaders = getResizableLeafHeaders(header);
+  const deltaPerLeaf = delta / leafHeaders.length;
+  header.getContext().table.setColumnSizing((current) => {
+    const next = { ...current };
+
+    for (const leafHeader of leafHeaders) {
+      const column = leafHeader.column;
+      const minimum = column.columnDef.minSize ?? 20;
+      const maximum =
+        column.columnDef.maxSize ?? Number.MAX_SAFE_INTEGER;
+      next[column.id] = Math.min(
+        maximum,
+        Math.max(minimum, column.getSize() + deltaPerLeaf),
+      );
+    }
+
+    return next;
+  });
 }
 
 function sameSubHeaders<TData>(
@@ -329,9 +427,8 @@ function sameHeaderLayout(
     previous.headerStyle?.width === next.headerStyle?.width &&
     previous.headerStyle?.minWidth === next.headerStyle?.minWidth &&
     previous.headerStyle?.maxWidth === next.headerStyle?.maxWidth &&
-    previous.headerStyle?.insetInlineStart ===
-      next.headerStyle?.insetInlineStart &&
-    previous.headerStyle?.insetInlineEnd === next.headerStyle?.insetInlineEnd
+    previous.headerStyle?.left === next.headerStyle?.left &&
+    previous.headerStyle?.right === next.headerStyle?.right
   );
 }
 

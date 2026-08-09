@@ -24,6 +24,8 @@ type DataTableUiClassNames = {
     resizeHandle?: string;
     resizeHandleActive?: string;
     row?: string;
+    rowEven?: string;
+    rowOdd?: string;
     rowSelected?: string;
     tableContainer?: string;
     tableScrollArea?: string;

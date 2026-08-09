@@ -131,3 +131,50 @@ for (const adapter of adapters) {
     });
   }
 }
+
+test("responsive behavior follows table container boundaries", async ({
+  page,
+}) => {
+  await page.goto("/");
+
+  const table = page.locator('[data-dtp-slot="data-table-root"]').first();
+  const setContainerWidth = async (width: number) => {
+    await table.evaluate((element, nextWidth) => {
+      element.style.flex = "none";
+      element.style.maxWidth = "none";
+      element.style.width = `${nextWidth}px`;
+    }, width);
+    await expect(table).toHaveCSS("width", `${width}px`);
+  };
+  const header = (columnId: string) =>
+    table.locator(`thead [data-column-id="${columnId}"]`);
+
+  await setContainerWidth(639);
+  await expect(header("department")).toHaveCount(0);
+
+  await setContainerWidth(640);
+  await expect(header("department")).toBeVisible();
+
+  await setContainerWidth(767);
+  await expect(header("role")).toHaveCount(0);
+  await expect(
+    table.getByRole("button", { name: "Search table" }),
+  ).toBeVisible();
+
+  await setContainerWidth(768);
+  await expect(header("role")).toBeVisible();
+  await expect(table.getByPlaceholder("Search rows...")).toBeVisible();
+
+  await setContainerWidth(1023);
+  await expect(header("location")).toHaveCount(0);
+
+  await setContainerWidth(1024);
+  await expect(header("location")).toBeVisible();
+
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = "20px";
+  });
+  await setContainerWidth(768);
+  await expect(header("role")).toBeVisible();
+  await expect(header("location")).toHaveCount(0);
+});

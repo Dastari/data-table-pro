@@ -36,6 +36,7 @@ import { useDataTablePaginationClamp } from "./use-data-table-pagination-clamp";
 export function useDataTableInstance<TData>({
   autoResetPageIndex,
   columnResizeMode,
+  dir,
   currentColumnFilters,
   currentColumnOrder,
   currentColumnPinning,
@@ -78,9 +79,11 @@ export function useDataTableInstance<TData>({
   tableGetRowId,
   tableRef,
   totalRowCount,
+  virtualization,
 }: {
   autoResetPageIndex: boolean;
   columnResizeMode: DataTableProps<TData>["columnResizeMode"];
+  dir: NonNullable<DataTableProps<TData>["dir"]>;
   currentColumnFilters: ColumnFiltersState;
   currentColumnOrder: ColumnOrderState;
   currentColumnPinning: ColumnPinningState;
@@ -278,6 +281,7 @@ export function useDataTableInstance<TData>({
     enableMultiRowSelection: enableRowSelection,
     enableColumnResizing,
     columnResizeMode,
+    columnResizeDirection: dir,
     getRowId: tableGetRowId,
     getRowCanExpand: renderExpandedRow
       ? (row) => getRowCanExpand?.(row.original) ?? true
@@ -326,7 +330,18 @@ export function useDataTableInstance<TData>({
   );
 
   const renderedRows = table.getRowModel().rows;
-  const rowsToRender = renderedRows.map((row, rowIndex) => ({
+  const virtualizationConfig =
+    typeof virtualization === "object" ? virtualization : undefined;
+  const virtualRowsEnabled =
+    virtualization === true || virtualizationConfig?.enabled === true;
+  const fallbackRowCount = Math.max(
+    1,
+    Math.floor(virtualizationConfig?.fallbackRowCount ?? 20),
+  );
+  const initialRowsToRender = virtualRowsEnabled
+    ? renderedRows.slice(0, fallbackRowCount)
+    : renderedRows;
+  const rowsToRender = initialRowsToRender.map((row, rowIndex) => ({
     row,
     rowIndex,
   }));

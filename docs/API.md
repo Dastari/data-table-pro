@@ -91,31 +91,31 @@ Container helpers included by the package:
   container-name: data-table;
 }
 
-@container data-table (width < 40rem) {
+@container data-table (width < 640px) {
   .dt-hide-on-sm {
     display: none;
   }
 }
 
-@container data-table (width < 48rem) {
+@container data-table (width < 768px) {
   .dt-hide-on-md {
     display: none;
   }
 }
 
-@container data-table (width < 64rem) {
+@container data-table (width < 1024px) {
   .dt-hide-on-lg {
     display: none;
   }
 }
 
-@container data-table (width < 80rem) {
+@container data-table (width < 1280px) {
   .dt-hide-on-xl {
     display: none;
   }
 }
 
-@container data-table (width < 96rem) {
+@container data-table (width < 1536px) {
   .dt-hide-on-2xl {
     display: none;
   }
@@ -450,8 +450,8 @@ Built-in toolbar controls automatically compact in narrow container widths:
 
 `compactToolbar` behavior:
 
-- it renders inline inside the main toolbar control row until the container reaches the large (`@lg`) breakpoint
-- `customToolbar` renders as the separate desktop toolbar row only from the large (`@lg`) breakpoint upward
+- it renders inline inside the main toolbar control row until the container reaches the package large breakpoint (1024px)
+- `customToolbar` renders as the separate desktop toolbar row only from the package large breakpoint (1024px) upward
 - if `compactToolbar` is omitted but `customToolbar` is provided, the package reuses `customToolbar` in the compact row as a fallback
 - the intended use is icon-only or very compact controls; the package does not automatically convert arbitrary desktop JSX into mobile icon buttons
 
@@ -539,7 +539,8 @@ Removed in `2.0.1`:
 | `rowActions` | `Array<DataTableRowAction<TData>>` | `[]` | Per-row dropdown actions. |
 | `onRowClick` | `(context: { row: TData; rowId: string }) => void \| Promise<void>` | `undefined` | Row click handler for table and card modes. |
 | `onActionError` | `(context: DataTableActionErrorContext<TData>) => void` | `undefined` | Receives rejected or thrown built-in action callbacks with their source, optional action key, and optional row. |
-| `getRowClassName` | `(row: TData) => string \| undefined` | `undefined` | Row-level styling hook. |
+| `stripedRows` | `boolean` | `false` | Applies virtualization-safe alternate shading to displayed table rows. |
+| `getRowClassName` | `(row: TData, context: DataTableRowClassNameContext<TData>) => string \| undefined` | `undefined` | Row-level styling hook with displayed index and selection/editing/loading state. Existing one-argument callbacks remain compatible. |
 
 When `onRowClick` is present, table rows are focusable and activate on Enter or
 Space. They retain native `<tr>`/row semantics rather than using
@@ -597,10 +598,12 @@ interaction semantics.
 type DataTableVirtualizationConfig = {
   enabled?: boolean;
   estimateRowHeight?: number;
+  fallbackRowCount?: number;
   overscan?: number;
   card?: {
     enabled?: boolean;
     estimateCardHeight?: number;
+    fallbackCardCount?: number;
     overscan?: number;
     lanes?: number | "auto";
   };
@@ -610,13 +613,15 @@ type DataTableVirtualizationConfig = {
 `virtualization={true}` enables table-row virtualization with a 48px estimate
 and overscan of 8. Card virtualization is opt-in through
 `virtualization.card.enabled`; its defaults are a 280px estimate, overscan of
-4, and automatic lanes. Until a measurable viewport exists, the complete row
-or card set is rendered so SSR and first paint do not produce an empty table.
+4, and automatic lanes. Until a measurable viewport exists, rendering is
+capped at 20 table rows or 12 cards so SSR and first paint remain useful
+without mounting the complete dataset. Override those caps with
+`fallbackRowCount` and `fallbackCardCount`.
 
 Import behavior:
 
 - a base adapter dynamically loads the virtual panels only after
-  virtualization is enabled; its fallback is the complete non-virtual view
+  virtualization is enabled; its fallback uses the same bounded initial rows
 - a `/virtual` adapter includes TanStack Virtual in its static graph and avoids
   the first-use async boundary
 - switching between the fallback and loaded panel does not remount the parent
@@ -651,7 +656,7 @@ checkboxes by default.
 | `persistence` | `DataTablePersistenceConfig` | `undefined` | Versioned persistence configuration. Takes precedence over `columnPrefsKey` and supports selected slices, custom storage/serialization, migration, debouncing, and error reporting. |
 | `savedViews` | `DataTableSavedViewsConfig` | `undefined` | Versioned storage and lifecycle callbacks for named state snapshots managed through `apiRef`. |
 | `enableColumnResizing` | `boolean` | `false` | Enables resize handles on resizable columns. |
-| `columnResizeMode` | `"onChange" \| "onEnd"` | `"onChange"` | TanStack Table resize mode. |
+| `columnResizeMode` | `"onChange" \| "onEnd"` | `"onEnd"` | TanStack Table resize mode. `onEnd` avoids rebuilding every visible row on each pointer movement. |
 | `columnSizing` | `ColumnSizingState` | internal state | Controlled column sizing state. |
 | `onColumnSizingChange` | `(sizing: ColumnSizingState) => void` | `undefined` | Controlled sizing callback. |
 | `layoutMode` | `"fill" \| "fit"` | `"fill"` | `fill` stretches the table to the container; `fit` sizes to content width. |

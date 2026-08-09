@@ -50,6 +50,7 @@ export const DATA_TABLE_DEFAULT_LABELS: ResolvedDataTableLabels = {
   pinLeft: "Pin left",
   pinRight: "Pin right",
   unpin: "Unpin",
+  resizeColumn: (columnLabel) => `Resize ${columnLabel}`,
 };
 
 export function resolveDataTableLabels(

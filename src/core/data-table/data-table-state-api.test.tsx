@@ -189,7 +189,7 @@ describe("DataTable unified state API", () => {
 
   it("accepts controlled column sizing and reports resize changes", () => {
     const onColumnSizingChange = vi.fn();
-    const { container } = render(
+    render(
       <DataTable
         columns={columns}
         data={rows}
@@ -205,13 +205,74 @@ describe("DataTable unified state API", () => {
       screen.getByRole("columnheader", { name: "Name" }).style.width,
     ).toBe("220px");
 
-    const resizeHandle = container.querySelector(".cursor-col-resize");
-    expect(resizeHandle).not.toBeNull();
-    fireEvent.mouseDown(resizeHandle!, { clientX: 220 });
+    const resizeHandle = screen.getByRole("separator", {
+      name: "Resize Name",
+    });
+    expect(resizeHandle.getAttribute("aria-valuenow")).toBe("220");
+    fireEvent.keyDown(resizeHandle, { key: "ArrowRight" });
+    expect(onColumnSizingChange).toHaveBeenCalledWith({ name: 230 });
+
+    fireEvent.mouseDown(resizeHandle, { clientX: 220 });
     fireEvent.mouseMove(document, { clientX: 260 });
     fireEvent.mouseUp(document);
 
     expect(onColumnSizingChange).toHaveBeenCalled();
+  });
+
+  it("configures resizing and keyboard reordering for RTL", () => {
+    const apiRef = React.createRef<DataTableApi<TestRow>>();
+    const onColumnOrderChange = vi.fn();
+    const rtlColumns: Array<DataTableColumnDef<TestRow, unknown>> = [
+      { accessorKey: "name", header: "Name" },
+      { accessorKey: "id", header: "Identifier" },
+    ];
+    const { container } = render(
+      <DataTable
+        apiRef={apiRef}
+        columns={rtlColumns}
+        data={rows}
+        dir="rtl"
+        enableColumnReordering
+        enableColumnResizing
+        getRowId={(row) => row.id}
+        onColumnOrderChange={onColumnOrderChange}
+      />,
+    );
+
+    expect(apiRef.current?.getTable()?.options.columnResizeDirection).toBe(
+      "rtl",
+    );
+    const resizeHandle = container.querySelector(".cursor-col-resize");
+    expect(resizeHandle?.className).toContain("rtl:left-0");
+
+    fireEvent.keyDown(screen.getByRole("columnheader", { name: "Name" }), {
+      altKey: true,
+      key: "ArrowLeft",
+    });
+    expect(onColumnOrderChange).toHaveBeenLastCalledWith([
+      "id",
+      "name",
+    ]);
+  });
+
+  it("accepts non-serializable controlled filter values", () => {
+    const circularFilter: Record<string, unknown> = {};
+    circularFilter.self = circularFilter;
+
+    expect(() =>
+      render(
+        <DataTable
+          columns={columns}
+          columnFilters={[
+            { id: "name", value: circularFilter },
+            { id: "name", value: 1n },
+          ]}
+          data={rows}
+          getRowId={(row) => row.id}
+          manualFiltering
+        />,
+      ),
+    ).not.toThrow();
   });
 
   it("exposes typed inspection, snapshot, restore, reset, focus, scroll, and export commands", async () => {

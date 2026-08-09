@@ -1,3 +1,4 @@
+import * as React from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { DataTableTablePanel } from "./data-table-table-panel";
 import type { DataTableTablePanelProps } from "./data-table-table-panel";
@@ -19,12 +20,17 @@ export function DataTableVirtualTablePanel<TData>(
     (virtualization === true || virtualizationConfig?.enabled === true);
   const shouldUseVirtualRows =
     enableVirtualization && Boolean(tableScrollElement) && viewportHeight > 0;
+  const getItemKey = React.useCallback(
+    (index: number) => renderedRows[index]?.id ?? index,
+    [renderedRows],
+  );
 
   // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Virtual owns its instance functions.
   const rowVirtualizer = useVirtualizer({
     count: enableVirtualization ? renderedRows.length : 0,
     enabled: shouldUseVirtualRows,
     estimateSize: () => virtualizationConfig?.estimateRowHeight ?? 48,
+    getItemKey,
     getScrollElement: () => tableScrollElement ?? null,
     overscan: virtualizationConfig?.overscan ?? 8,
   });
@@ -36,7 +42,15 @@ export function DataTableVirtualTablePanel<TData>(
         const row = renderedRows[virtualItem.index];
         return row ? [{ row, rowIndex: virtualItem.index }] : [];
       })
-    : renderedRows.map((row, rowIndex) => ({ row, rowIndex }));
+    : renderedRows
+        .slice(
+          0,
+          Math.max(
+            1,
+            Math.floor(virtualizationConfig?.fallbackRowCount ?? 20),
+          ),
+        )
+        .map((row, rowIndex) => ({ row, rowIndex }));
   const virtualPaddingTop = shouldUseVirtualRows
     ? (virtualItems[0]?.start ?? 0)
     : 0;

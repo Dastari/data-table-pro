@@ -315,29 +315,36 @@ export function useDataTableState<TData>({
       );
     }
   }, [onPageIndexChange, pageIndex]);
-  const filterResetSignature = React.useMemo(
-    () =>
-      JSON.stringify({
-        globalFilterValue,
-        columnFilters: currentColumnFilters,
-      }),
-    [currentColumnFilters, globalFilterValue],
-  );
-  const lastFilterResetSignatureRef = React.useRef(filterResetSignature);
+  const lastFilterStateRef = React.useRef({
+    columnFilters: currentColumnFilters,
+    globalFilterValue,
+  });
 
   React.useEffect(() => {
+    const previous = lastFilterStateRef.current;
+    const filtersChanged = previous.columnFilters !== currentColumnFilters;
+    const globalFilterChanged =
+      previous.globalFilterValue !== globalFilterValue;
+    lastFilterStateRef.current = {
+      columnFilters: currentColumnFilters,
+      globalFilterValue,
+    };
+
     if (manualFiltering) {
-      lastFilterResetSignatureRef.current = filterResetSignature;
       return;
     }
 
-    if (lastFilterResetSignatureRef.current === filterResetSignature) {
+    if (!filtersChanged && !globalFilterChanged) {
       return;
     }
 
-    lastFilterResetSignatureRef.current = filterResetSignature;
     resetPageIndexForFilterChange();
-  }, [filterResetSignature, manualFiltering, resetPageIndexForFilterChange]);
+  }, [
+    currentColumnFilters,
+    globalFilterValue,
+    manualFiltering,
+    resetPageIndexForFilterChange,
+  ]);
 
   usePersistDataTableColumnPrefs({
     persistence: persistenceConfig,
@@ -418,6 +425,7 @@ export function useDataTableState<TData>({
   }, [currentRowSelection, rowById, shouldResolveSelectedRows]);
 
   return {
+    containerWidth,
     currentColumnFilters,
     currentColumnOrder,
     currentColumnPinning,

@@ -215,9 +215,9 @@ export function useColumnLayout<TData>({
       const fixedSide = getFixedSide(column);
       const pinnedStyle = fixedSide
         ? {
-            insetInlineStart:
+            left:
               fixedSide === "left" ? pinnedColumns.left.get(column.id) : undefined,
-            insetInlineEnd:
+            right:
               fixedSide === "right"
                 ? pinnedColumns.right.get(column.id)
                 : undefined,

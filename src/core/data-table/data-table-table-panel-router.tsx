@@ -22,7 +22,17 @@ export function DataTableTablePanelRouter<TData>(
   }
 
   return (
-    <React.Suspense fallback={<DataTableTablePanel {...props} />}>
+    <React.Suspense
+      fallback={
+        <DataTableTablePanel
+          {...props}
+          rowsToRender={props.rowsToRender.slice(
+            0,
+            Math.max(1, Math.floor(config?.fallbackRowCount ?? 20)),
+          )}
+        />
+      }
+    >
       <LazyDataTableVirtualTablePanel {...props} />
     </React.Suspense>
   );

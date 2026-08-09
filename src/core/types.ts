@@ -254,6 +254,7 @@ export type DataTableFileUploadConfig = {
 export type DataTableVirtualizationConfig = {
   enabled?: boolean;
   estimateRowHeight?: number;
+  fallbackRowCount?: number;
   overscan?: number;
   card?: DataTableCardVirtualizationConfig;
 };
@@ -261,6 +262,7 @@ export type DataTableVirtualizationConfig = {
 export type DataTableCardVirtualizationConfig = {
   enabled?: boolean;
   estimateCardHeight?: number;
+  fallbackCardCount?: number;
   overscan?: number;
   lanes?: number | "auto";
 };
@@ -482,6 +484,7 @@ export type DataTableLabels = {
   pinLeft: string;
   pinRight: string;
   unpin: string;
+  resizeColumn: (columnLabel: string) => string;
 };
 
 export type DataTableSummaryRow<TData> = {
@@ -491,6 +494,16 @@ export type DataTableSummaryRow<TData> = {
     string,
     React.ReactNode | ((context: { rows: Array<TData>; columnId: string }) => React.ReactNode)
   >;
+};
+
+export type DataTableRowClassNameContext<TData> = {
+  row: TData;
+  rowId: string;
+  rowIndex: number;
+  isEditing: boolean;
+  isExpanded: boolean;
+  isLoading: boolean;
+  isSelected: boolean;
 };
 
 export type DataTableProps<TData> = {
@@ -592,7 +605,11 @@ export type DataTableProps<TData> = {
   className?: string;
   tableClassName?: string;
   tableContainerClassName?: string;
-  getRowClassName?: (row: TData) => string | undefined;
+  stripedRows?: boolean;
+  getRowClassName?: (
+    row: TData,
+    context: DataTableRowClassNameContext<TData>,
+  ) => string | undefined;
   onRowClick?: (context: { row: TData; rowId: string }) => void | Promise<void>;
   onActionError?: (context: DataTableActionErrorContext<TData>) => void;
   dragAndDrop?: DataTableDragAndDropConfig<TData>;

@@ -1,35 +1,45 @@
-@source "./dist";
+@source "./dist/**/*.js";
 
 .data-table-container-query {
   container-type: inline-size;
   container-name: data-table;
 }
 
-@container data-table (width < 40rem) {
+[data-dtp-striped-rows="true"]
+  [data-row-parity="odd"]:not([data-state="selected"]) {
+  background-color: color-mix(in srgb, currentColor 3%, transparent);
+}
+
+/* Keep these package-owned thresholds aligned with
+ * DATA_TABLE_CONTAINER_BREAKPOINT_WIDTHS in src/core/types.ts. Pixel values
+ * are intentional so host root-font and Tailwind theme changes cannot make
+ * presentation disagree with the responsive column state.
+ */
+@container data-table (width < 640px) {
   .dt-hide-on-sm {
     display: none;
   }
 }
 
-@container data-table (width < 48rem) {
+@container data-table (width < 768px) {
   .dt-hide-on-md {
     display: none;
   }
 }
 
-@container data-table (width < 64rem) {
+@container data-table (width < 1024px) {
   .dt-hide-on-lg {
     display: none;
   }
 }
 
-@container data-table (width < 80rem) {
+@container data-table (width < 1280px) {
   .dt-hide-on-xl {
     display: none;
   }
 }
 
-@container data-table (width < 96rem) {
+@container data-table (width < 1536px) {
   .dt-hide-on-2xl {
     display: none;
   }

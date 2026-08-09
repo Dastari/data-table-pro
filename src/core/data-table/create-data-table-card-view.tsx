@@ -6,11 +6,13 @@ import type {
   DataTableEditableRowsConfig,
   DataTableExpandedRowProps,
   DataTableLabels,
+  DataTableProps,
   DataTableRowAction,
 } from "../types";
 import type { DataTableUiKit } from "../ui-kit";
 import { cn } from "../../lib/utils";
 import { DATA_TABLE_DEFAULT_LABELS } from "./data-table-labels";
+import { isDataTableInteractiveTarget } from "./data-table-utils";
 
 type DataTableCardViewProps<TData> = {
   rows: Array<Row<TData>>;
@@ -29,7 +31,7 @@ type DataTableCardViewProps<TData> = {
   enableRowSelection: boolean;
   editingRowId: string | null;
   onEditingRowIdChange: (rowId: string | null) => void;
-  getRowClassName?: (row: TData) => string | undefined;
+  getRowClassName?: DataTableProps<TData>["getRowClassName"];
   onRowClick?: (context: { row: TData; rowId: string }) => void | Promise<void>;
   getRowDraggable?: (row: TData) => boolean;
   onRowDragStart?: (context: {
@@ -175,7 +177,19 @@ export function createDataTableCardView(
               data-state={isSelected ? "selected" : undefined}
               className={cardItemClasses(
                 cn(
-                  [getRowClassName?.(originalRow)].filter(Boolean).join(" "),
+                  [
+                    getRowClassName?.(originalRow, {
+                      row: originalRow,
+                      rowId,
+                      rowIndex: row.index,
+                      isEditing,
+                      isExpanded: row.getIsExpanded(),
+                      isLoading: false,
+                      isSelected,
+                    }),
+                  ]
+                    .filter(Boolean)
+                    .join(" "),
                   "transition transition-colors hover:scale-101 data-[state=selected]:scale-101",
                   uiClassNames.card,
                   isSelected
@@ -210,16 +224,24 @@ export function createDataTableCardView(
                   onRowClick && "cursor-pointer focus-visible:outline-none",
                 )}
                 onClick={(event: React.MouseEvent<HTMLDivElement>) => {
-                  const target = event.target as HTMLElement | null;
-                  if (target?.closest("[data-row-click-ignore='true']")) {
+                  if (
+                    isDataTableInteractiveTarget(
+                      event.target,
+                      event.currentTarget,
+                    )
+                  ) {
                     return;
                   }
 
                   handleCardActivate();
                 }}
                 onKeyDown={(event: React.KeyboardEvent<HTMLDivElement>) => {
-                  const target = event.target as HTMLElement | null;
-                  if (target?.closest("[data-row-click-ignore='true']")) {
+                  if (
+                    isDataTableInteractiveTarget(
+                      event.target,
+                      event.currentTarget,
+                    )
+                  ) {
                     return;
                   }
 

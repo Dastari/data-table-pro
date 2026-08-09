@@ -10,10 +10,12 @@ const rootDir = path.resolve(
 const distDir = path.join(rootDir, "dist");
 const kib = 1024;
 const budgets = {
-  base: 35 * kib,
+  base: 36 * kib,
   adapterDelta: 6 * kib,
   urlState: 5 * kib,
   demoInitial: 100 * kib,
+  demoLoadedAdapter: 190 * kib,
+  demoCss: 20 * kib,
 };
 
 const packageGraphs = new Map();
@@ -36,7 +38,7 @@ const baseSize = gzipGraph(baseGraph);
 const heroSize = gzipGraph(packageGraphs.get("heroui.js"));
 const gridSize = gzipGraph(packageGraphs.get("thegridcn.js"));
 const urlStateSize = gzipGraph(packageGraphs.get("url-state.js"));
-const demoSize = await readDemoInitialSize();
+const demoSizes = await readDemoBuildSizes();
 
 assertBudget("base shadcn static runtime", baseSize, budgets.base);
 assertBudget(
@@ -50,7 +52,17 @@ assertBudget(
   budgets.adapterDelta,
 );
 assertBudget("URL-state entry", urlStateSize, budgets.urlState);
-assertBudget("demo initial JavaScript", demoSize, budgets.demoInitial);
+assertBudget(
+  "demo initial JavaScript",
+  demoSizes.initialJavaScript,
+  budgets.demoInitial,
+);
+assertBudget(
+  "demo loaded adapter JavaScript",
+  demoSizes.loadedAdapterJavaScript,
+  budgets.demoLoadedAdapter,
+);
+assertBudget("demo CSS", demoSizes.css, budgets.demoCss);
 
 assertDoesNotContainVirtual(
   "base shadcn",
@@ -92,7 +104,9 @@ process.stdout.write(
     `  HeroUI delta: ${formatSize(Math.max(0, heroSize - baseSize))} / ${formatSize(budgets.adapterDelta)}`,
     `  The Gridcn delta: ${formatSize(Math.max(0, gridSize - baseSize))} / ${formatSize(budgets.adapterDelta)}`,
     `  URL state: ${formatSize(urlStateSize)} / ${formatSize(budgets.urlState)}`,
-    `  demo initial: ${formatSize(demoSize)} / ${formatSize(budgets.demoInitial)}`,
+    `  demo initial: ${formatSize(demoSizes.initialJavaScript)} / ${formatSize(budgets.demoInitial)}`,
+    `  demo loaded adapter: ${formatSize(demoSizes.loadedAdapterJavaScript)} / ${formatSize(budgets.demoLoadedAdapter)}`,
+    `  demo CSS: ${formatSize(demoSizes.css)} / ${formatSize(budgets.demoCss)}`,
   ].join("\n") + "\n",
 );
 
@@ -129,7 +143,7 @@ function gzipGraph(graph) {
   return gzipSync(Array.from(graph.values()).join("\n")).length;
 }
 
-async function readDemoInitialSize() {
+async function readDemoBuildSizes() {
   const demoDist = path.join(rootDir, "demo", "dist");
   const manifest = JSON.parse(
     await readFile(
@@ -141,19 +155,40 @@ async function readDemoInitialSize() {
   if (!entry?.file) {
     throw new Error("The demo manifest does not contain its index entry");
   }
-  const files = new Set();
+  const initialFiles = new Set();
 
-  function visit(chunk) {
+  function visit(chunk, files) {
     if (!chunk || files.has(chunk.file)) {
       return;
     }
     files.add(chunk.file);
     for (const importedKey of chunk.imports ?? []) {
-      visit(manifest[importedKey]);
+      visit(manifest[importedKey], files);
     }
   }
 
-  visit(entry);
+  visit(entry, initialFiles);
+  const initialJavaScript = await gzipDemoFiles(demoDist, initialFiles);
+  const loadedAdapterSizes = await Promise.all(
+    (entry.dynamicImports ?? []).map(async (dynamicImportKey) => {
+      const files = new Set(initialFiles);
+      visit(manifest[dynamicImportKey], files);
+      return gzipDemoFiles(demoDist, files);
+    }),
+  );
+  const css = await gzipDemoFiles(demoDist, new Set(entry.css ?? []));
+
+  return {
+    initialJavaScript,
+    loadedAdapterJavaScript: Math.max(
+      initialJavaScript,
+      ...loadedAdapterSizes,
+    ),
+    css,
+  };
+}
+
+async function gzipDemoFiles(demoDist, files) {
   const contents = await Promise.all(
     Array.from(files, (filename) =>
       readFile(path.join(demoDist, filename), "utf8"),

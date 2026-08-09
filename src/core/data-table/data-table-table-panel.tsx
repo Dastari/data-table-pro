@@ -19,6 +19,8 @@ import { isDataTableLoadingRow } from "./data-table-utils";
 import type { DataTableLabels } from "../types";
 
 export type DataTableTablePanelProps<TData> = {
+  ariaDescribedBy: string | undefined;
+  ariaLabelledBy: string | undefined;
   bodyRowComponents: Pick<
     DataTableUiKit,
     "Checkbox" | "Input" | "Skeleton" | "TableCell" | "TableRow"
@@ -26,6 +28,7 @@ export type DataTableTablePanelProps<TData> = {
   columnLayouts: ReadonlyMap<string, DataTableColumnLayout>;
   currentDensity: DataTableDensity;
   currentSorting: DataTableProps<TData>["sorting"];
+  dir: NonNullable<DataTableProps<TData>["dir"]>;
   DataTableEmptyState: React.ElementType;
   dragAndDrop: DataTableProps<TData>["dragAndDrop"];
   draggedColumnIdRef: React.RefObject<string | null>;
@@ -57,6 +60,7 @@ export type DataTableTablePanelProps<TData> = {
   setDraftValues: React.Dispatch<React.SetStateAction<Record<string, unknown>>>;
   shouldRenderInitialLoading: boolean;
   stickyHeader: boolean;
+  stripedRows: boolean;
   summaryRows: NonNullable<DataTableProps<TData>["summaryRows"]>;
   table: TanStackTable<TData>;
   tableClassName: string | undefined;
@@ -80,10 +84,13 @@ export type DataTableTablePanelProps<TData> = {
 };
 
 export function DataTableTablePanel<TData>({
+  ariaDescribedBy,
+  ariaLabelledBy,
   bodyRowComponents,
   columnLayouts,
   currentDensity,
   currentSorting = [],
+  dir,
   DataTableEmptyState,
   dragAndDrop,
   draggedColumnIdRef,
@@ -115,6 +122,7 @@ export function DataTableTablePanel<TData>({
   setDraftValues,
   shouldRenderInitialLoading,
   stickyHeader,
+  stripedRows,
   summaryRows,
   table,
   tableClassName,
@@ -139,6 +147,14 @@ export function DataTableTablePanel<TData>({
       : table.getIsSomePageRowsSelected()
         ? "indeterminate"
         : false;
+  const filteredRows = table.getFilteredRowModel().rows;
+  const summarySourceRows = React.useMemo(
+    () =>
+      summaryRows.length
+        ? filteredRows.map((row) => row.original)
+        : [],
+    [filteredRows, summaryRows.length],
+  );
 
   return (
     <div
@@ -165,6 +181,8 @@ export function DataTableTablePanel<TData>({
         >
           <div className="min-h-full">
             <Table
+              aria-describedby={ariaDescribedBy}
+              aria-labelledby={ariaLabelledBy}
               className={cn(
                 "w-full table-fixed border-separate border-spacing-0",
                 tableClassName,
@@ -195,6 +213,7 @@ export function DataTableTablePanel<TData>({
                         key={header.id}
                         currentDensity={currentDensity}
                         currentSorting={currentSorting}
+                        dir={dir}
                         draggedColumnIdRef={draggedColumnIdRef}
                         enableColumnReordering={enableColumnReordering}
                         enableColumnResizing={enableColumnResizing}
@@ -203,6 +222,11 @@ export function DataTableTablePanel<TData>({
                         layout={getHeaderLayout(header, getColumnLayout)}
                         primeColumnForResize={primeColumnForResize}
                         reorderColumn={reorderColumn}
+                        resizeColumnLabel={resolvedLabels.resizeColumn(
+                          typeof header.column.columnDef.header === "string"
+                            ? header.column.columnDef.header
+                            : header.column.id,
+                        )}
                         resetColumnSize={resetColumnSize}
                         selectionState={
                           header.column.id === "__select__"
@@ -265,6 +289,7 @@ export function DataTableTablePanel<TData>({
                           row={row}
                           rowIndex={rowIndex}
                           setDraftValues={setDraftValues}
+                          stripedRows={stripedRows}
                           uiClassNames={uiClassNames}
                           visibleCells={row.getVisibleCells()}
                           visibleLeafColumnCount={visibleLeafColumnCount}
@@ -325,9 +350,7 @@ export function DataTableTablePanel<TData>({
                           >
                             {typeof content === "function"
                               ? content({
-                                  rows: table
-                                    .getFilteredRowModel()
-                                    .rows.map((row) => row.original),
+                                  rows: summarySourceRows,
                                   columnId: column.id,
                                 })
                               : content}
@@ -383,10 +406,10 @@ function getHeaderLayout<TData>(
   return {
     ...columnLayout,
     fixedSide,
-    headerStyle: edgeLayout?.headerStyle
-      ? {
-          insetInlineStart: edgeLayout.headerStyle.insetInlineStart,
-          insetInlineEnd: edgeLayout.headerStyle.insetInlineEnd,
+      headerStyle: edgeLayout?.headerStyle
+        ? {
+          left: edgeLayout.headerStyle.left,
+          right: edgeLayout.headerStyle.right,
         }
       : undefined,
     pinnedClassName: edgeLayout?.pinnedClassName,

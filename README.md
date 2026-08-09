@@ -26,12 +26,13 @@ Dedicated subpath exports are also available:
 - `data-table-pro/advanced`: advanced composition hooks, panels, and adapter helpers
 - `data-table-pro/types`: public TypeScript types
 
-The current 4.0 feature set includes client/manual filtering, sorting and
+The current feature set includes client/manual filtering, sorting and
 pagination, unknown-total pagination, selection, detail panels, table/card
 views, row/card virtualization, nested column groups, column
 sizing/order/pinning/visibility, versioned persistence, named saved views,
 versioned URL state, CSV export, inline row editing, density controls,
-loading/empty states, summary rows, infinite loading, and host-owned
+loading/empty states, summary rows, alternate row shading, infinite loading,
+and host-owned
 drag/upload integrations. See
 [`docs/API.md`](./docs/API.md) for the complete contract.
 
@@ -117,9 +118,9 @@ import { DataTable } from "data-table-pro/virtual";
 
 The existing base entrypoints remain source-compatible with
 `virtualization`. They load the virtual row/card implementation only when the
-prop enables it and render the complete non-virtual view as the Suspense
-fallback. Applications that never enable virtualization do not statically
-load `@tanstack/react-virtual`.
+prop enables it and render a bounded initial set as the Suspense fallback
+(20 rows or 12 cards by default). Applications that never enable
+virtualization do not statically load `@tanstack/react-virtual`.
 
 Custom adapter authors should use `createDataTable` from
 `data-table-pro/adapter`, or `createVirtualDataTable` from
@@ -163,8 +164,14 @@ Always import:
 
 `data-table-pro/styles.css` provides:
 
-- Tailwind package scanning for the built output
-- the package-owned container query helpers used by column `hideOn`
+- Tailwind package scanning for built JavaScript output
+- package-owned inline-size container queries used by column `hideOn` and the toolbar
+
+Responsive behavior is based on the table's allocated width, not the browser
+viewport. The package uses fixed `sm`/`md`/`lg`/`xl`/`2xl` thresholds of
+640/768/1024/1280/1536px for both CSS presentation and TanStack column state;
+host Tailwind breakpoint customization and root font-size changes do not alter
+these thresholds.
 
 It does not provide:
 
@@ -216,6 +223,7 @@ Card mode can virtualize large card sets:
     card: {
       enabled: true,
       estimateCardHeight: 280,
+      fallbackCardCount: 12,
       overscan: 4,
       lanes: "auto",
     },
@@ -223,7 +231,7 @@ Card mode can virtualize large card sets:
 />
 ```
 
-`virtualization.card.lanes` accepts a positive number or `"auto"`. `"auto"` derives lanes from the card viewport width, and the table renders the full card set until the scroll viewport is measurable so first paint is never blank.
+`virtualization.card.lanes` accepts a positive number or `"auto"`. `"auto"` derives lanes from the card viewport width. Before the scroll viewport is measurable, `fallbackCardCount` bounds first-paint work so large card collections do not mount in full.
 
 ## Adapter Requirements
 

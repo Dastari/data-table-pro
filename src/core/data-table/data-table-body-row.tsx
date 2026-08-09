@@ -12,6 +12,7 @@ import { renderDataTableCellContent } from "./data-table-cell-content";
 import type { DataTableColumnLayout } from "./use-column-layout";
 import {
   getDensityCellClassName,
+  isDataTableInteractiveTarget,
   isDataTableLoadingRow,
 } from "./data-table-utils";
 import { renderEditableCell } from "./use-row-editing";
@@ -40,6 +41,7 @@ type DataTableBodyRowProps<TData> = {
   row: Row<TData>;
   rowIndex: number;
   setDraftValues: React.Dispatch<React.SetStateAction<Record<string, unknown>>>;
+  stripedRows: boolean;
   uiClassNames: DataTableUiClassNames;
   visibleCells: Array<Cell<TData, unknown>>;
   visibleLeafColumnCount: number;
@@ -63,7 +65,9 @@ function DataTableBodyRowInner<TData>({
   originalRow,
   renderExpandedRow,
   row,
+  rowIndex,
   setDraftValues,
+  stripedRows,
   uiClassNames,
   visibleCells,
   visibleLeafColumnCount,
@@ -76,13 +80,35 @@ function DataTableBodyRowInner<TData>({
         data-row-id={row.id}
         draggable={isInitialLoadingRow ? false : isDraggable}
         data-loading={loadingState?.isLoading || undefined}
+        data-row-index={isInitialLoadingRow ? undefined : rowIndex}
+        data-row-parity={
+          stripedRows && !isInitialLoadingRow
+            ? rowIndex % 2 === 0
+              ? "odd"
+              : "even"
+            : undefined
+        }
         data-state={
           isInitialLoadingRow ? undefined : isSelected ? "selected" : undefined
         }
         tabIndex={onRowClick && !isInitialLoadingRow ? 0 : undefined}
         className={cn(
-          !isInitialLoadingRow && getRowClassName?.(originalRow),
+          !isInitialLoadingRow &&
+            getRowClassName?.(originalRow, {
+              row: originalRow,
+              rowId: row.id,
+              rowIndex,
+              isEditing,
+              isExpanded,
+              isLoading: Boolean(loadingState?.isLoading),
+              isSelected,
+            }),
           uiClassNames.row,
+          stripedRows &&
+            !isInitialLoadingRow &&
+            (rowIndex % 2 === 0
+              ? uiClassNames.rowOdd
+              : uiClassNames.rowEven),
           isSelected && !isInitialLoadingRow && uiClassNames.rowSelected,
           onRowClick && !isInitialLoadingRow && "cursor-pointer",
           isInitialLoadingRow && "pointer-events-none",
@@ -92,8 +118,7 @@ function DataTableBodyRowInner<TData>({
             return;
           }
 
-          const target = event.target as HTMLElement | null;
-          if (target?.closest("[data-row-click-ignore='true']")) {
+          if (isDataTableInteractiveTarget(event.target, event.currentTarget)) {
             return;
           }
 
@@ -108,8 +133,7 @@ function DataTableBodyRowInner<TData>({
             return;
           }
 
-          const target = event.target as HTMLElement | null;
-          if (target?.closest("[data-row-click-ignore='true']")) {
+          if (isDataTableInteractiveTarget(event.target, event.currentTarget)) {
             return;
           }
 
@@ -277,6 +301,7 @@ function areDataTableBodyRowsEqual<TData>(
     previous.onRowClick === next.onRowClick &&
     previous.dragAndDrop === next.dragAndDrop &&
     previous.getRowClassName === next.getRowClassName &&
+    previous.stripedRows === next.stripedRows &&
     previous.uiClassNames === next.uiClassNames &&
     previous.explicitCustomCellColumnIds === next.explicitCustomCellColumnIds &&
     (!previous.isEditing || previous.draftValues === next.draftValues)
@@ -337,8 +362,8 @@ function sameCellStyle(
     previous?.width === next?.width &&
     previous?.minWidth === next?.minWidth &&
     previous?.maxWidth === next?.maxWidth &&
-    previous?.insetInlineStart === next?.insetInlineStart &&
-    previous?.insetInlineEnd === next?.insetInlineEnd
+    previous?.left === next?.left &&
+    previous?.right === next?.right
   );
 }
 

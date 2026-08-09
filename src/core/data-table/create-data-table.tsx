@@ -36,6 +36,7 @@ import {
   getColumnId,
   getDataTableLeafColumns,
   getInitialColumnPinning,
+  validateDataTableColumnIds,
 } from "./data-table-utils";
 import { useDataTableState } from "./use-data-table-state";
 import { clearDataTableColumnPrefs } from "./use-data-table-column-prefs";
@@ -173,7 +174,7 @@ export function createDataTableWithPanels(
     columnSizing,
     onColumnSizingChange,
     enableColumnResizing = false,
-    columnResizeMode = "onChange",
+    columnResizeMode = "onEnd",
     layoutMode = "fill",
     stickyHeader = true,
     showFooter = true,
@@ -184,6 +185,7 @@ export function createDataTableWithPanels(
     className,
     tableClassName,
     tableContainerClassName,
+    stripedRows = false,
     getRowClassName,
     onRowClick,
     onActionError,
@@ -197,6 +199,9 @@ export function createDataTableWithPanels(
     const draggedColumnIdRef = React.useRef<string | null>(null);
     const tableRef = React.useRef<TanStackTable<TData> | null>(null);
     const lastSelectedRowIdRef = React.useRef<string | null>(null);
+    const generatedTitleId = React.useId();
+    const generatedDescriptionId = React.useId();
+    React.useMemo(() => validateDataTableColumnIds(columns), [columns]);
     const resolvedLabels = React.useMemo(
       () => resolveDataTableLabels(labels),
       [labels],
@@ -224,6 +229,11 @@ export function createDataTableWithPanels(
     const resolvedViewMode = viewMode ?? unifiedState?.viewMode;
     const resolvedShowHiddenRows =
       showHiddenRows ?? unifiedState?.showHiddenRows;
+    const showTableHeading =
+      showToolbar && (toolbarVisibility?.title ?? true);
+    const titleId = showTableHeading && title ? generatedTitleId : undefined;
+    const descriptionId =
+      showTableHeading && description ? generatedDescriptionId : undefined;
     useDataTableStateConflictWarnings(unifiedState, {
       columnFilters: columnFilters !== undefined,
       columnOrder: columnOrder !== undefined,
@@ -381,6 +391,7 @@ export function createDataTableWithPanels(
       [onActionError],
     );
     const {
+      containerWidth,
       currentColumnFilters,
       currentColumnOrder,
       currentColumnPinning,
@@ -538,6 +549,7 @@ export function createDataTableWithPanels(
     } = useDataTableInstance({
       autoResetPageIndex: false,
       columnResizeMode,
+      dir,
       currentColumnFilters,
       currentColumnOrder,
       currentColumnPinning,
@@ -983,10 +995,12 @@ export function createDataTableWithPanels(
           ref={containerRef}
           data-dtp-slot="data-table-root"
           data-density={currentDensity}
+          data-dtp-striped-rows={stripedRows || undefined}
+          aria-busy={isLoading || undefined}
           dir={dir}
           tabIndex={-1}
           className={cn(
-            "@container/data-table data-table-container-query flex flex-col",
+            "@container/data-table data-table-container-query flex w-full min-w-0 flex-col",
             flexGrow ? "h-full min-h-0 flex-1" : "grow",
             rootClassName,
           )}
@@ -1037,6 +1051,7 @@ export function createDataTableWithPanels(
                   DataTableToolbar={DataTableToolbar}
                   density={currentDensity}
                   description={description}
+                  descriptionId={descriptionId}
                   effectiveToolbarActions={guardedToolbarActions}
                   enableColumnPinning={enableColumnPinning}
                   enableDensityToggle={enableDensityToggle}
@@ -1056,6 +1071,7 @@ export function createDataTableWithPanels(
                   showHiddenRows={currentShowHiddenRows}
                   table={table}
                   title={title}
+                  titleId={titleId}
                   toolbarQueryPlaceholder={resolvedToolbarQueryPlaceholder}
                   toolbarQueryValue={localSearchValue}
                   toolbarVisibility={toolbarVisibility}
@@ -1073,6 +1089,7 @@ export function createDataTableWithPanels(
                   cardGridClassName={cardGridClassName}
                   cardSizing={cardSizing}
                   cardRenderer={cardRenderer}
+                  containerWidth={containerWidth}
                   currentRowSelection={currentRowSelection}
                   DataTableCardView={DataTableCardView}
                   DataTableEmptyState={DataTableEmptyState}
@@ -1103,10 +1120,13 @@ export function createDataTableWithPanels(
                 />
               ) : (
                 <DataTableTablePanel
+                  ariaDescribedBy={descriptionId}
+                  ariaLabelledBy={titleId}
                   bodyRowComponents={bodyRowComponents}
                   columnLayouts={columnLayout.columnLayouts}
                   currentDensity={currentDensity}
                   currentSorting={currentSorting}
+                  dir={dir}
                   DataTableEmptyState={DataTableEmptyState}
                   dragAndDrop={dragAndDrop}
                   draggedColumnIdRef={draggedColumnIdRef}
@@ -1138,6 +1158,7 @@ export function createDataTableWithPanels(
                   setDraftValues={setDraftValues}
                   shouldRenderInitialLoading={shouldRenderInitialLoading}
                   stickyHeader={stickyHeader}
+                  stripedRows={stripedRows}
                   summaryRows={summaryRows}
                   table={table}
                   tableClassName={tableClassName}

@@ -8,6 +8,7 @@ export type DataTableCardPanelProps<TData> = {
   cardGridClassName: string | undefined;
   cardSizing: DataTableProps<TData>["cardSizing"];
   cardRenderer: NonNullable<DataTableProps<TData>["cardRenderer"]>;
+  containerWidth: number;
   currentRowSelection: Record<string, boolean>;
   DataTableCardView: React.ElementType;
   DataTableEmptyState: React.ElementType;

@@ -10,6 +10,7 @@ type DataTableToolbarSectionProps<TData> = {
   customToolbar: React.ReactNode;
   DataTableToolbar: React.ElementType;
   description: string | undefined;
+  descriptionId: string | undefined;
   effectiveToolbarActions: Array<unknown>;
   enableColumnPinning: boolean;
   enableDensityToggle: boolean;
@@ -29,6 +30,7 @@ type DataTableToolbarSectionProps<TData> = {
   showHiddenRows: boolean;
   table: TanStackTable<TData>;
   title: string | undefined;
+  titleId: string | undefined;
   toolbarQueryPlaceholder: string;
   toolbarQueryValue: string;
   toolbarVisibility: DataTableProps<TData>["toolbarVisibility"];
@@ -44,6 +46,7 @@ export function DataTableToolbarSection<TData>({
   customToolbar,
   DataTableToolbar,
   description,
+  descriptionId,
   effectiveToolbarActions,
   enableColumnPinning,
   enableDensityToggle,
@@ -63,6 +66,7 @@ export function DataTableToolbarSection<TData>({
   showHiddenRows,
   table,
   title,
+  titleId,
   toolbarQueryPlaceholder,
   toolbarQueryValue,
   toolbarVisibility,
@@ -73,7 +77,9 @@ export function DataTableToolbarSection<TData>({
     <div data-dtp-slot="data-table-toolbar" className="shrink-0">
       <DataTableToolbar
         title={title}
+        titleId={titleId}
         description={description}
+        descriptionId={descriptionId}
         toolbarQueryValue={toolbarQueryValue}
         toolbarQueryPlaceholder={toolbarQueryPlaceholder}
         onToolbarQueryValueChange={onToolbarQueryValueChange}
