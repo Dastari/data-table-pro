@@ -397,7 +397,7 @@ is scheduled for Phase 2.
 | `className` | `string` | `undefined` | Outer layout wrapper class. |
 | `tableClassName` | `string` | `undefined` | Applied to the `<table>` element in table mode. |
 | `tableContainerClassName` | `string` | `undefined` | Applied to the scroll container in table or card mode. |
-| `cardGridClassName` | `string` | responsive auto-fit grid | Applied to the card grid wrapper in card mode. Use this for explicit card density such as `grid-cols-1 sm:grid-cols-2 xl:grid-cols-3`. |
+| `cardGridClassName` | `string` | responsive auto-fit grid | Applied to the card grid wrapper in card mode. Use named container variants for explicit density, such as `grid-cols-1 @min-[640px]/data-table:grid-cols-2 @min-[1280px]/data-table:grid-cols-3`. |
 | `cardClassName` | `string` | `undefined` | Applied to each card item wrapper in card mode. |
 | `flexGrow` | `boolean` | `true` | Fills the remaining height of a constrained flex parent. |
 | `showToolbar` | `boolean` | `true` | Controls the package toolbar region. |

@@ -123,7 +123,7 @@ Card mode supports explicit grid density without targeting internals:
 <DataTable
   viewMode="card"
   cardRenderer={renderCard}
-  cardGridClassName="grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"
+  cardGridClassName="grid-cols-2 @min-[640px]/data-table:grid-cols-3 @min-[768px]/data-table:grid-cols-4 @min-[1024px]/data-table:grid-cols-5 @min-[1280px]/data-table:grid-cols-6"
 />
 ```
 

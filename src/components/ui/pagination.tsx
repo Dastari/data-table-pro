@@ -94,7 +94,9 @@ function PaginationPrevious({
       {...props}
     >
       <IconChevronLeft data-icon="inline-start" />
-      {showText ? <span className="hidden sm:block">{text}</span> : null}
+      {showText ? (
+        <span className="hidden @min-[640px]/data-table:block">{text}</span>
+      ) : null}
     </PaginationLink>
   );
 }
@@ -120,7 +122,9 @@ function PaginationFirst({
       {...props}
     >
       <IconChevronsLeft data-icon="inline-start" />
-      {showText ? <span className="hidden sm:block">{text}</span> : null}
+      {showText ? (
+        <span className="hidden @min-[640px]/data-table:block">{text}</span>
+      ) : null}
     </PaginationLink>
   );
 }
@@ -145,7 +149,9 @@ function PaginationNext({
       className={cn("pr-1.5!", className)}
       {...props}
     >
-      {showText ? <span className="hidden sm:block">{text}</span> : null}
+      {showText ? (
+        <span className="hidden @min-[640px]/data-table:block">{text}</span>
+      ) : null}
       <IconChevronRight data-icon="inline-end" />
     </PaginationLink>
   );
@@ -171,7 +177,9 @@ function PaginationLast({
       className={cn("pr-1.5!", className)}
       {...props}
     >
-      {showText ? <span className="hidden sm:block">{text}</span> : null}
+      {showText ? (
+        <span className="hidden @min-[640px]/data-table:block">{text}</span>
+      ) : null}
       <IconChevronsRight data-icon="inline-end" />
     </PaginationLink>
   );
