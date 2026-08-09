@@ -26,7 +26,8 @@ opt-in APIs. It removes no public prop, type, or package entrypoint.
   focus restoration from interactive descendants.
 - Added controlled or uncontrolled rectangular cell-range selection through
   pointer drag and Shift+keyboard navigation, selection styling/ARIA state,
-  imperative selection commands, and app-owned undo/redo command hooks.
+  imperative selection commands, app-owned undo/redo command hooks, and
+  suppression of native text dragging while a pointer range is active.
 - Added formula-safe TSV/CSV clipboard copy, selected-range copy, opt-in parsed
   paste callbacks, and flattened expanded-row ordering.
 - Added asynchronous row validation, field/general errors, dirty and pending

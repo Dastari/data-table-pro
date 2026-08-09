@@ -265,6 +265,9 @@ export function DataTableTablePanel<TData>({
   const handleGridCellPointerDown = React.useCallback(
     (event: React.PointerEvent<HTMLElement>, rowIndex: number, columnIndex: number) => {
       if (!cellSelectionEnabled || event.button !== 0) return;
+      // Keep native text/image dragging from taking ownership of the pointer
+      // stream before the range reaches its destination cell.
+      event.preventDefault();
       pointerSelectingRef.current = true;
       selectGridCell(rowIndex, columnIndex, event.shiftKey);
     },

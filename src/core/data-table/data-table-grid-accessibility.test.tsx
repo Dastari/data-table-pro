@@ -141,7 +141,9 @@ describe("interactive grid accessibility", () => {
     );
 
     const cells = screen.getAllByRole("gridcell");
-    fireEvent.pointerDown(cells[0], { button: 0 });
+    const pointerDownEvent = createEvent.pointerDown(cells[0], { button: 0 });
+    fireEvent(cells[0], pointerDownEvent);
+    expect(pointerDownEvent.defaultPrevented).toBe(true);
     fireEvent.pointerEnter(cells[3], { buttons: 1 });
     fireEvent.pointerUp(window);
     expect(cells.slice(0, 4).every((cell) => cell.getAttribute("aria-selected") === "true")).toBe(true);
