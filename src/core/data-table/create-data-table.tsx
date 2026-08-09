@@ -1744,11 +1744,13 @@ function runDataTableAction<TData>(
 
 function useDataTableStateSliceChange<K extends keyof DataTableState>(
   key: K,
-  onLegacyChange: ((value: DataTableState[K]) => void) | undefined,
+  onLegacyChange:
+    | ((value: Exclude<DataTableState[K], undefined>) => void)
+    | undefined,
   onStateChange: DataTableProps<unknown>["onStateChange"],
 ) {
   const handleChange = React.useCallback(
-    (value: DataTableState[K]) => {
+    (value: Exclude<DataTableState[K], undefined>) => {
       onLegacyChange?.(value);
       onStateChange?.((current) => ({
         ...current,
@@ -1812,7 +1814,7 @@ function cloneDataTableState(state: DataTableState): DataTableState {
       typeof state.expanded === "boolean"
         ? state.expanded
         : { ...state.expanded },
-    grouping: [...state.grouping],
+    grouping: [...(state.grouping ?? [])],
     columnOrder: [...state.columnOrder],
     columnPinning: {
       left: state.columnPinning.left

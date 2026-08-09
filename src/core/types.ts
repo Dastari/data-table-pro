@@ -593,7 +593,8 @@ export type DataTableState = {
   columnPinning: ColumnPinningState;
   rowPinning: RowPinningState;
   columnSizing: ColumnSizingState;
-  grouping: GroupingState;
+  /** Present in snapshots produced by 4.4+; optional for 4.x object-literal compatibility. */
+  grouping?: GroupingState;
   density: DataTableDensity;
   viewMode: DataTableViewMode;
   showHiddenRows: boolean;
