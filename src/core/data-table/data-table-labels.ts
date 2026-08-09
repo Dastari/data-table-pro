@@ -68,6 +68,19 @@ export const DATA_TABLE_DEFAULT_LABELS: ResolvedDataTableLabels = {
   moveGroupingEarlier: (columnLabel) => `Move ${columnLabel} grouping earlier`,
   moveGroupingLater: (columnLabel) => `Move ${columnLabel} grouping later`,
   facetSearch: (columnLabel) => `Search ${columnLabel} options`,
+  searchColumns: "Search columns",
+  showAllColumns: "Show all columns",
+  hideAllColumns: "Hide all columns",
+  moveColumnEarlier: (columnLabel) => `Move ${columnLabel} earlier`,
+  moveColumnLater: (columnLabel) => `Move ${columnLabel} later`,
+  resetColumnLayout: "Reset column layout",
+  savedViews: "Saved views",
+  createSavedView: "Create saved view",
+  savedViewName: "View name",
+  applySavedView: (name) => `Apply saved view ${name}`,
+  renameSavedView: (name) => `Rename saved view ${name}`,
+  deleteSavedView: (name) => `Delete saved view ${name}`,
+  saveSavedView: "Save view",
 };
 
 export function resolveDataTableLabels(

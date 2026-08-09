@@ -499,7 +499,8 @@ const url = useDataTableUrlState({
 Grouping and row selection are also available as URL slices, but selection is
 never written unless `"rowSelection"` is explicitly enabled.
 
-Named saved views use versioned storage without imposing toolbar UI:
+Named saved views use versioned storage. Applications can keep their own UI,
+or opt into the built-in table-options controls:
 
 ```tsx
 <DataTable
@@ -512,12 +513,22 @@ Named saved views use versioned storage without imposing toolbar UI:
     version: 1,
     onChange: (views) => setSavedViews(views),
   }}
+  toolbarDataOperations={{
+    columnChooser: true,
+    resetLayout: true,
+    savedViews: true,
+  }}
 />;
 
 const saved = apiRef.current?.createSavedView("My view");
 apiRef.current?.applySavedView(saved?.id ?? "");
 apiRef.current?.resetState({ clearPersistence: true });
 ```
+
+The enhanced column chooser is searchable and includes bulk show/hide,
+keyboard-accessible move-earlier/move-later actions, and pin controls when
+`enableColumnPinning` is enabled. Active search and column filters are also
+shown as removable chips.
 
 ### Column filters
 

@@ -319,6 +319,16 @@ export type DataTableToolbarVisibility = {
   customToolbar?: boolean;
 };
 
+/** Optional toolbar controls for working with the current table layout and views. */
+export type DataTableToolbarDataOperations = {
+  /** Search, bulk show/hide, pin, and keyboard-accessible column move controls. */
+  columnChooser?: boolean;
+  /** Create, apply, rename, and delete saved views when `savedViews` is configured. */
+  savedViews?: boolean;
+  /** Adds a reset-layout action using the table's initial layout. */
+  resetLayout?: boolean;
+};
+
 export type DataTableCardRendererProps<TData> = {
   row: TData;
   rowId: string;
@@ -681,6 +691,19 @@ export type DataTableLabels = {
   moveGroupingEarlier?: (columnLabel: string) => string;
   moveGroupingLater?: (columnLabel: string) => string;
   facetSearch?: (columnLabel: string) => string;
+  searchColumns?: string;
+  showAllColumns?: string;
+  hideAllColumns?: string;
+  moveColumnEarlier?: (columnLabel: string) => string;
+  moveColumnLater?: (columnLabel: string) => string;
+  resetColumnLayout?: string;
+  savedViews?: string;
+  createSavedView?: string;
+  savedViewName?: string;
+  applySavedView?: (name: string) => string;
+  renameSavedView?: (name: string) => string;
+  deleteSavedView?: (name: string) => string;
+  saveSavedView?: string;
 };
 
 export type DataTableSummaryRow<TData> = {
@@ -840,6 +863,8 @@ export type DataTableProps<TData> = {
   dir?: "ltr" | "rtl";
   flexGrow?: boolean;
   toolbarVisibility?: DataTableToolbarVisibility;
+  /** Opts into enhanced layout and saved-view toolbar controls. */
+  toolbarDataOperations?: boolean | DataTableToolbarDataOperations;
   className?: string;
   tableClassName?: string;
   tableContainerClassName?: string;
