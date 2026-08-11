@@ -933,10 +933,17 @@ an application-owned undo history.
 | `onColumnSizingChange` | `(sizing: ColumnSizingState) => void` | `undefined` | Controlled sizing callback. |
 | `layoutMode` | `"fill" \| "fit"` | `"fill"` | `fill` stretches the table to the container; `fit` sizes to content width. |
 | `stickyHeader` | `boolean` | `true` | Makes the table header sticky inside the scroll area. |
+| `scrollbarVisibility` | `"auto" \| "always" \| "scroll" \| "hover"` | `"hover"` | Controls when table and card scrollbars are visible. Use `"always"` when persistent scrollbars are required. |
 
 Pinned regions are rendered in table view only. Card view keeps pinned rows in
 its ordinary card order, and server/manual pagination can render a pinned row
 only when that record is included in the supplied `data` window.
+
+In `layoutMode="fill"`, a genuine flexible data column consumes unused width.
+When every currently visible data column has a configured or user-sized fixed
+width, the table inserts an internal transparent spacer after the data columns
+and before the actions column instead. Fixed columns retain their widths, and
+their combined minimum width still causes horizontal overflow when necessary.
 
 The default persistence envelope is:
 

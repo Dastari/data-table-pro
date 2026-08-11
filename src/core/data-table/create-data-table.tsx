@@ -41,6 +41,7 @@ import {
   getDataTableColumnGroupPaths,
   getDataTableLeafColumns,
   getInitialColumnPinning,
+  hasExplicitDataTableColumnSize,
   validateDataTableColumnIds,
 } from "./data-table-utils";
 import { useDataTableState } from "./use-data-table-state";
@@ -230,6 +231,7 @@ export function createDataTableWithPanels(
     columnResizeMode = "onEnd",
     layoutMode = "fill",
     stickyHeader = true,
+    scrollbarVisibility,
     showFooter = true,
     showToolbar = true,
     dir = "ltr",
@@ -713,6 +715,35 @@ export function createDataTableWithPanels(
       [fileUpload, runAction],
     );
 
+    const includeFillSpacer = React.useMemo(() => {
+      if (layoutMode !== "fill") {
+        return false;
+      }
+
+      const visibleDataColumns = getDataTableLeafColumns(columns).filter(
+        ({ column, index }) =>
+          effectiveColumnVisibility[getColumnId(column, index)] !== false,
+      );
+
+      return (
+        visibleDataColumns.length > 0 &&
+        visibleDataColumns.every(({ column, index }) => {
+          const columnId = getColumnId(column, index);
+          return (
+            hasExplicitDataTableColumnSize(column) ||
+            Object.prototype.hasOwnProperty.call(
+              currentColumnSizing,
+              columnId,
+            )
+          );
+        })
+      );
+    }, [
+      columns,
+      currentColumnSizing,
+      effectiveColumnVisibility,
+      layoutMode,
+    ]);
     const tableColumns = useDataTableColumns<TData>({
       Button,
       Checkbox,
@@ -730,6 +761,7 @@ export function createDataTableWithPanels(
       hasTreeExpansion: Boolean(getSubRows),
       isSavingEdit,
       isEditDirty,
+      includeFillSpacer,
       labels: resolvedLabels,
       lastSelectedRowIdRef,
       detailPanel: resolvedDetailPanel,
@@ -1624,6 +1656,7 @@ export function createDataTableWithPanels(
                   resolvedLoadingRowCount={resolvedLoadingRowCount}
                   rowActions={guardedRowActions}
                   ScrollArea={ScrollArea}
+                  scrollbarVisibility={scrollbarVisibility}
                   sentinelRef={sentinelRef}
                   setCurrentDetailExpanded={setCurrentDetailExpanded}
                   setCurrentRowSelection={setCurrentRowSelection}
@@ -1675,6 +1708,7 @@ export function createDataTableWithPanels(
                   rowsToRender={rowsToRender}
                   ScrollArea={ScrollArea}
                   ScrollBar={ScrollBar}
+                  scrollbarVisibility={scrollbarVisibility}
                   sentinelRef={sentinelRef}
                   setDraftValues={setDraftValues}
                   shouldRenderInitialLoading={shouldRenderInitialLoading}

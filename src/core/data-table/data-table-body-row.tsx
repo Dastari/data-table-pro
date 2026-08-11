@@ -131,6 +131,9 @@ function DataTableBodyRowInner<TData>({
   const firstDataColumnId = visibleCells.find(
     (cell) => !columnLayouts.get(cell.column.id)?.isUtilityColumn,
   )?.column.id;
+  const spacerColumnIndex = visibleCells.findIndex(
+    (cell) => cell.column.id === "__spacer__",
+  );
 
   return (
     <React.Fragment>
@@ -253,6 +256,10 @@ function DataTableBodyRowInner<TData>({
           const isExpansionColumn = layout?.isExpansionColumn ?? false;
           const isActionsColumn = layout?.isActionsColumn ?? false;
           const isSpacerColumn = layout?.isSpacerColumn ?? false;
+          const gridColumnAriaIndex =
+            columnIndex +
+            1 -
+            (spacerColumnIndex >= 0 && spacerColumnIndex < columnIndex ? 1 : 0);
           const hideClassName = hideOnClassName(meta?.hideOn);
           const cellClassName =
             isInitialLoadingRow || isDataTableLoadingRow(originalRow)
@@ -266,26 +273,44 @@ function DataTableBodyRowInner<TData>({
           const isCellSelected =
             gridMode && cellSelectionEnabled &&
             !isInitialLoadingRow &&
+            !isSpacerColumn &&
             isGridCellSelected(gridRowIndex, columnIndex);
 
           return (
             <TableCell
               key={cell.id}
-              role={gridMode ? "gridcell" : undefined}
-              aria-colindex={gridMode ? columnIndex + 1 : undefined}
+              data-column-id={cell.column.id}
+              data-row-click-ignore={isSpacerColumn ? "true" : undefined}
+              role={
+                gridMode
+                  ? isSpacerColumn
+                    ? "presentation"
+                    : "gridcell"
+                  : undefined
+              }
+              aria-colindex={
+                gridMode && !isSpacerColumn ? gridColumnAriaIndex : undefined
+              }
+              aria-hidden={isSpacerColumn || undefined}
               aria-selected={
-                gridMode && !isInitialLoadingRow
+                gridMode && !isInitialLoadingRow && !isSpacerColumn
                   ? cellSelectionEnabled
                     ? isCellSelected
                     : isSelected
                   : undefined
               }
               data-dtp-cell-selected={isCellSelected || undefined}
-              data-dtp-grid-cell={gridMode ? "true" : undefined}
-              data-grid-row-index={gridMode ? gridRowIndex : undefined}
-              data-grid-column-index={gridMode ? columnIndex : undefined}
+              data-dtp-grid-cell={
+                gridMode && !isSpacerColumn ? "true" : undefined
+              }
+              data-grid-row-index={
+                gridMode && !isSpacerColumn ? gridRowIndex : undefined
+              }
+              data-grid-column-index={
+                gridMode && !isSpacerColumn ? columnIndex : undefined
+              }
               tabIndex={
-                gridMode && !isInitialLoadingRow
+                gridMode && !isInitialLoadingRow && !isSpacerColumn
                   ? activeGridCell.row === gridRowIndex &&
                     activeGridCell.column === columnIndex
                     ? 0
@@ -293,12 +318,12 @@ function DataTableBodyRowInner<TData>({
                   : undefined
               }
               onFocus={
-                gridMode
+                gridMode && !isSpacerColumn
                   ? () => onGridCellFocus({ row: gridRowIndex, column: columnIndex })
                   : undefined
               }
               onKeyDown={
-                gridMode
+                gridMode && !isSpacerColumn
                   ? (event: React.KeyboardEvent<HTMLTableCellElement>) => {
                       if (event.target !== event.currentTarget) {
                         if (event.key === "Escape") {
@@ -340,7 +365,7 @@ function DataTableBodyRowInner<TData>({
                 uiClassNames.cellBorder,
                 isCellSelected && uiClassNames.cellSelected,
                 layout?.utilityClassName,
-                layout?.isSpacerColumn && "border-b-0 bg-transparent p-0",
+                layout?.isSpacerColumn && "border-b-0 bg-transparent! p-0",
                 layout?.pinnedClassName,
                 hideClassName,
                 cellAlignClassName(cellContext),
@@ -351,7 +376,10 @@ function DataTableBodyRowInner<TData>({
             >
               <div
                 data-row-click-ignore={
-                  isSelectionColumn || isExpansionColumn || isActionsColumn
+                  isSelectionColumn ||
+                  isExpansionColumn ||
+                  isActionsColumn ||
+                  isSpacerColumn
                     ? "true"
                     : undefined
                 }
@@ -362,7 +390,7 @@ function DataTableBodyRowInner<TData>({
                     : undefined
                 }
               >
-                {loadingState?.isLoading ? (
+                {isSpacerColumn ? null : loadingState?.isLoading ? (
                   (meta?.skeleton?.(cellContext) ??
                   loadingState.skeleton ?? (
                     <Skeleton

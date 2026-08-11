@@ -9,6 +9,7 @@ import {
   getDataTableLeafColumns,
   getFixedSide,
   getPinnedColumnClassName,
+  hasExplicitDataTableColumnSize,
   isUtilityColumnId,
 } from "./data-table-utils";
 
@@ -67,7 +68,7 @@ export function useColumnLayout<TData>({
     const ids = new Set<string>();
 
     for (const { column, index } of getDataTableLeafColumns(columns)) {
-      if (Object.prototype.hasOwnProperty.call(column, "size")) {
+      if (hasExplicitDataTableColumnSize(column)) {
         ids.add(getColumnId(column, index));
       }
     }
@@ -130,47 +131,12 @@ export function useColumnLayout<TData>({
     return { left, right };
   }, [visibleLeafColumns]);
 
-  const fillColumnId = React.useMemo(() => {
-    if (layoutMode !== "fill") {
-      return undefined;
-    }
-
-    const dataColumns = visibleLeafColumns.filter(
-      (column) => !isUtilityColumnId(column.id),
-    );
-
-    if (!dataColumns.length) {
-      return undefined;
-    }
-
-    const allDataColumnsAreFixed = dataColumns.every(
-      (column) =>
-        explicitlySizedColumnIds.has(column.id) ||
-        Object.prototype.hasOwnProperty.call(columnSizing, column.id),
-    );
-
-    return allDataColumnsAreFixed
-      ? dataColumns[dataColumns.length - 1]?.id
-      : undefined;
-  }, [
-    columnSizing,
-    explicitlySizedColumnIds,
-    layoutMode,
-    visibleLeafColumns,
-  ]);
-
   const fixedWidthColumnIds = React.useMemo(() => {
-    const ids = new Set([
+    return new Set([
       ...explicitlySizedColumnIds,
       ...Object.keys(columnSizing),
     ]);
-
-    if (fillColumnId) {
-      ids.delete(fillColumnId);
-    }
-
-    return ids;
-  }, [columnSizing, explicitlySizedColumnIds, fillColumnId]);
+  }, [columnSizing, explicitlySizedColumnIds]);
 
   const columnLayouts = React.useMemo(() => {
     const layouts = new Map<string, DataTableColumnLayout>();
@@ -183,10 +149,7 @@ export function useColumnLayout<TData>({
         isSelectionColumn || isExpansionColumn || isActionsColumn;
       const isSpacerColumn = column.id === "__spacer__";
       const configuredMinWidth = minimumColumnWidths.get(column.id);
-      const isFlexibleFillColumn = column.id === fillColumnId;
-      const columnMinWidth =
-        configuredMinWidth ??
-        (isFlexibleFillColumn ? column.getSize() : undefined);
+      const columnMinWidth = configuredMinWidth;
       const shouldFixWidth =
         !isSpacerColumn &&
         (layoutMode === "fit" ||
@@ -249,7 +212,6 @@ export function useColumnLayout<TData>({
 
     return layouts;
   }, [
-    fillColumnId,
     fixedWidthColumnIds,
     layoutMode,
     minimumColumnWidths,
@@ -262,7 +224,6 @@ export function useColumnLayout<TData>({
     return visibleLeafColumns.reduce((total, column) => {
       const layout = columnLayouts.get(column.id);
       const configuredMinWidth = minimumColumnWidths.get(column.id);
-      const isFlexibleFillColumn = column.id === fillColumnId;
 
       if (layout?.isUtilityColumn) {
         return total + UTILITY_COLUMN_SIZE;
@@ -274,12 +235,11 @@ export function useColumnLayout<TData>({
 
       return (
         total +
-        (configuredMinWidth ?? (isFlexibleFillColumn ? column.getSize() : 0))
+        (configuredMinWidth ?? 0)
       );
     }, 0);
   }, [
     columnLayouts,
-    fillColumnId,
     fixedWidthColumnIds,
     minimumColumnWidths,
     visibleLeafColumns,

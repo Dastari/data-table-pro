@@ -87,11 +87,25 @@ function DataTableHeaderCellInner<TData>({
       key={header.id}
       colSpan={header.colSpan}
       scope={
-        header.isPlaceholder ? undefined : isColumnGroup ? "colgroup" : "col"
+        header.isPlaceholder || layout.isSpacerColumn
+          ? undefined
+          : isColumnGroup
+            ? "colgroup"
+            : "col"
       }
-      role={gridMode ? "columnheader" : undefined}
-      aria-colindex={gridMode ? gridColumnIndex : undefined}
-      aria-hidden={header.isPlaceholder || undefined}
+      role={
+        gridMode
+          ? layout.isSpacerColumn
+            ? "presentation"
+            : "columnheader"
+          : undefined
+      }
+      aria-colindex={
+        gridMode && !layout.isSpacerColumn ? gridColumnIndex : undefined
+      }
+      aria-hidden={
+        header.isPlaceholder || layout.isSpacerColumn || undefined
+      }
       aria-description={isColumnGroup ? groupDefinition?.description : undefined}
       aria-labelledby={
         !header.isPlaceholder &&
@@ -113,7 +127,7 @@ function DataTableHeaderCellInner<TData>({
         getDensityHeaderClassName(currentDensity),
         isColumnGroup && uiClassNames.columnGroupHeader,
         layout.utilityClassName,
-        layout.isSpacerColumn && "border-b-1 bg-transparent p-0",
+        layout.isSpacerColumn && "border-b-0 bg-transparent! p-0",
         layout.pinnedClassName,
         hideClassName,
         headerAlignClassName(header.getContext()),

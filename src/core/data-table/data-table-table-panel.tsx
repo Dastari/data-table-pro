@@ -74,6 +74,7 @@ export type DataTableTablePanelProps<TData> = {
   rowsToRender: Array<{ row: Row<TData>; rowIndex: number }>;
   ScrollArea: DataTableUiKit["ScrollArea"];
   ScrollBar: DataTableUiKit["ScrollBar"];
+  scrollbarVisibility: DataTableProps<TData>["scrollbarVisibility"];
   sentinelRef: React.RefObject<HTMLDivElement | null>;
   setDraftValues: React.Dispatch<React.SetStateAction<Record<string, unknown>>>;
   shouldRenderInitialLoading: boolean;
@@ -150,6 +151,7 @@ export function DataTableTablePanel<TData>({
   rowsToRender,
   ScrollArea,
   ScrollBar,
+  scrollbarVisibility,
   sentinelRef,
   setDraftValues,
   shouldRenderInitialLoading,
@@ -199,6 +201,13 @@ export function DataTableTablePanel<TData>({
   const gridRows = React.useMemo(
     () => [...topPinnedRows, ...renderedRows, ...bottomPinnedRows],
     [bottomPinnedRows, renderedRows, topPinnedRows],
+  );
+  const navigableGridColumnIndices = React.useMemo(
+    () =>
+      visibleLeafColumns.flatMap((column, index) =>
+        column.id === "__spacer__" ? [] : [index],
+      ),
+    [visibleLeafColumns],
   );
   const getGridCoordinate = React.useCallback(
     (rowIndex: number, columnIndex: number) => {
@@ -319,19 +328,28 @@ export function DataTableTablePanel<TData>({
           ) || 10),
       );
       const lastRow = Math.max(0, displayRowCount - 1);
-      const lastColumn = Math.max(0, visibleLeafColumnCount - 1);
+      const currentColumnPosition = Math.max(
+        0,
+        navigableGridColumnIndices.indexOf(column),
+      );
+      const lastColumnPosition = Math.max(
+        0,
+        navigableGridColumnIndices.length - 1,
+      );
       let nextRow = row;
-      let nextColumn = column;
+      let nextColumnPosition = currentColumnPosition;
       switch (event.key) {
         case "ArrowUp": nextRow--; break;
         case "ArrowDown": nextRow++; break;
-        case "ArrowLeft": nextColumn--; break;
-        case "ArrowRight": nextColumn++; break;
+        case "ArrowLeft": nextColumnPosition--; break;
+        case "ArrowRight": nextColumnPosition++; break;
         case "Home":
-          if (event.ctrlKey || event.metaKey) { nextRow = 0; nextColumn = 0; } else nextColumn = 0;
+          if (event.ctrlKey || event.metaKey) nextRow = 0;
+          nextColumnPosition = 0;
           break;
         case "End":
-          if (event.ctrlKey || event.metaKey) { nextRow = lastRow; nextColumn = lastColumn; } else nextColumn = lastColumn;
+          if (event.ctrlKey || event.metaKey) nextRow = lastRow;
+          nextColumnPosition = lastColumnPosition;
           break;
         case "PageUp": nextRow -= pageRows; break;
         case "PageDown": nextRow += pageRows; break;
@@ -340,7 +358,13 @@ export function DataTableTablePanel<TData>({
       event.preventDefault();
       const nextCell = {
         row: Math.min(lastRow, Math.max(0, nextRow)),
-        column: Math.min(lastColumn, Math.max(0, nextColumn)),
+        column:
+          navigableGridColumnIndices[
+            Math.min(
+              lastColumnPosition,
+              Math.max(0, nextColumnPosition),
+            )
+          ] ?? 0,
       };
       setActiveCell(nextCell);
       if (event.shiftKey && cellSelectionEnabled) {
@@ -356,9 +380,9 @@ export function DataTableTablePanel<TData>({
       displayRowCount,
       getGridCoordinate,
       gridPageSize,
+      navigableGridColumnIndices,
       onCellSelectionChange,
       tableScrollElement,
-      visibleLeafColumnCount,
     ],
   );
   const renderBodyRow = (
@@ -445,6 +469,7 @@ export function DataTableTablePanel<TData>({
         className={cn(flexGrow ? "flex min-h-0 flex-1 flex-col" : "h-full")}
       >
         <ScrollArea
+          type={scrollbarVisibility}
           className={cn(
             "rounded-md border",
             flexGrow ? "min-h-0 flex-1" : "h-full",
@@ -458,7 +483,9 @@ export function DataTableTablePanel<TData>({
               aria-describedby={ariaDescribedBy}
               aria-labelledby={ariaLabelledBy}
               role={gridMode ? "grid" : undefined}
-              aria-colcount={gridMode ? visibleLeafColumnCount : undefined}
+              aria-colcount={
+                gridMode ? navigableGridColumnIndices.length : undefined
+              }
               aria-rowcount={
                 gridMode
                   ?
@@ -523,11 +550,19 @@ export function DataTableTablePanel<TData>({
                         uiClassNames={uiClassNames}
                         gridMode={gridMode}
                         gridColumnIndex={
-                          header.isPlaceholder || header.subHeaders.length
+                          header.isPlaceholder ||
+                          header.subHeaders.length ||
+                          header.column.id === "__spacer__"
                             ? undefined
-                            : table.getVisibleLeafColumns().findIndex(
-                                (column) => column.id === header.column.id,
-                              ) + 1
+                            : table
+                                .getVisibleLeafColumns()
+                                .filter(
+                                  (column) => column.id !== "__spacer__",
+                                )
+                                .findIndex(
+                                  (column) =>
+                                    column.id === header.column.id,
+                                ) + 1
                         }
                       />
                     ))}
@@ -613,18 +648,38 @@ export function DataTableTablePanel<TData>({
                       }
                     >
                       {visibleLeafColumns.map((column, index) => {
-                        const content =
-                          summaryRow.cells[column.id] ??
-                          (index === 0 ? summaryRow.label : null);
+                        const layout = getColumnLayout(column.id);
+                        const content = layout.isSpacerColumn
+                          ? null
+                          : (summaryRow.cells[column.id] ??
+                            (index === 0 ? summaryRow.label : null));
                         return (
                           <TableCell
                             key={`${summaryRow.key}-${column.id}`}
-                            role={gridMode ? "gridcell" : undefined}
-                            aria-colindex={gridMode ? index + 1 : undefined}
+                            data-column-id={column.id}
+                            role={
+                              gridMode
+                                ? layout.isSpacerColumn
+                                  ? "presentation"
+                                  : "gridcell"
+                                : undefined
+                            }
+                            aria-colindex={
+                              gridMode && !layout.isSpacerColumn
+                                ? navigableGridColumnIndices.indexOf(index) + 1
+                                : undefined
+                            }
+                            aria-hidden={
+                              layout.isSpacerColumn || undefined
+                            }
                             className={cn(
-                              "border-b font-medium",
-                              uiClassNames.cellBorder,
+                              layout.isSpacerColumn
+                                ? "border-b-0 bg-transparent! p-0"
+                                : "border-b font-medium",
+                              !layout.isSpacerColumn &&
+                                uiClassNames.cellBorder,
                             )}
+                            style={layout.cellStyle}
                           >
                             {typeof content === "function"
                               ? content({

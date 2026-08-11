@@ -1,5 +1,24 @@
 # Migration Guide
 
+## 4.5.0 additive layout release
+
+Version 4.5.0 removes no public prop, type, or package entrypoint. Existing
+tables retain hover-only scrollbars by default; set
+`scrollbarVisibility="always"` on data tables that require persistent
+horizontal and vertical scrollbars.
+
+Fixed-width `layoutMode="fill"` tables no longer stretch their last visible
+data column. When all currently visible data columns are fixed, the table
+automatically creates a transparent flexible spacer after the data columns and
+before right-pinned row actions. Applications should not define, order, pin,
+export, or otherwise reference the reserved `__spacer__` column.
+
+The spacer decision follows current `columnVisibility`, including leaves in
+grouped definitions and responsive visibility. Restoring a genuine flexible
+data column removes the spacer. If fixed column minimums exceed the viewport,
+the table keeps their widths and scrolls horizontally rather than compressing
+them. These rules are the same for standard and virtual table adapters.
+
 ## 4.4.0 additive modernization release
 
 Version 4.4.0 removes no public prop, type, or package entrypoint. A 4.3 table

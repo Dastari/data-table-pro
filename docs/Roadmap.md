@@ -16,11 +16,11 @@ Audit baseline:
 
 Current implementation baseline:
 
-- package version: 4.4.0
+- package version: 4.5.0
 - React/React DOM peers: 19.2.8
 - TanStack Table: 8.21.3
 - TanStack Virtual: 3.14.8
-- validation: 310 unit/integration tests, enforced coverage and declaration
+- validation: 317 unit/integration tests, enforced coverage and declaration
   snapshots, SSR/hydration tests, a packed-consumer build, and six
   adapter/theme Playwright screenshot and axe cases
 - toolchain: TypeScript 7 CLI with the official TypeScript 6 compiler-API

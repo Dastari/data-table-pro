@@ -193,6 +193,76 @@ test("responsive behavior follows table container boundaries", async ({
   await expect(header("location")).toHaveCount(0);
 });
 
+test("fill layout gives spare width to the internal spacer and preserves overflow", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1700, height: 900 });
+  await page.goto("/");
+  await hideContentSizedCards(page);
+
+  const table = page.locator('[data-dtp-slot="data-table-root"]').first();
+  await table.evaluate((element) => {
+    element.style.flex = "none";
+    element.style.width = "1500px";
+    element.style.height = "520px";
+  });
+
+  const readLayout = () =>
+    table.evaluate((element) => {
+      const scrollArea = element.querySelector<HTMLElement>(
+        '[data-slot="scroll-area"]',
+      );
+      const viewport = element.querySelector<HTMLElement>(
+        '[data-slot="scroll-area-viewport"]',
+      );
+      const headers = Array.from(
+        element.querySelectorAll<HTMLElement>(
+          "thead tr:last-child [data-column-id]",
+        ),
+      );
+      const name = headers.find(
+        (header) => header.dataset.columnId === "name",
+      );
+      const spacer = headers.find(
+        (header) => header.dataset.columnId === "__spacer__",
+      );
+      const actions = headers.find(
+        (header) => header.dataset.columnId === "__actions__",
+      );
+      if (!scrollArea || !viewport || !name || !spacer || !actions) {
+        throw new Error("Expected the fill-layout regression columns");
+      }
+      return {
+        actionIndex: headers.indexOf(actions),
+        clientWidth: viewport.clientWidth,
+        nameWidth: name.getBoundingClientRect().width,
+        scrollWidth: viewport.scrollWidth,
+        spacerIndex: headers.indexOf(spacer),
+        spacerWidth: spacer.getBoundingClientRect().width,
+        width: scrollArea.getBoundingClientRect().width,
+      };
+    });
+
+  await expect.poll(async () => (await readLayout()).spacerWidth).toBeGreaterThan(0);
+  const wideLayout = await readLayout();
+  expect(wideLayout.nameWidth).toBeCloseTo(220, 0);
+  expect(wideLayout.spacerIndex).toBe(wideLayout.actionIndex - 1);
+  expect(wideLayout.scrollWidth).toBeLessThanOrEqual(
+    wideLayout.clientWidth + 1,
+  );
+
+  await table.evaluate((element) => {
+    element.style.width = "720px";
+  });
+  await expect(table).toHaveCSS("width", "720px");
+  await expect.poll(async () => (await readLayout()).scrollWidth).toBeGreaterThan(720);
+
+  const narrowLayout = await readLayout();
+  expect(narrowLayout.nameWidth).toBeCloseTo(220, 0);
+  expect(narrowLayout.spacerIndex).toBe(narrowLayout.actionIndex - 1);
+  expect(narrowLayout.scrollWidth).toBeGreaterThan(narrowLayout.clientWidth);
+});
+
 test("interactive grid navigation follows the rendered cell geometry", async ({
   page,
 }) => {
@@ -241,4 +311,121 @@ test("interactive grid selects a pointer-dragged cell range", async ({ page }) =
   await page.mouse.up();
   await expect(firstCell).toHaveAttribute("aria-selected", "true");
   await expect(fourthCell).toHaveAttribute("aria-selected", "true");
+});
+
+test("persistent scrollbars stack above fixed columns and a bottom-pinned row", async ({
+  page,
+}) => {
+  await page.goto("/?scrollbar-regression=1");
+  await hideContentSizedCards(page);
+
+  const table = page.locator('[data-dtp-slot="data-table-root"]').first();
+  await table.evaluate((element) => {
+    element.style.flex = "none";
+    element.style.width = "720px";
+    element.style.height = "520px";
+  });
+
+  const scrollArea = table.locator('[data-slot="scroll-area"]').first();
+  const viewport = scrollArea.locator('[data-slot="scroll-area-viewport"]');
+  const horizontalScrollbar = scrollArea.locator(
+    '[data-slot="scroll-area-scrollbar"][data-orientation="horizontal"]',
+  );
+  const verticalScrollbar = scrollArea.locator(
+    '[data-slot="scroll-area-scrollbar"][data-orientation="vertical"]',
+  );
+  const corner = scrollArea.locator('[data-slot="scroll-area-corner"]');
+  const fixedLeftHeader = table.locator(
+    'thead [data-column-id="name"]',
+  );
+  const fixedActionsHeader = table.locator(
+    'thead [data-column-id="__actions__"]',
+  );
+  const bottomPinnedRow = table.locator(
+    '[data-dtp-slot="data-table-pinned-row"][data-row-pinned="bottom"]',
+  );
+
+  await expect(fixedLeftHeader).toBeVisible();
+  await expect(fixedActionsHeader).toBeVisible();
+  await expect(bottomPinnedRow).toBeVisible();
+  await expect(horizontalScrollbar).toBeVisible();
+  await expect(verticalScrollbar).toBeVisible();
+  await expect(corner).toBeVisible();
+
+  const geometry = await viewport.evaluate((element) => ({
+    clientHeight: element.clientHeight,
+    clientWidth: element.clientWidth,
+    scrollHeight: element.scrollHeight,
+    scrollWidth: element.scrollWidth,
+  }));
+  expect(geometry.scrollWidth).toBeGreaterThan(geometry.clientWidth);
+  expect(geometry.scrollHeight).toBeGreaterThan(geometry.clientHeight);
+
+  await viewport.evaluate((element) => {
+    element.scrollTop = element.scrollHeight;
+  });
+
+  const stacking = await scrollArea.evaluate((element) => {
+    const horizontal = element.querySelector<HTMLElement>(
+      '[data-slot="scroll-area-scrollbar"][data-orientation="horizontal"]',
+    );
+    const vertical = element.querySelector<HTMLElement>(
+      '[data-slot="scroll-area-scrollbar"][data-orientation="vertical"]',
+    );
+    const cornerElement = element.querySelector<HTMLElement>(
+      '[data-slot="scroll-area-corner"]',
+    );
+    if (!horizontal || !vertical || !cornerElement) {
+      throw new Error("Expected both scrollbars and their corner");
+    }
+
+    const topSlotAt = (x: number, y: number) =>
+      document
+        .elementFromPoint(x, y)
+        ?.closest<HTMLElement>(
+          '[data-slot="scroll-area-scrollbar"], [data-slot="scroll-area-corner"]',
+        )
+        ?.dataset.slot;
+    const horizontalRect = horizontal.getBoundingClientRect();
+    const verticalRect = vertical.getBoundingClientRect();
+    const cornerRect = cornerElement.getBoundingClientRect();
+    const fixedLeftRect = element
+      .querySelector<HTMLElement>('thead [data-column-id="name"]')
+      ?.getBoundingClientRect();
+    const bottomPinnedRect = element
+      .querySelector<HTMLElement>(
+        '[data-dtp-slot="data-table-pinned-row"][data-row-pinned="bottom"]',
+      )
+      ?.getBoundingClientRect();
+    if (!fixedLeftRect || !bottomPinnedRect) {
+      throw new Error("Expected fixed and pinned regression regions");
+    }
+
+    return {
+      horizontalZIndex: getComputedStyle(horizontal).zIndex,
+      verticalZIndex: getComputedStyle(vertical).zIndex,
+      cornerZIndex: getComputedStyle(cornerElement).zIndex,
+      overFixedLeft: topSlotAt(
+        fixedLeftRect.left + fixedLeftRect.width / 2,
+        horizontalRect.top + horizontalRect.height / 2,
+      ),
+      overFixedActions: topSlotAt(
+        verticalRect.left + verticalRect.width / 2,
+        bottomPinnedRect.top + bottomPinnedRect.height / 2,
+      ),
+      atCorner: topSlotAt(
+        cornerRect.left + cornerRect.width / 2,
+        cornerRect.top + cornerRect.height / 2,
+      ),
+    };
+  });
+
+  expect(stacking).toEqual({
+    horizontalZIndex: "100",
+    verticalZIndex: "100",
+    cornerZIndex: "100",
+    overFixedLeft: "scroll-area-scrollbar",
+    overFixedActions: "scroll-area-scrollbar",
+    atCorner: "scroll-area-corner",
+  });
 });

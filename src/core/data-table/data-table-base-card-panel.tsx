@@ -29,6 +29,7 @@ export function DataTableBaseCardPanel<TData>({
   resolvedLoadingRowCount,
   rowActions = [],
   ScrollArea,
+  scrollbarVisibility,
   sentinelRef,
   setCurrentDetailExpanded,
   setCurrentRowSelection,
@@ -89,6 +90,7 @@ export function DataTableBaseCardPanel<TData>({
       )}
     >
       <ScrollArea
+        type={scrollbarVisibility}
         className={cn(
           flexGrow ? "min-h-0 flex-1" : "h-full",
           uiClassNames.cardScrollArea,

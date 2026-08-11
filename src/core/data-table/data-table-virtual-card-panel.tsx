@@ -33,6 +33,7 @@ export function DataTableVirtualCardPanel<TData>({
   resolvedLoadingRowCount,
   rowActions = [],
   ScrollArea,
+  scrollbarVisibility,
   sentinelRef,
   setCurrentDetailExpanded,
   setCurrentRowSelection,
@@ -126,6 +127,7 @@ export function DataTableVirtualCardPanel<TData>({
       )}
     >
       <ScrollArea
+        type={scrollbarVisibility}
         className={cn(
           flexGrow ? "min-h-0 flex-1" : "h-full",
           uiClassNames.cardScrollArea,

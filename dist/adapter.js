@@ -1,2 +1,2 @@
-export{X as primitiveUiKit}from'./chunk-7FUCHMMB.js';export{i as createDataTable}from'./chunk-JNI3CH7M.js';import'./chunk-EJHT5JBZ.js';import'./chunk-THSY57Y7.js';import'./chunk-4P45F2OY.js';import'./chunk-CVR2ZXHQ.js';import'./chunk-KDHJA6AH.js';import'./chunk-XTVBESM5.js';//# sourceMappingURL=adapter.js.map
+export{X as primitiveUiKit}from'./chunk-VSIOOKCO.js';export{i as createDataTable}from'./chunk-I3CW6DTA.js';import'./chunk-EJHT5JBZ.js';import'./chunk-PRDXFLFB.js';import'./chunk-F2RBZWQV.js';import'./chunk-CVR2ZXHQ.js';import'./chunk-O6MUTKGE.js';import'./chunk-XTVBESM5.js';//# sourceMappingURL=adapter.js.map
 //# sourceMappingURL=adapter.js.map
