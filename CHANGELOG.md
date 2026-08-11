@@ -4,6 +4,45 @@
 
 No changes yet.
 
+## 4.5.0 - 2026-08-11
+
+Version 4.5.0 improves fixed-region scrolling and fill-layout sizing without
+removing or renaming any public prop, type, or package entrypoint.
+
+### Features
+
+- Added `scrollbarVisibility` for controlling automatic, persistent,
+  scroll-only, or hover-only data-table and card scrollbars. Use `"always"`
+  for data tables that must keep both scrollbars visible.
+
+### Fixes
+
+- Fixed the horizontal and vertical scrollbars and their corner to stack above
+  fixed left/right columns and top/bottom-pinned rows when both axes overflow.
+- Fixed `layoutMode="fill"` to preserve every currently visible fixed-width
+  data column and place an internal inert flexible spacer before right-pinned
+  actions. Spacer presence now follows controlled and responsive
+  column-visibility changes, including grouped columns.
+- Preserved horizontal overflow when visible fixed-width columns exceed the
+  viewport instead of compressing those columns, in both standard and virtual
+  table adapters.
+
+### Compatibility
+
+- Consumers do not need to define, order, pin, render, export, or navigate an
+  `__spacer__` column. The reserved column is created and managed internally.
+- A genuine flexible visible data column continues to consume unused width and
+  prevents the internal spacer from being added.
+
+### Validation
+
+- 317 unit/integration tests across the shadcn, HeroUI, The Gridcn, and virtual
+  adapters
+- lint, package/demo typechecks, deterministic package/demo builds, public API
+  snapshot, packed-consumer build, bundle budgets, and dependency audit
+- browser regressions for dual-axis scrollbar stacking, fixed left/right
+  columns, a bottom-pinned row, fill-space allocation, and overflow retention
+
 ## 4.4.0 - 2026-08-09
 
 Version 4.4.0 completes the core Phase 2–4 modernization work with additive,

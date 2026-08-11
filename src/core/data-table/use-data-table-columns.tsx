@@ -56,6 +56,7 @@ export function useDataTableColumns<TData>({
   hasTreeExpansion,
   isSavingEdit,
   isEditDirty,
+  includeFillSpacer = false,
   labels,
   lastSelectedRowIdRef,
   detailPanel,
@@ -85,6 +86,7 @@ export function useDataTableColumns<TData>({
   hasTreeExpansion: boolean;
   isSavingEdit: boolean;
   isEditDirty: boolean;
+  includeFillSpacer?: boolean;
   labels: DataTableLabels;
   lastSelectedRowIdRef: React.MutableRefObject<string | null>;
   detailPanel: DataTableDetailPanel<TData> | undefined;
@@ -317,6 +319,23 @@ export function useDataTableColumns<TData>({
 
     defs.push(...columns.map((column) => decorateFilterableColumn(column)));
 
+    if (includeFillSpacer) {
+      defs.push({
+        id: "__spacer__",
+        cell: () => null,
+        header: () => null,
+        enableColumnFilter: false,
+        enableGlobalFilter: false,
+        enableGrouping: false,
+        enableHiding: false,
+        enablePinning: false,
+        enableResizing: false,
+        enableSorting: false,
+        minSize: 0,
+        size: 0,
+      });
+    }
+
     if (rowActions.length || editableRows || enableRowPinning) {
       defs.push({
         id: "__actions__",
@@ -413,6 +432,7 @@ export function useDataTableColumns<TData>({
     enableRowSelection,
     enableRowPinning,
     hasTreeExpansion,
+    includeFillSpacer,
     isSavingEdit,
     isEditDirty,
     labels,

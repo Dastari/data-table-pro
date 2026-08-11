@@ -468,7 +468,10 @@ export function useDataTableInstance<TData>({
       const defaultOrder = table
         .getAllLeafColumns()
         .map((column) => column.id)
-        .filter((columnId) => !isUtilityColumnId(columnId));
+        .filter(
+          (columnId) =>
+            !isUtilityColumnId(columnId) && columnId !== "__spacer__",
+        );
       const nextOrder = moveColumnInOrder(
         currentColumnOrder.length ? currentColumnOrder : defaultOrder,
         sourceColumnId,

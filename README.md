@@ -47,12 +47,15 @@ integrations. See
 - toolbar search now filters client-side tables by default; disable with `manualFiltering` or `enableToolbarQueryFiltering={false}`
 - column filters, CSV export, row expansion, density, column pinning/reordering, selection policies, labels, and column preference persistence were added
 
-## 4.0.0 Compatibility
+## 4.5.0 Compatibility
 
-Version 4.0.0 removes no public prop, type, or package entrypoint. It is a
-compatibility-first major that releases the accumulated state, persistence,
-quality, dependency, accessibility, and package-splitting work after 3.0.9.
-The previously planned API cleanup is deferred to a future 5.0 release.
+Version 4.5.0 adds optional scrollbar visibility control and corrects
+fixed-width `layoutMode="fill"` tables without removing any public API. Set
+`scrollbarVisibility="always"` when persistent horizontal and vertical
+scrollbars are required. When every currently visible data column has a fixed
+width, fill layout now keeps those widths and automatically places a
+transparent flexible spacer before a right-pinned actions column. Consumers
+must not create or reference the reserved `__spacer__` column.
 
 ## 4.4.0 Compatibility
 
@@ -62,14 +65,21 @@ cell ranges, clipboard/paste, enhanced data operations, auto page sizing,
 print/fullscreen controls, and error overlays are individually opt-in. No
 public prop, type, or entrypoint was removed.
 
+## 4.0.0 Compatibility
+
+Version 4.0.0 removes no public prop, type, or package entrypoint. It is a
+compatibility-first major that releases the accumulated state, persistence,
+quality, dependency, accessibility, and package-splitting work after 3.0.9.
+The previously planned API cleanup is deferred to a future 5.0 release.
+
 ## Installation
 
 ```bash
-pnpm add github:Dastari/data-table-pro#v4.4.0
+pnpm add github:Dastari/data-table-pro#v4.5.0
 ```
 
 This package is installed from GitHub refs. It is not published to npm.
-Release tags such as `v4.4.0` include committed `dist/` output, so consumers
+Release tags such as `v4.5.0` include committed `dist/` output, so consumers
 do not need to allow package build scripts during install.
 
 Peer dependencies:

@@ -21,12 +21,14 @@ import type { ExpandedState } from "@tanstack/react-table";
 import { createDataTable } from "./create-data-table";
 import * as RootEntry from "../../index";
 import { DataTable as ShadcnDataTable } from "../../index";
+import { DataTable as VirtualShadcnDataTable } from "../../entries/virtual";
 import * as HeroEntry from "../../entries/heroui";
 import { DataTable as HeroDataTable } from "../../entries/heroui";
 import * as GridEntry from "../../entries/thegridcn";
 import { DataTable as GridDataTable } from "../../entries/thegridcn";
 import { useDataTableUrlState as useDataTableUrlStateEntry } from "../../entries/url-state";
 import type {
+  DataTableApi,
   DataTableColumnDef,
   DataTableColumnGroupDef,
   DataTableProps,
@@ -200,6 +202,72 @@ describe("DataTable adapter providers", () => {
 
     expect(scrollArea?.className).toContain("bg-transparent");
     expect(scrollArea?.className).not.toContain("bg-surface");
+  });
+
+  it("renders persistent scrollbars with fixed columns and a bottom-pinned row", () => {
+    const overflowRows = Array.from({ length: 20 }, (_, index) => ({
+      id: String(index + 1),
+      name: `Record ${index + 1}`,
+    }));
+    const { container } = render(
+      <ShadcnDataTable
+        columns={[
+          {
+            accessorKey: "name",
+            header: "Name",
+            size: 220,
+            meta: { fixed: "left" },
+          },
+          {
+            id: "detail-a",
+            header: "Detail A",
+            accessorFn: (row) => row.name,
+            size: 240,
+          },
+          {
+            id: "detail-b",
+            header: "Detail B",
+            accessorFn: (row) => row.name,
+            size: 240,
+          },
+        ]}
+        data={overflowRows}
+        getRowId={(row) => row.id}
+        layoutMode="fit"
+        rowActions={[
+          {
+            key: "open",
+            label: "Open",
+            onClick: vi.fn(),
+          },
+        ]}
+        rowPinning={{ top: [], bottom: ["20"] }}
+        scrollbarVisibility="always"
+        tableContainerClassName="h-40 w-96"
+      />,
+    );
+
+    const scrollbars = container.querySelectorAll<HTMLElement>(
+      '[data-slot="scroll-area-scrollbar"]',
+    );
+    const fixedLeftHeader = container.querySelector<HTMLElement>(
+      'thead [data-column-id="name"]',
+    );
+    const fixedActionsHeader = container.querySelector<HTMLElement>(
+      'thead [data-column-id="__actions__"]',
+    );
+    const bottomPinnedRow = container.querySelector<HTMLElement>(
+      '[data-dtp-slot="data-table-pinned-row"][data-row-pinned="bottom"]',
+    );
+
+    expect(scrollbars).toHaveLength(2);
+    for (const scrollbar of scrollbars) {
+      expect(scrollbar.className).toContain("z-100");
+      expect(scrollbar.dataset.state).toBe("visible");
+    }
+    expect(fixedLeftHeader?.className).toContain("sticky");
+    expect(fixedActionsHeader?.className).toContain("sticky");
+    expect(bottomPinnedRow?.textContent).toContain("Record 20");
   });
 
   it("keeps The Gridcn output free of shadcn token aliases", () => {
@@ -2289,19 +2357,23 @@ for (const suite of suites) {
       expect(screen.queryByText("Row 50")).toBeNull();
     });
 
-    it("uses the last fixed data column as the fill column before actions", () => {
-      renderTable({
+    it("places a fill spacer between fixed data columns and actions", () => {
+      const { container } = renderTable({
         columns: [
           {
             accessorKey: "name",
             header: "Name",
             size: 120,
+            minSize: 120,
+            maxSize: 120,
           },
           {
             id: "role",
             header: "Role",
             accessorFn: () => "Admin",
             size: 160,
+            minSize: 160,
+            maxSize: 160,
           },
         ],
         rowActions: [
@@ -2313,18 +2385,30 @@ for (const suite of suites) {
         ],
       });
 
-      const headers = screen.getAllByRole("columnheader");
-      expect(headers).toHaveLength(3);
-      expect(headers[2]?.textContent).toContain("Actions");
+      const headers = Array.from(
+        container.querySelectorAll<HTMLElement>(
+          "thead tr:last-child [data-column-id]",
+        ),
+      );
+      expect(headers.map((header) => header.dataset.columnId)).toEqual([
+        "name",
+        "role",
+        "__spacer__",
+        "__actions__",
+      ]);
       expect(
         screen.getByRole("columnheader", { name: "Name" }).style.width,
       ).toBe("120px");
       expect(
         screen.getByRole("columnheader", { name: "Role" }).style.width,
-      ).toBe("");
+      ).toBe("160px");
       expect(
         screen.getByRole("columnheader", { name: "Role" }).style.minWidth,
       ).toBe("160px");
+      expect(headers[2]?.className).toContain("border-b-0");
+      expect(headers[2]?.textContent).toBe("");
+      expect(headers[3]?.className).toContain("sticky");
+      expect(headers[3]?.style.right).toBe("0px");
     });
 
     it("shows the selected record count in the toolbar", () => {
@@ -2472,3 +2556,275 @@ for (const suite of suites) {
     });
   });
 }
+
+describe("DataTable fill spacer", () => {
+  const fixedColumns: Array<DataTableColumnDef<TestRow, unknown>> = [
+    {
+      accessorKey: "name",
+      header: "Name",
+      size: 120,
+      minSize: 120,
+      maxSize: 120,
+    },
+    {
+      id: "role",
+      header: "Role",
+      accessorFn: () => "Admin",
+      size: 160,
+      minSize: 160,
+      maxSize: 160,
+    },
+  ];
+
+  it.each([
+    ["standard", ShadcnDataTable],
+    ["virtual", VirtualShadcnDataTable],
+  ] as const)(
+    "adds an inert spacer for fixed columns in the %s table adapter",
+    (_name, DataTable) => {
+      const { container } = render(
+        <DataTable
+          columns={fixedColumns}
+          data={rows}
+          getRowId={(row) => row.id}
+          interactiveGrid
+          layoutMode="fill"
+          showFooter={false}
+          showToolbar={false}
+        />,
+      );
+
+      const leafHeaders = Array.from(
+        container.querySelectorAll<HTMLElement>(
+          "thead tr:last-child [data-column-id]",
+        ),
+      );
+      const spacerHeader = leafHeaders[2];
+      const spacerCell = container.querySelector<HTMLElement>(
+        'tbody [data-column-id="__spacer__"]',
+      );
+
+      expect(leafHeaders.map((header) => header.dataset.columnId)).toEqual([
+        "name",
+        "role",
+        "__spacer__",
+      ]);
+      expect(spacerHeader?.textContent).toBe("");
+      expect(spacerHeader?.className).toContain("border-b-0");
+      expect(spacerHeader?.className).toContain("bg-transparent");
+      expect(spacerHeader?.getAttribute("aria-hidden")).toBe("true");
+      expect(spacerHeader?.querySelector("button")).toBeNull();
+      expect(spacerCell?.textContent).toBe("");
+      expect(spacerCell?.className).toContain("border-b-0");
+      expect(spacerCell?.className).toContain("bg-transparent");
+      expect(spacerCell?.getAttribute("role")).toBe("presentation");
+      expect(spacerCell?.getAttribute("tabindex")).toBeNull();
+      expect(screen.getByRole("grid").getAttribute("aria-colcount")).toBe("2");
+      expect(screen.getAllByRole("gridcell")).toHaveLength(2);
+      expect(
+        screen.getByRole("columnheader", { name: "Name" }).style.width,
+      ).toBe("120px");
+      expect(
+        screen.getByRole("columnheader", { name: "Role" }).style.width,
+      ).toBe("160px");
+    },
+  );
+
+  it("recalculates the spacer and grouped colspans as columns hide and restore", () => {
+    function VisibilityHarness() {
+      const [columnVisibility, setColumnVisibility] =
+        React.useState<Record<string, boolean>>({});
+
+      return (
+        <>
+          <button
+            type="button"
+            onClick={() => setColumnVisibility({ role: false })}
+          >
+            Show fixed only
+          </button>
+          <button
+            type="button"
+            onClick={() => setColumnVisibility({})}
+          >
+            Restore columns
+          </button>
+          <ShadcnDataTable
+            columns={[
+              {
+                id: "identity",
+                header: "Identity",
+                columns: [
+                  {
+                    accessorKey: "name",
+                    header: "Name",
+                    size: 140,
+                    minSize: 140,
+                    maxSize: 140,
+                  },
+                  {
+                    id: "role",
+                    header: "Role",
+                    accessorFn: () => "Admin",
+                    minSize: 100,
+                    maxSize: 400,
+                  },
+                ],
+              },
+            ]}
+            columnVisibility={columnVisibility}
+            data={rows}
+            getRowId={(row) => row.id}
+            layoutMode="fill"
+            showFooter={false}
+            showToolbar={false}
+          />
+        </>
+      );
+    }
+
+    const { container } = render(<VisibilityHarness />);
+    const getGroupHeader = () =>
+      container.querySelector<HTMLElement>(
+        '[data-column-group-id="identity"]',
+      );
+    const getLeafIds = () =>
+      Array.from(
+        container.querySelectorAll<HTMLElement>(
+          "thead tr:last-child [data-column-id]",
+        ),
+        (header) => header.dataset.columnId,
+      );
+
+    expect(getLeafIds()).toEqual(["name", "role"]);
+    expect(getGroupHeader()?.getAttribute("colspan")).toBe("2");
+    expect(
+      container.querySelector('[data-column-id="__spacer__"]'),
+    ).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Show fixed only" }));
+
+    expect(getLeafIds()).toEqual(["name", "__spacer__"]);
+    expect(getGroupHeader()?.getAttribute("colspan")).toBe("1");
+    expect(
+      screen.getByRole("columnheader", { name: "Name" }).style.width,
+    ).toBe("140px");
+
+    fireEvent.click(screen.getByRole("button", { name: "Restore columns" }));
+
+    expect(getLeafIds()).toEqual(["name", "role"]);
+    expect(getGroupHeader()?.getAttribute("colspan")).toBe("2");
+    expect(
+      container.querySelector('[data-column-id="__spacer__"]'),
+    ).toBeNull();
+  });
+
+  it("does not add a spacer when a genuine flexible data column is visible", () => {
+    const { container } = render(
+      <ShadcnDataTable
+        columns={[
+          fixedColumns[0],
+          {
+            id: "role",
+            header: "Role",
+            accessorFn: () => "Admin",
+            minSize: 100,
+            maxSize: 400,
+          },
+        ].filter(Boolean) as Array<DataTableColumnDef<TestRow, unknown>>}
+        data={rows}
+        getRowId={(row) => row.id}
+        layoutMode="fill"
+        showFooter={false}
+        showToolbar={false}
+      />,
+    );
+
+    expect(
+      container.querySelector('[data-column-id="__spacer__"]'),
+    ).toBeNull();
+    const flexibleHeader = screen.getByRole("columnheader", { name: "Role" });
+    expect(flexibleHeader.style.width).toBe("");
+    expect(flexibleHeader.style.minWidth).toBe("100px");
+  });
+
+  it("preserves fixed minimum width so wide content overflows instead of compressing", () => {
+    const { container } = render(
+      <ShadcnDataTable
+        columns={[
+          {
+            accessorKey: "name",
+            header: "Name",
+            size: 260,
+            minSize: 260,
+            maxSize: 260,
+          },
+          {
+            id: "role",
+            header: "Role",
+            accessorFn: () => "Admin",
+            size: 280,
+            minSize: 280,
+            maxSize: 280,
+          },
+        ]}
+        data={rows}
+        getRowId={(row) => row.id}
+        layoutMode="fill"
+        showFooter={false}
+        showToolbar={false}
+        tableContainerClassName="w-[300px]"
+      />,
+    );
+
+    const table = container.querySelector<HTMLTableElement>(
+      '[data-slot="table"]',
+    );
+    const scrollArea = container.querySelector<HTMLElement>(
+      '[data-slot="scroll-area"]',
+    );
+    expect(scrollArea?.className).toContain("w-[300px]");
+    expect(table?.style.width).toBe("100%");
+    expect(table?.style.minWidth).toBe("540px");
+    expect(
+      screen.getByRole("columnheader", { name: "Name" }).style.minWidth,
+    ).toBe("260px");
+    expect(
+      screen.getByRole("columnheader", { name: "Role" }).style.minWidth,
+    ).toBe("280px");
+    expect(
+      container.querySelector<HTMLElement>(
+        'thead [data-column-id="__spacer__"]',
+      )?.style.width,
+    ).toBe("");
+  });
+
+  it("omits the internal spacer from CSV and clipboard output", async () => {
+    const apiRef = React.createRef<DataTableApi<TestRow>>();
+    const onExport = vi.fn();
+    const onCopy = vi.fn();
+    render(
+      <ShadcnDataTable
+        apiRef={apiRef}
+        columns={fixedColumns}
+        data={rows}
+        getRowId={(row) => row.id}
+        layoutMode="fill"
+        showFooter={false}
+        showToolbar={false}
+      />,
+    );
+
+    await act(async () => {
+      await apiRef.current?.exportCsv({ onExport });
+      await apiRef.current?.copyToClipboard({ onCopy });
+    });
+
+    expect(onExport).toHaveBeenCalledWith(
+      expect.objectContaining({ csv: "Name,Role\r\nAda,Admin" }),
+    );
+    expect(onCopy).toHaveBeenCalledWith(
+      expect.objectContaining({ text: "Name\tRole\nAda\tAdmin" }),
+    );
+  });
+});

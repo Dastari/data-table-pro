@@ -791,6 +791,12 @@ export type DataTableRowClassNameContext<TData> = {
   pinnedPosition: false | "top" | "bottom";
 };
 
+export type DataTableScrollbarVisibility =
+  | "auto"
+  | "always"
+  | "scroll"
+  | "hover";
+
 export type DataTableProps<TData> = {
   columns: Array<DataTableColumnDef<TData, unknown>>;
   data: Array<TData>;
@@ -938,6 +944,8 @@ export type DataTableProps<TData> = {
   columnResizeMode?: "onChange" | "onEnd";
   layoutMode?: "fill" | "fit";
   stickyHeader?: boolean;
+  /** Controls when scrollbars are visible. Defaults to `"hover"`. */
+  scrollbarVisibility?: DataTableScrollbarVisibility;
   showFooter?: boolean;
   showToolbar?: boolean;
   dir?: "ltr" | "rtl";

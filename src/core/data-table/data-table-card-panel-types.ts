@@ -30,6 +30,7 @@ export type DataTableCardPanelProps<TData> = {
   resolvedLoadingRowCount: number;
   rowActions: DataTableProps<TData>["rowActions"];
   ScrollArea: DataTableUiKit["ScrollArea"];
+  scrollbarVisibility: DataTableProps<TData>["scrollbarVisibility"];
   sentinelRef: React.RefObject<HTMLDivElement | null>;
   setCurrentRowSelection: (rowSelection: Record<string, boolean>) => void;
   setCurrentDetailExpanded: OnChangeFn<ExpandedState>;

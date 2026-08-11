@@ -89,6 +89,15 @@ export function getConfiguredColumnMinWidth<TData>(
   return undefined;
 }
 
+export function hasExplicitDataTableColumnSize<TData>(
+  column: DataTableColumnDef<TData, unknown>,
+) {
+  return (
+    Object.prototype.hasOwnProperty.call(column, "size") &&
+    typeof column.size === "number"
+  );
+}
+
 export function decorateFilterableColumn<TData>(
   column: DataTableColumnDef<TData, unknown>,
 ): ColumnDef<TData, unknown> {

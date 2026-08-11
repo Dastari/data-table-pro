@@ -114,6 +114,9 @@ const statuses: Array<Employee["status"]> = [
 const priorities: Array<Employee["priority"]> = ["low", "medium", "high"];
 
 export function DemoApp() {
+  const [scrollbarRegressionFixture] = React.useState(() =>
+    new URLSearchParams(window.location.search).has("scrollbar-regression"),
+  );
   const [adapter, setAdapter] = React.useState<AdapterKey>("shadcn");
   const [theme, setTheme] = React.useState<ThemeKey>("light");
   const [rows, setRows] = React.useState(() => generateEmployees(96));
@@ -521,6 +524,14 @@ export function DemoApp() {
               enableDensityToggle
               enableColumnPinning
               enableColumnReordering
+              rowPinning={
+                scrollbarRegressionFixture
+                  ? { top: [], bottom: ["emp-001"] }
+                  : undefined
+              }
+              scrollbarVisibility={
+                scrollbarRegressionFixture ? "always" : undefined
+              }
               columnPrefsKey={`demo-${adapter}`}
               labels={{
                 exportCsv: "Download CSV",
