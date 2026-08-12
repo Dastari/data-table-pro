@@ -4,6 +4,25 @@
 
 No changes yet.
 
+## 4.5.1 - 2026-08-12
+
+Version 4.5.1 refreshes the development and runtime dependencies without
+changing the public API.
+
+### Maintenance
+
+- Updated pnpm, React Virtual, Playwright, React type definitions, ESLint,
+  jsdom, shadcn, TypeScript ESLint, and Vite dependencies.
+- Synchronized the pnpm version used by local development and CI.
+- Kept TanStack React Table on the compatible v8 release line; v9 requires a
+  separate API migration.
+
+### Validation
+
+- 317 unit/integration tests and 11 browser accessibility/layout tests
+- lint, package/demo typechecks and builds, public API snapshot,
+  packed-consumer build, bundle budgets, and dependency audit
+
 ## 4.5.0 - 2026-08-11
 
 Version 4.5.0 improves fixed-region scrolling and fill-layout sizing without

@@ -10,5 +10,5 @@ overrides:
   js-yaml: 4.3.1
   nanoid: 3.3.17
 minimumReleaseAgeExclude:
-  - globals@17.8.0
+  - globals@17.8.0 || 17.11.0
   - jsdom@30.0.0

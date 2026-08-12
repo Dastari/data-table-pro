@@ -47,6 +47,11 @@ integrations. See
 - toolbar search now filters client-side tables by default; disable with `manualFiltering` or `enableToolbarQueryFiltering={false}`
 - column filters, CSV export, row expansion, density, column pinning/reordering, selection policies, labels, and column preference persistence were added
 
+## 4.5.1 Compatibility
+
+Version 4.5.1 is a dependency-maintenance release with no public API changes.
+It remains on TanStack React Table v8; v9 requires a separate migration.
+
 ## 4.5.0 Compatibility
 
 Version 4.5.0 adds optional scrollbar visibility control and corrects
@@ -75,11 +80,11 @@ The previously planned API cleanup is deferred to a future 5.0 release.
 ## Installation
 
 ```bash
-pnpm add github:Dastari/data-table-pro#v4.5.0
+pnpm add github:Dastari/data-table-pro#v4.5.1
 ```
 
 This package is installed from GitHub refs. It is not published to npm.
-Release tags such as `v4.5.0` include committed `dist/` output, so consumers
+Release tags such as `v4.5.1` include committed `dist/` output, so consumers
 do not need to allow package build scripts during install.
 
 Peer dependencies:
