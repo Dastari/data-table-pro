@@ -2,16 +2,16 @@ import * as React from "react";
 import { IconDownload } from "../icons";
 import type {
   ColumnFiltersState,
-  ColumnPinningState,
+  ColumnVisibilityState as VisibilityState,
   OnChangeFn,
-  Table as TanStackTable,
-  VisibilityState,
 } from "@tanstack/react-table";
 import type {
   DataTableColumnFixed,
+  DataTableColumnPinningState as ColumnPinningState,
   DataTableLabels,
   DataTableProps,
 } from "../types";
+import type { DataTableTanStackTable as TanStackTable } from "./tanstack-v9";
 import {
   exportDataTableCsv,
   getAccessorKey,

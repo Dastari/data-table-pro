@@ -1,8 +1,60 @@
 # Changelog
 
-## Unreleased
+## 5.0.0 - 2026-08-12
 
-No changes yet.
+Version 5 upgrades the package's TanStack-facing API to TanStack React Table
+v9. Existing `DataTable` props, entrypoints, persisted state, saved views, and
+URL-state formats remain supported unless called out below.
+
+### Breaking changes
+
+- `DataTableColumnDef` now follows TanStack Table v9. Rename the column option
+  `sortingFn` to `sortFn`.
+- Values in the `aggregationFns` registry are now context-based
+  `DataTableAggregationFn` definitions with an `aggregate` method instead of
+  v8 callables.
+- `apiRef.current.getTable()` returns a v9 table instance. Read its state from
+  `table.store.state`, use `getPrePaginatedRowModel()`, and use v9's logical
+  `start` / `end` pinning state and method families.
+- Row, cell, column, and header methods are prototype methods in v9. Keep them
+  bound to their instance instead of destructuring, spreading, or passing them
+  as bare callbacks.
+- TanStack's `getIsSomeRowsSelected()` and
+  `getIsSomePageRowsSelected()` now mean at least one selected row, including
+  the all-selected case. Combine them with the matching `getIsAll*` predicate
+  when computing an indeterminate state.
+- Table row data must be a record or array; primitive row values are no longer
+  supported.
+- Consumers that import raw TanStack `Table`, `Row`, `Column`, `Cell`,
+  `Header`, or `ColumnDef` types must supply v9's leading feature generic.
+  Project-owned `DataTable*` types already contain that generic.
+
+The wrapper's `apiRef.current.getState()` method and public/persisted
+`columnPinning: { left, right }` contract are unchanged. See
+[`docs/Migration.md`](./docs/Migration.md) for before/after examples and the
+full compatibility boundary.
+
+### TanStack Table v9 migration
+
+- Upgraded `@tanstack/react-table` to v9.1.2 without using the deprecated
+  `useLegacyTable` bridge.
+- Added one explicit project feature registry for filtering, faceting,
+  grouping/aggregation, sorting, pagination, expansion, visibility, ordering,
+  sizing/resizing, selection, and row/column pinning.
+- Moved optional row models and function registries into v9 feature slots and
+  replaced `useReactTable` with `useTable`.
+- Contained v9's feature generic behind project-owned types so adapter and
+  consumer code does not need to repeat the registry type.
+- Preserved the wrapper's physical `left` / `right` column-pinning state at
+  props, persistence, URL state, saved views, and API snapshots while adapting
+  it to v9's internal `start` / `end` regions.
+- Added coverage for v9 context-based custom aggregation definitions.
+
+### Validation
+
+- 318 unit/integration tests and 11 browser accessibility/layout tests
+- lint, package/demo typechecks and builds, public API snapshot,
+  packed-consumer build, bundle budgets, frozen install, and dependency audit
 
 ## 4.5.1 - 2026-08-12
 

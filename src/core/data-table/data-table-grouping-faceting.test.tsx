@@ -56,6 +56,43 @@ describe("DataTable grouping and faceting", () => {
     expect(apiRef.current?.getTable()?.getRowModel().rows).toHaveLength(3);
   });
 
+  it("registers v9 context-based custom aggregation definitions", () => {
+    const apiRef = React.createRef<DataTableApi<RowData>>();
+
+    render(
+      <DataTable
+        apiRef={apiRef}
+        aggregationFns={{
+          doubledSum: {
+            aggregate: ({ getValue, rows: aggregateRows }) =>
+              aggregateRows.reduce(
+                (total, row) => total + Number(getValue(row)),
+                0,
+              ) * 2,
+          },
+        }}
+        columns={[
+          columns[0],
+          {
+            accessorKey: "score",
+            header: "Score",
+            aggregationFn: "doubledSum",
+          },
+        ]}
+        data={rows}
+        getRowId={(row) => row.id}
+        initialState={{ grouping: ["team"] }}
+      />,
+    );
+
+    expect(
+      apiRef.current
+        ?.getTable()
+        ?.getRowModel()
+        .rows.map((row) => row.getValue("score")),
+    ).toEqual([10, 14]);
+  });
+
   it("uses local facet counts and lets server-provided options replace them", () => {
     const localRef = React.createRef<DataTableApi<RowData>>();
     const { container, rerender } = render(

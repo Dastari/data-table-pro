@@ -1,5 +1,5 @@
 import * as React from "react";
-import { flexRender, type Cell, type Row } from "@tanstack/react-table";
+import { flexRender } from "@tanstack/react-table";
 import type { RowPinningPosition } from "@tanstack/react-table";
 import type {
   DataTableColumnDef,
@@ -19,6 +19,10 @@ import {
 import { renderEditableCell } from "./use-row-editing";
 import { useDataTableVirtualRowMeasurement } from "./data-table-virtual-row-measurement";
 import { cellAlignClassName, hideOnClassName } from "../types";
+import type {
+  DataTableTanStackCell as Cell,
+  DataTableTanStackRow as Row,
+} from "./tanstack-v9";
 
 export type DataTableRowEditingContext<TData> = {
   cancel: () => void;

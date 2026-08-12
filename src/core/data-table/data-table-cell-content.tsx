@@ -1,5 +1,5 @@
 import * as React from "react";
-import { flexRender, type CellContext } from "@tanstack/react-table";
+import { flexRender } from "@tanstack/react-table";
 import { IconClock } from "../icons";
 import type {
   DataTableCellOverflow,
@@ -7,6 +7,7 @@ import type {
 } from "../types";
 import type { DataTableUiClassNames } from "../ui-kit";
 import { cn } from "../../lib/utils";
+import type { DataTableTanStackCellContext as CellContext } from "./tanstack-v9";
 
 export function renderDataTableCellContent<TData>(
   context: CellContext<TData, unknown>,

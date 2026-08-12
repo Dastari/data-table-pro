@@ -1,7 +1,8 @@
 import type * as React from "react";
-import type { ExpandedState, OnChangeFn, Row } from "@tanstack/react-table";
+import type { ExpandedState, OnChangeFn } from "@tanstack/react-table";
 import type { DataTableLabels, DataTableProps } from "../types";
 import type { DataTableUiClassNames, DataTableUiKit } from "../ui-kit";
+import type { DataTableTanStackRow as Row } from "./tanstack-v9";
 
 export type DataTableCardPanelProps<TData> = {
   cardClassName: string | undefined;

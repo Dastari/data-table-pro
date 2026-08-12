@@ -1,5 +1,147 @@
 # Migration Guide
 
+## 5.0.0 Breaking Changes: TanStack React Table v9
+
+Version 5.0.0 upgrades from `@tanstack/react-table@8.21.3` to v9.1.2. It
+targets v9 directly and does not use the deprecated `useLegacyTable`
+compatibility hook.
+
+Install the major release from its Git tag:
+
+```bash
+pnpm add github:Dastari/data-table-pro#v5.0.0
+```
+
+### Compatibility boundary
+
+The component-level wrapper remains compatible where its contract is owned by
+this project:
+
+- Controlled v8-style `Record<string, boolean>` row selection is normalized to
+  v9's selected-only state at the integration boundary.
+- Public and persisted column pinning remains `{ left, right }`. Only the
+  TanStack instance receives `{ start, end }`, so existing preferences, URLs,
+  saved views, labels, and physical sticky-column styling remain valid.
+- `apiRef.current.getState()` remains the stable wrapper snapshot API. Code
+  that asks for the underlying v9 table through `apiRef.current.getTable()`
+  reads its current TanStack state from `table.store.state`.
+- Existing package entrypoints, adapters, persisted preferences, saved views,
+  and URL-state formats are unchanged.
+
+The implementation itself now uses `useTable`, one explicit feature registry,
+v9 row-model slots, and project-owned table/row/column/cell/header type aliases
+that contain TanStack's new feature generic.
+
+### Required consumer changes
+
+Direct TanStack-facing code must adopt these v9 changes:
+
+| V8 form | V9 form used by the project |
+| --- | --- |
+| `sortingFn` | `sortFn` |
+| callable custom `AggregationFn` | context-based `DataTableAggregationFn` definition |
+| `table.getState()` | `table.store.state` (snapshot) |
+| `getPrePaginationRowModel()` | `getPrePaginatedRowModel()` |
+| internal pinning `left` / `right` state and methods | logical `start` / `end` state and method families |
+| destructured/spread row, cell, column, or header methods | call methods through their owning instance |
+| `getIsSome*Selected()` means some but not all | means at least one; combine with `!getIsAll*Selected()` for indeterminate state |
+| raw `Table<TData>`, `Row<TData>`, `ColumnDef<TData>`, etc. | add v9's leading `TFeatures` generic or use project-owned `DataTable*` types |
+| primitive row data | record or array row data |
+
+For column sorting, rename only the TanStack column-definition option:
+
+```tsx
+const columns: Array<DataTableColumnDef<Person>> = [
+  {
+    accessorKey: "name",
+    sortFn: "alphanumeric",
+  },
+];
+```
+
+Register a custom aggregation as a definition with an `aggregate` method:
+
+```tsx
+<DataTable
+  aggregationFns={{
+    doubledSum: {
+      aggregate: ({ getValue, rows }) =>
+        rows.reduce((total, row) => total + Number(getValue(row)), 0) * 2,
+    },
+  }}
+  columns={[
+    { accessorKey: "team", enableGrouping: true },
+    { accessorKey: "hours", aggregationFn: "doubledSum" },
+  ]}
+  data={rows}
+  getRowId={(row) => row.id}
+/>
+```
+
+The wrapper and underlying table now expose deliberately different pinning and
+state boundaries:
+
+```tsx
+const wrapperState = apiRef.current?.getState();
+// wrapperState.columnPinning is still { left, right }
+
+const table = apiRef.current?.getTable();
+const tanStackState = table?.store.state;
+// tanStackState.columnPinning is { start, end }
+```
+
+Do not extract prototype methods from rows, cells, columns, or headers:
+
+```tsx
+// Incorrect in v9: const { getValue } = row;
+const value = row.getValue("name");
+const values = rows.map((currentRow) => currentRow.getValue("name"));
+```
+
+For an indeterminate selection checkbox, test both v9 predicates:
+
+```tsx
+const indeterminate =
+  table.getIsSomeRowsSelected() && !table.getIsAllRowsSelected();
+```
+
+### Advanced direct-TanStack checklist
+
+Consumers that construct their own TanStack tables alongside this package, or
+that rely heavily on the instance returned by `apiRef.current.getTable()`,
+should also apply the remaining v9 architecture changes:
+
+- replace `useReactTable(options)` with `useTable({ ...options, features })`;
+- register each used feature with `tableFeatures()`; the core row model is
+  automatic, while optional row models move from `get*RowModel` table options
+  to `create*RowModel()` feature slots;
+- move `sortingFns`, `filterFns`, and `aggregationFns` registries into the
+  feature registry and rename `sortingFns` to `sortFns`;
+- split table-level `enablePinning` into `enableColumnPinning` and
+  `enableRowPinning` where applicable;
+- register `columnSizingFeature` and `columnResizingFeature` separately, and
+  rename `columnSizingInfo`, `setColumnSizingInfo`, and
+  `onColumnSizingInfoChange` to their `columnResizing` equivalents; and
+- replace underscore-prefixed v8 internals with public v9 methods, including
+  `row.getAllCellsByColumnId()`, `table.getTopRows()`,
+  `table.getCenterRows()`, and `table.getBottomRows()`.
+
+The package's own integration has completed this checklist. These items apply
+only to consumer code that directly constructs or operates on TanStack
+instances.
+
+### Post-5.0 follow-up work
+
+These are optimizations and additional coverage, not release blockers or
+unrecorded compatibility requirements:
+
+- replace the broad built-in filter/sort/aggregation registries with an
+  audited tree-shakeable registry while retaining documented string names;
+- add focused consumer fixtures for v9-only `sortFn`, custom filters, and
+  custom aggregations;
+- evaluate narrower `useTable` selectors and `Subscribe` boundaries after
+  measuring render behavior.
+
 ## 4.5.0 additive layout release
 
 Version 4.5.0 removes no public prop, type, or package entrypoint. Existing
@@ -132,7 +274,7 @@ one of these peer minimums must update that dependency before consuming the
 next release.
 
 Repository contributors now need a jsdom 30-supported Node.js release
-(`^22.22.2`, `^24.15.0`, or `>=26`) and pnpm 11.17.0. CI uses Node.js
+(`^22.22.2`, `^24.15.0`, or `>=26`) and pnpm 11.21.0. CI uses Node.js
 22.22.2. TypeScript 7.0 removes `baseUrl` and does not expose the programmatic
 compiler API needed by typescript-eslint and tsup. The repository therefore
 follows the TypeScript team's side-by-side migration:
@@ -291,24 +433,25 @@ Use `resetColumnLayout({ clearPersistence: true })` or
 `resetState({ clearPersistence: true })` to discard the old payload and restore
 initial/default values in one command.
 
-## Planned 5.0 migration
+## Deferred wrapper API cleanup after 5.0
 
-Version 4.0.0 intentionally removes no public API. The modernization roadmap
-defines the following possible 5.0 changes so consumers can adopt their 4.x
-replacements before anything is removed:
+Version 5.0.0 uses its major boundary for the TanStack v9 migration above. It
+does not remove the unrelated wrapper compatibility APIs previously proposed
+for 5.0. Those candidates remain deferred until a later major and still
+require a stable replacement and deprecation period:
 
-| Current 4.x API | Planned 5.0 API | Compatibility path |
+| Current compatibility API | Possible future API | Compatibility path |
 | --- | --- | --- |
-| `toolbarQueryValue`, `onToolbarQueryValueChange`, `toolbarQueryDebounceMs` | `globalFilter`, `onGlobalFilterChange`, `globalFilterDebounceMs` | Both names will work during a 4.x deprecation window before any removal. |
-| Split `pageIndex`/`pageSize` props and callbacks | Unified pagination state and `onPaginationChange` | Unified state is additive in 4.x. |
-| `renderExpandedRow` and `getRowCanExpand` for detail content | `detailPanel={{ render, getCanExpand }}` | The explicit detail-panel API will ship before tree expansion takes ownership of expanded-row semantics. |
-| `columnPrefsKey` | Versioned `persistence` configuration | `columnPrefsKey` remains a 4.x compatibility shorthand. |
-| `virtualization` on the base component | Dedicated virtual adapter entrypoints | Both entry styles coexist in 4.x; base imports load virtual panels on demand. |
-| Broad `data-table-pro/advanced` imports | Stable `data-table-pro/adapter` contracts | The stable factory entrypoint is available; advanced remains supported through 4.x. |
+| `toolbarQueryValue`, `onToolbarQueryValueChange`, `toolbarQueryDebounceMs` | `globalFilter`, `onGlobalFilterChange`, `globalFilterDebounceMs` | Both names must work during a documented deprecation window before removal. |
+| Split `pageIndex`/`pageSize` props and callbacks | Unified pagination state and `onPaginationChange` | Unified state remains additive until the split props are formally deprecated. |
+| `renderExpandedRow` and `getRowCanExpand` for detail content | `detailPanel={{ render, getCanExpand }}` | The explicit detail-panel API must remain stable before tree expansion takes exclusive ownership. |
+| `columnPrefsKey` | Versioned `persistence` configuration | `columnPrefsKey` remains a compatibility shorthand until a later deprecation. |
+| `virtualization` on the base component | Dedicated virtual adapter entrypoints | Both entry styles continue to coexist; base imports load virtual panels on demand. |
+| Broad `data-table-pro/advanced` imports | Stable `data-table-pro/adapter` contracts | A complete advanced-import mapping is required before removal. |
 
-Any 5.0 removal is gated on:
+Any future removal is gated on:
 
-- at least one stable 4.x release containing every replacement
+- at least one stable release containing every replacement
 - development warnings for conflicting old/new props
 - a codemod for renamed props and entrypoints
 - migration fixtures for every adapter, server pagination, URL state,

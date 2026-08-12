@@ -2,16 +2,16 @@ import * as React from "react";
 import type {
   ColumnFiltersState,
   ColumnOrderState,
-  ColumnPinningState,
   ColumnSizingState,
+  ColumnVisibilityState as VisibilityState,
   ExpandedState,
   GroupingState,
   PaginationState,
   RowPinningState,
   SortingState,
-  VisibilityState,
 } from "@tanstack/react-table";
 import type {
+  DataTableColumnPinningState as ColumnPinningState,
   DataTableDensity,
   DataTableLabels,
   DataTableProps,

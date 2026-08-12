@@ -1,8 +1,6 @@
 import * as React from "react";
 import { flushSync } from "react-dom";
-import type {
-  Table as TanStackTable,
-} from "@tanstack/react-table";
+import type { DataTableTanStackTable as TanStackTable } from "./tanstack-v9";
 import type {
   DataTableActionErrorContext,
   DataTableApi,
@@ -908,7 +906,7 @@ export function createDataTableWithPanels(
         if (
           explicitlySizedColumnIds.has(columnId) ||
           Object.prototype.hasOwnProperty.call(
-            table.getState().columnSizing,
+            table.store.state.columnSizing,
             columnId,
           )
         ) {
@@ -1123,7 +1121,7 @@ export function createDataTableWithPanels(
           table.setPagination(nextState.pagination);
         }
         if (nextState.rowSelection !== undefined) {
-          table.setRowSelection(nextState.rowSelection);
+          setCurrentRowSelection(nextState.rowSelection);
         }
         if (nextState.columnVisibility !== undefined) {
           table.setColumnVisibility(nextState.columnVisibility);
@@ -1141,7 +1139,7 @@ export function createDataTableWithPanels(
           table.setColumnOrder(nextState.columnOrder);
         }
         if (nextState.columnPinning !== undefined) {
-          table.setColumnPinning(nextState.columnPinning);
+          setCurrentColumnPinning(nextState.columnPinning);
         }
         if (nextState.rowPinning !== undefined) {
           table.setRowPinning(nextState.rowPinning);
@@ -1167,6 +1165,8 @@ export function createDataTableWithPanels(
         handleShowHiddenRowsChange,
         handleViewModeChange,
         setLocalSearchValue,
+        setCurrentColumnPinning,
+        setCurrentRowSelection,
         table,
       ],
     );
@@ -1881,8 +1881,8 @@ function cloneDataTableState(state: DataTableState): DataTableState {
         : undefined,
     },
     rowPinning: {
-      top: state.rowPinning.top ? [...state.rowPinning.top] : undefined,
-      bottom: state.rowPinning.bottom ? [...state.rowPinning.bottom] : undefined,
+      top: [...state.rowPinning.top],
+      bottom: [...state.rowPinning.bottom],
     },
     columnSizing: { ...state.columnSizing },
     density: state.density,

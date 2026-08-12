@@ -1,10 +1,10 @@
 import * as React from "react";
-import type { Row } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { cn } from "../../lib/utils";
 import { DATA_TABLE_CONTAINER_BREAKPOINT_WIDTHS } from "../types";
 import type { DataTableCardPanelProps } from "./data-table-card-panel-types";
 import { useDataTableScrollViewport } from "./use-data-table-scroll-viewport";
+import type { DataTableTanStackRow as Row } from "./tanstack-v9";
 
 export function DataTableVirtualCardPanel<TData>({
   cardClassName,

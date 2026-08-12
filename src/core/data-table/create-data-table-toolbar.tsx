@@ -1,5 +1,5 @@
 import * as React from "react";
-import type { Table as TanStackTable } from "@tanstack/react-table";
+import type { DataTableTanStackTable as TanStackTable } from "./tanstack-v9";
 import {
   IconAdjustmentsHorizontal,
   IconLayoutGrid,
@@ -248,7 +248,7 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
           !column.id.startsWith("__") &&
           column.getCanGroup(),
       );
-    const groupedColumns = table.getState().grouping.flatMap((id) => {
+    const groupedColumns = table.store.state.grouping.flatMap((id) => {
       const column = table.getColumn(id);
       return column ? [column] : [];
     });
@@ -847,7 +847,7 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
                     ? column.columnDef.header
                     : column.id;
                 const moveGrouping = (nextIndex: number) => {
-                  const nextGrouping = [...table.getState().grouping];
+                  const nextGrouping = [...table.store.state.grouping];
                   const [groupingId] = nextGrouping.splice(groupingIndex, 1);
                   if (groupingId === undefined) return;
                   nextGrouping.splice(nextIndex, 0, groupingId);

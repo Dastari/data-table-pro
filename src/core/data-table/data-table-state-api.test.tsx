@@ -673,7 +673,7 @@ describe("DataTable unified state API", () => {
     const snapshot = apiRef.current?.snapshot();
     expect(snapshot?.sorting).toEqual([]);
     expect(snapshot?.sorting).not.toBe(
-      apiRef.current?.getTable()?.getState().sorting,
+      apiRef.current?.getTable()?.store.state.sorting,
     );
 
     act(() => {

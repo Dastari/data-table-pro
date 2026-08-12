@@ -1,6 +1,9 @@
 import * as React from "react";
-import type { FilterFn, Row } from "@tanstack/react-table";
 import { normalizeDataTableSearchText } from "./data-table-utils";
+import type {
+  DataTableTanStackFilterFn as FilterFn,
+  DataTableTanStackRow as Row,
+} from "./tanstack-v9";
 
 /**
  * Caches each searchable cell against the application-owned row object and

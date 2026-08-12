@@ -1,24 +1,25 @@
 import type * as React from "react";
 import type {
-  AggregationFn,
-  CellContext,
   ColumnFiltersState,
-  ColumnDef,
   ColumnOrderState,
-  ColumnPinningState,
   ColumnSizingState,
+  ColumnVisibilityState as VisibilityState,
   ExpandedState,
-  FilterFnOption,
   GroupingState,
-  HeaderContext,
   PaginationState,
-  Row,
   RowPinningState,
   SortingState,
-  Table as TanStackTable,
   Updater,
-  VisibilityState,
 } from "@tanstack/react-table";
+import type {
+  DataTableTanStackAggregationFn,
+  DataTableTanStackCellContext as CellContext,
+  DataTableTanStackColumnDef as ColumnDef,
+  DataTableTanStackFilterFnOption as FilterFnOption,
+  DataTableTanStackHeaderContext as HeaderContext,
+  DataTableTanStackRow as Row,
+  DataTableTanStackTable as TanStackTable,
+} from "./data-table/tanstack-v9";
 
 export type DataTableViewMode = "table" | "card";
 
@@ -65,6 +66,14 @@ export type DataTableGridCommands<TData> = {
 export type DataTableAlign = "start" | "center" | "end";
 export type DataTableColumnType = "text" | "numeric" | "date";
 export type DataTableColumnFixed = "left" | "right";
+/** Physical pinning state retained at the public API and persistence boundary. */
+export type DataTableColumnPinningState = {
+  left?: Array<string>;
+  right?: Array<string>;
+};
+/** A TanStack Table v9 context-based aggregation definition. */
+export type DataTableAggregationFn<TData> =
+  DataTableTanStackAggregationFn<TData>;
 export type DataTableContainerBreakpoint = "sm" | "md" | "lg" | "xl" | "2xl";
 export type DataTableDensity = "compact" | "comfortable" | "spacious";
 export type DataTableCardSizing = "fixed" | "content" | "fluid";
@@ -539,7 +548,7 @@ export type DataTableColumnPrefs = {
   visibility?: VisibilityState;
   sizing?: Record<string, number>;
   order?: ColumnOrderState;
-  pinning?: ColumnPinningState;
+  pinning?: DataTableColumnPinningState;
   rowPinning?: RowPinningState;
   density?: DataTableDensity;
 };
@@ -590,7 +599,7 @@ export type DataTableState = {
   columnFilters: ColumnFiltersState;
   expanded: ExpandedState;
   columnOrder: ColumnOrderState;
-  columnPinning: ColumnPinningState;
+  columnPinning: DataTableColumnPinningState;
   rowPinning: RowPinningState;
   columnSizing: ColumnSizingState;
   /** Present in snapshots produced by 4.4+; optional for 4.x object-literal compatibility. */
@@ -831,7 +840,7 @@ export type DataTableProps<TData> = {
   /** Controls whether grouped columns are reordered, removed, or left in place. */
   groupedColumnMode?: false | "reorder" | "remove";
   /** Named aggregation functions available to column `aggregationFn` definitions. */
-  aggregationFns?: Record<string, AggregationFn<TData>>;
+  aggregationFns?: Record<string, DataTableAggregationFn<TData>>;
   pageIndex?: number;
   pageSize?: number;
   /** Sizes an opt-in page from the measurable table scroll viewport. */
@@ -875,8 +884,8 @@ export type DataTableProps<TData> = {
   enableColumnReordering?: boolean;
   /** Default height for shared column-group header cells. */
   columnGroupHeaderHeight?: React.CSSProperties["height"];
-  columnPinning?: ColumnPinningState;
-  onColumnPinningChange?: (columnPinning: ColumnPinningState) => void;
+  columnPinning?: DataTableColumnPinningState;
+  onColumnPinningChange?: (columnPinning: DataTableColumnPinningState) => void;
   enableColumnPinning?: boolean;
   rowPinning?: RowPinningState;
   onRowPinningChange?: (rowPinning: RowPinningState) => void;

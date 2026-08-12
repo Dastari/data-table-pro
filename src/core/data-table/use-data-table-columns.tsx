@@ -1,10 +1,8 @@
 import * as React from "react";
 import type {
-  ColumnDef,
   ExpandedState,
   OnChangeFn,
   RowPinningPosition,
-  Table as TanStackTable,
 } from "@tanstack/react-table";
 import { IconChevronDown } from "../icons";
 import type {
@@ -23,6 +21,10 @@ import {
   toggleDataTableExpandedState,
 } from "./data-table-utils";
 import { DATA_TABLE_DEFAULT_LABELS } from "./data-table-labels";
+import type {
+  DataTableTanStackColumnDef as ColumnDef,
+  DataTableTanStackTable as TanStackTable,
+} from "./tanstack-v9";
 
 type DataTableRowActionsComponentProps<TData> = {
   editableRows?: DataTableEditableRowsConfig<TData>;

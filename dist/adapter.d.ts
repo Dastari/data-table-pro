@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { DataTableProps } from './types.js';
+import { D as DataTableProps } from './types-BGNR6Ymh.js';
 import { D as DataTableUiKit } from './ui-kit-C6Z8X6oi.js';
 export { a as DataTableUiClassNames } from './ui-kit-C6Z8X6oi.js';
 import '@tanstack/react-table';

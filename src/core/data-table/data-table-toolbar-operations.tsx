@@ -1,5 +1,4 @@
 import * as React from "react";
-import type { Table } from "@tanstack/react-table";
 import { IconSearch } from "../icons";
 import type {
   DataTableColumnFixed,
@@ -8,6 +7,7 @@ import type {
   DataTableSavedView,
 } from "../types";
 import type { DataTableUiKit } from "../ui-kit";
+import type { DataTableTanStackTable as Table } from "./tanstack-v9";
 
 type ToolbarUi = Pick<
   DataTableUiKit,

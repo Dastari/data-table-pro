@@ -16,15 +16,15 @@ Audit baseline:
 
 Current implementation baseline:
 
-- package version: 4.5.0
+- package version: 5.0.0
 - React/React DOM peers: 19.2.8
-- TanStack Table: 8.21.3
-- TanStack Virtual: 3.14.8
-- validation: 317 unit/integration tests, enforced coverage and declaration
+- TanStack Table: 9.1.2 with explicit features and no legacy hook
+- TanStack Virtual: 3.14.9
+- validation: 318 unit/integration tests, enforced coverage and declaration
   snapshots, SSR/hydration tests, a packed-consumer build, and six
   adapter/theme Playwright screenshot and axe cases
 - toolchain: TypeScript 7 CLI with the official TypeScript 6 compiler-API
-  compatibility package, ESLint 10, Vite 8, Vitest 4, and pnpm 11
+  compatibility package, ESLint 10, Vite 8, Vitest 4, and pnpm 11.21
 
 ## Goals
 
@@ -34,7 +34,8 @@ Current implementation baseline:
 3. Add the quality-of-life features users expect from a modern data grid
    without turning the default table into a large enterprise-grid bundle.
 4. Make optional features independently importable and measurable.
-5. Preserve 4.x compatibility while preparing one documented future 5.0 cleanup.
+5. Preserve wrapper compatibility across the 5.0 TanStack migration and stage
+   unrelated cleanup only after documented deprecation periods.
 
 ## Non-goals
 
@@ -64,7 +65,7 @@ Current implementation baseline:
 | I18N-01 | P1 | Several selection, view-toggle, filter, and card labels remain hard-coded rather than flowing through `DataTableLabels`. | Complete the label catalog and add an alternate-locale regression fixture. |
 | API-01 | P1 | State is controlled through many separate props and column sizing cannot be controlled. There is no unified initial state, state callback, or public table API ref. | Add `initialState`, `state`, `onStateChange`, controlled column sizing, and a typed API ref; delivered before the 4.0 release. |
 | API-02 | P1 | Detail panels use TanStack expansion state, but true hierarchical sub-rows are not supported. This makes the meaning of “expanded” ambiguous. | Separate `detailPanel` from tree expansion and add `getSubRows`/manual expanding. |
-| API-03 | P1 | The `advanced` entrypoint exposes implementation hooks and panels as a supported surface, making internal refactors expensive. | Introduce a narrow stable adapter-authoring entrypoint and mark raw internals as unstable before 5.0. |
+| API-03 | P1 | The `advanced` entrypoint exposes implementation hooks and panels as a supported surface, making internal refactors expensive. | Introduce a narrow stable adapter-authoring entrypoint and mark raw internals as unstable before any later cleanup major. |
 | QA-01 | P1 | All 164 interaction cases live in one 1,800-line test file and mostly use jsdom. There are no visual, real-layout, accessibility, SSR, or consumer-install tests. | Split tests by feature and add Playwright, screenshot, axe, SSR, and packed-package fixtures. |
 | QA-02 | P1 | CI builds committed `dist` but does not fail when the generated output is stale. There are no bundle, coverage, or public-type/API budgets. | Add clean-tree distribution checks, bundle limits, coverage thresholds, and API/type snapshots. |
 | QA-03 | P2 | API documentation is maintained manually and can drift from `DataTableProps` and labels. Dependency updates are also manual. | Generate prop/type reference sections, link examples to tests, and add scheduled dependency update/compatibility checks. |
@@ -457,28 +458,30 @@ request deduplication, caching, retry, refresh, and invalidation.
   lazy child/group loading.
 - Keep direct `data` plus manual flags supported for simple consumers.
 
-### Future Phase 5: 5.0 API cleanup
+### Deferred wrapper API cleanup after 5.0
 
-Version 4.0.0 intentionally shipped without public API removals. A future 5.0
-may remove only APIs that receive a documented 4.x replacement and deprecation
-period. It should not combine unrelated visual redesign work with the
-migration.
+Version 5.0.0 uses its major-version boundary for TanStack React Table v9 and
+does not perform the unrelated wrapper cleanup proposed earlier in the 4.x
+roadmap. Any future removal still requires a stable replacement and a
+documented deprecation period. It should not be combined with unrelated visual
+redesign work.
 
-Planned breaking changes:
+Deferred candidates:
 
-| Current 4.x API | Planned 5.0 API | 4.x migration bridge |
+| Current compatibility API | Possible future API | Required migration bridge |
 | --- | --- | --- |
-| `toolbarQueryValue`, `onToolbarQueryValueChange`, `toolbarQueryDebounceMs` | `globalFilter`, `onGlobalFilterChange`, `globalFilterDebounceMs` | Add aliases during 4.x; keep old names functional and deprecated before removal. |
-| `pageIndex`, `pageSize`, `onPageIndexChange`, `onPageSizeChange` | `state.pagination`/`pagination` and `onPaginationChange` | Unified state is already additive; document precedence and add any missing aliases during 4.x. |
-| `renderExpandedRow`, `getRowCanExpand` for detail UI | `detailPanel={{ render, getCanExpand }}` | Add `detailPanel` during 4.x; reserve expansion props for tree rows only after the bridge ships. |
-| `columnPrefsKey` | `persistence={{ key, version, slices, ... }}` | Treat the old prop as persistence shorthand throughout 4.x. |
-| `virtualization` on the base component | Virtual adapter entrypoints/components | Keep both paths throughout 4.x; provide an import codemod and runtime-equivalent examples. |
-| Broad `data-table-pro/advanced` internals | Stable `data-table-pro/adapter` plus explicitly unstable internals | The stable adapter contracts exist; publish a complete advanced-import mapping before removal. |
-| Resolved-value-only controlled callbacks | TanStack-compatible updater callbacks through unified state | Keep legacy callbacks throughout 4.x and provide adapters for common `setState` usage. |
+| `toolbarQueryValue`, `onToolbarQueryValueChange`, `toolbarQueryDebounceMs` | `globalFilter`, `onGlobalFilterChange`, `globalFilterDebounceMs` | Ship aliases and keep the old names functional and deprecated before removal. |
+| `pageIndex`, `pageSize`, `onPageIndexChange`, `onPageSizeChange` | `state.pagination`/`pagination` and `onPaginationChange` | Keep unified state additive, document precedence, and add any missing aliases. |
+| `renderExpandedRow`, `getRowCanExpand` for detail UI | `detailPanel={{ render, getCanExpand }}` | Keep the explicit detail-panel replacement stable before tree expansion takes exclusive ownership. |
+| `columnPrefsKey` | `persistence={{ key, version, slices, ... }}` | Continue treating the old prop as persistence shorthand through a deprecation window. |
+| `virtualization` on the base component | Virtual adapter entrypoints/components | Keep both paths available before providing a codemod and runtime-equivalent examples. |
+| Broad `data-table-pro/advanced` internals | Stable `data-table-pro/adapter` plus explicitly unstable internals | Publish a complete advanced-import mapping before removal. |
+| Resolved-value-only controlled callbacks | TanStack-compatible updater callbacks through unified state | Provide adapters for common `setState` usage through a deprecation window. |
 
 Migration requirements:
 
-- Publish a complete `4.x -> 5.0` guide before the first 5.0 prerelease.
+- Publish a complete guide before the first prerelease that removes any of
+  these compatibility APIs.
 - Provide before/after examples and a codemod for renamed props/imports.
 - Test migration fixtures for all three adapters, URL state, manual server
   pagination, virtualization, detail panels, and persisted preferences.
@@ -486,7 +489,7 @@ Migration requirements:
 - Version persisted and URL state so old payloads are migrated or safely
   discarded instead of partially applied.
 - Do not remove a deprecated API until its replacement has shipped in at least
-  one stable 4.x release.
+  one stable release.
 
 ## Deferred and optional capabilities
 
@@ -522,7 +525,7 @@ Release order is deliberate:
 3. Establish accessible focus/navigation before cell range selection.
 4. Split optional runtime capabilities before adding column virtualization or
    XLSX.
-5. Ship deprecation bridges before 5.0 removes anything.
+5. Ship deprecation bridges before any later major removes compatibility APIs.
 
 ## Reference set
 

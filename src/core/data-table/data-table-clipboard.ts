@@ -1,4 +1,3 @@
-import type { Column, Table as TanStackTable } from "@tanstack/react-table";
 import type {
   DataTableCellSelection,
   DataTableClipboardCopyOptions,
@@ -9,6 +8,10 @@ import {
   normalizeFilterValue,
   startCase,
 } from "./data-table-utils";
+import type {
+  DataTableTanStackColumn as Column,
+  DataTableTanStackTable as TanStackTable,
+} from "./tanstack-v9";
 
 export async function copyDataTableToClipboard<TData>({
   clipboard,

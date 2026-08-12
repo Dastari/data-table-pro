@@ -1,5 +1,5 @@
 import * as React from "react";
-import type { FilterFn } from "@tanstack/react-table";
+import type { DataTableTanStackFilterFn as FilterFn } from "./tanstack-v9";
 import {
   afterAll,
   afterEach,

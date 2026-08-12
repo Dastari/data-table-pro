@@ -1,16 +1,17 @@
-import { ColumnFiltersState, VisibilityState, ColumnOrderState, ColumnPinningState, GroupingState, RowSelectionState, SortingState, Updater } from '@tanstack/react-table';
-import { DataTableDensity, DataTableViewMode, DataTableState } from './types.js';
+import { ColumnFiltersState, ColumnVisibilityState, ColumnOrderState, GroupingState, SortingState, Updater } from '@tanstack/react-table';
+import { K as DataTableDensity, C as DataTableColumnPinningState, am as DataTableViewMode, af as DataTableState } from './types-BGNR6Ymh.js';
 import 'react';
 
 type DataTableUrlStateSlice = "columnFilters" | "columnVisibility" | "density" | "columnOrder" | "columnPinning" | "grouping" | "rowSelection";
+type DataTableUrlRowSelectionState = Record<string, boolean>;
 type DataTableUrlEnhancedState = {
     columnFilters: ColumnFiltersState;
-    columnVisibility: VisibilityState;
+    columnVisibility: ColumnVisibilityState;
     density: DataTableDensity;
     columnOrder: ColumnOrderState;
-    columnPinning: ColumnPinningState;
+    columnPinning: DataTableColumnPinningState;
     grouping: GroupingState;
-    rowSelection: RowSelectionState;
+    rowSelection: DataTableUrlRowSelectionState;
 };
 type DataTableUrlStateMigrationPayload = {
     version: unknown;
@@ -48,18 +49,18 @@ declare function useDataTableUrlState({ keyPrefix, defaultPageSize, defaultSort,
     setShowHiddenRows: (showHidden: boolean) => void;
     columnFilters: ColumnFiltersState;
     setColumnFilters: (updater: Updater<ColumnFiltersState>) => void;
-    columnVisibility: VisibilityState;
-    setColumnVisibility: (updater: Updater<VisibilityState>) => void;
+    columnVisibility: ColumnVisibilityState;
+    setColumnVisibility: (updater: Updater<ColumnVisibilityState>) => void;
     density: DataTableDensity;
     setDensity: (updater: Updater<DataTableDensity>) => void;
     columnOrder: ColumnOrderState;
     setColumnOrder: (updater: Updater<ColumnOrderState>) => void;
-    columnPinning: ColumnPinningState;
-    setColumnPinning: (updater: Updater<ColumnPinningState>) => void;
+    columnPinning: DataTableColumnPinningState;
+    setColumnPinning: (updater: Updater<DataTableColumnPinningState>) => void;
     grouping: GroupingState;
     setGrouping: (updater: Updater<GroupingState>) => void;
-    rowSelection: RowSelectionState;
-    setRowSelection: (updater: Updater<RowSelectionState>) => void;
+    rowSelection: DataTableUrlRowSelectionState;
+    setRowSelection: (updater: Updater<DataTableUrlRowSelectionState>) => void;
     tableState: Partial<DataTableState>;
     schemaVersion: string;
     clearEnhancedState: () => void;

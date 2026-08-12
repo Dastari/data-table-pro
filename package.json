@@ -1,6 +1,6 @@
 {
   "name": "data-table-pro",
-  "version": "4.5.1",
+  "version": "5.0.0",
   "description": "Reusable React data table library with shadcn, HeroUI, and The Gridcn adapters.",
   "type": "module",
   "license": "MIT",
@@ -124,7 +124,7 @@
     }
   },
   "dependencies": {
-    "@tanstack/react-table": "^8.21.3",
+    "@tanstack/react-table": "^9.1.2",
     "@tanstack/react-virtual": "^3.14.9",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
