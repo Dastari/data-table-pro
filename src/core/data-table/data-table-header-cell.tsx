@@ -128,7 +128,7 @@ function DataTableHeaderCellInner<TData>({
         getDensityHeaderClassName(currentDensity),
         isColumnGroup && uiClassNames.columnGroupHeader,
         layout.utilityClassName,
-        layout.isSpacerColumn && "border-b-0 bg-transparent! p-0",
+        layout.isSpacerColumn && "p-0",
         layout.pinnedClassName,
         hideClassName,
         headerAlignClassName(header.getContext()),

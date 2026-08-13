@@ -39,6 +39,14 @@ infinite loading, typed server data sources, and host-owned drag/upload
 integrations. See
 [`docs/API.md`](./docs/API.md) for the complete contract.
 
+## 5.1.0 Compatibility
+
+Version 5.1.0 makes the internal fill-layout spacer render as an empty table
+segment with the same header, body-row, and summary-row borders/backgrounds as
+its neighboring cells. It does not change the public API, TanStack v9
+integration, persisted state, column widths, overflow behavior, or accessibility
+semantics. No consumer migration is required.
+
 ## Breaking changes in 5.0.0
 
 Version 5 upgrades to TanStack React Table v9.1.2 and uses `useTable` with an
@@ -83,8 +91,8 @@ Version 4.5.0 adds optional scrollbar visibility control and corrects
 fixed-width `layoutMode="fill"` tables without removing any public API. Set
 `scrollbarVisibility="always"` when persistent horizontal and vertical
 scrollbars are required. When every currently visible data column has a fixed
-width, fill layout now keeps those widths and automatically places a
-transparent flexible spacer before a right-pinned actions column. Consumers
+width, fill layout now keeps those widths and automatically places an empty
+flexible spacer before a right-pinned actions column. Consumers
 must not create or reference the reserved `__spacer__` column.
 
 ## 4.4.0 Compatibility
@@ -106,11 +114,11 @@ The previously planned wrapper API cleanup was ultimately deferred beyond
 ## Installation
 
 ```bash
-pnpm add github:Dastari/data-table-pro#v5.0.0
+pnpm add github:Dastari/data-table-pro#v5.1.0
 ```
 
 This package is installed from GitHub refs. It is not published to npm.
-Release tags such as `v5.0.0` include committed `dist/` output, so consumers
+Release tags such as `v5.1.0` include committed `dist/` output, so consumers
 do not need to allow package build scripts during install.
 
 Peer dependencies:

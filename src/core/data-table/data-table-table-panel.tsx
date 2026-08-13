@@ -675,11 +675,9 @@ export function DataTableTablePanel<TData>({
                               layout.isSpacerColumn || undefined
                             }
                             className={cn(
-                              layout.isSpacerColumn
-                                ? "border-b-0 bg-transparent! p-0"
-                                : "border-b font-medium",
-                              !layout.isSpacerColumn &&
-                                uiClassNames.cellBorder,
+                              "border-b",
+                              layout.isSpacerColumn ? "p-0" : "font-medium",
+                              uiClassNames.cellBorder,
                             )}
                             style={layout.cellStyle}
                           >

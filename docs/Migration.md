@@ -1,5 +1,16 @@
 # Migration Guide
 
+## 5.1.0 Fill spacer rendering
+
+No consumer migration is required for 5.1.0. The internal `__spacer__` column
+now uses the same header, body-row, and summary-row borders/backgrounds as its
+neighboring cells, so fixed-width fill layouts remain visually continuous
+through right-pinned actions.
+
+The spacer remains package-owned, semantically inert, excluded from keyboard
+navigation and export, and subject to the same sizing and overflow rules as in
+5.0.0. Applications must continue not to define or reference `__spacer__`.
+
 ## 5.0.0 Breaking Changes: TanStack React Table v9
 
 Version 5.0.0 upgrades from `@tanstack/react-table@8.21.3` to v9.1.2. It
@@ -151,9 +162,11 @@ horizontal and vertical scrollbars.
 
 Fixed-width `layoutMode="fill"` tables no longer stretch their last visible
 data column. When all currently visible data columns are fixed, the table
-automatically creates a transparent flexible spacer after the data columns and
-before right-pinned row actions. Applications should not define, order, pin,
-export, or otherwise reference the reserved `__spacer__` column.
+automatically creates an empty flexible spacer after the data columns and
+before right-pinned row actions. The spacer uses the same header and row
+borders and backgrounds as adjacent cells so the table grid remains visually
+continuous. Applications should not define, order, pin, export, or otherwise
+reference the reserved `__spacer__` column.
 
 The spacer decision follows current `columnVisibility`, including leaves in
 grouped definitions and responsive visibility. Restoring a genuine flexible

@@ -229,12 +229,45 @@ test("fill layout gives spare width to the internal spacer and preserves overflo
       const actions = headers.find(
         (header) => header.dataset.columnId === "__actions__",
       );
-      if (!scrollArea || !viewport || !name || !spacer || !actions) {
+      const spacerIndex = spacer ? headers.indexOf(spacer) : -1;
+      const adjacentHeader = headers[spacerIndex - 1];
+      const firstBodyRow = element.querySelector("tbody tr");
+      const adjacentCell = adjacentHeader?.dataset.columnId
+        ? firstBodyRow?.querySelector<HTMLElement>(
+            `[data-column-id="${adjacentHeader.dataset.columnId}"]`,
+          )
+        : undefined;
+      const spacerCell = firstBodyRow?.querySelector<HTMLElement>(
+        '[data-column-id="__spacer__"]',
+      );
+      if (
+        !scrollArea ||
+        !viewport ||
+        !name ||
+        !spacer ||
+        !actions ||
+        !adjacentHeader ||
+        !adjacentCell ||
+        !spacerCell
+      ) {
         throw new Error("Expected the fill-layout regression columns");
       }
+      const readCellAppearance = (cell: HTMLElement) => {
+        const styles = getComputedStyle(cell);
+        return {
+          backgroundColor: styles.backgroundColor,
+          borderBottomColor: styles.borderBottomColor,
+          borderBottomStyle: styles.borderBottomStyle,
+          borderBottomWidth: styles.borderBottomWidth,
+        };
+      };
       return {
         actionIndex: headers.indexOf(actions),
+        bodyAdjacentAppearance: readCellAppearance(adjacentCell),
+        bodySpacerAppearance: readCellAppearance(spacerCell),
         clientWidth: viewport.clientWidth,
+        headerAdjacentAppearance: readCellAppearance(adjacentHeader),
+        headerSpacerAppearance: readCellAppearance(spacer),
         nameWidth: name.getBoundingClientRect().width,
         scrollWidth: viewport.scrollWidth,
         spacerIndex: headers.indexOf(spacer),
@@ -250,6 +283,16 @@ test("fill layout gives spare width to the internal spacer and preserves overflo
   expect(wideLayout.scrollWidth).toBeLessThanOrEqual(
     wideLayout.clientWidth + 1,
   );
+  expect(wideLayout.headerSpacerAppearance).toEqual(
+    wideLayout.headerAdjacentAppearance,
+  );
+  expect(wideLayout.bodySpacerAppearance).toEqual(
+    wideLayout.bodyAdjacentAppearance,
+  );
+  expect(wideLayout.headerSpacerAppearance.borderBottomWidth).not.toBe("0px");
+  expect(wideLayout.headerSpacerAppearance.borderBottomStyle).not.toBe("none");
+  expect(wideLayout.bodySpacerAppearance.borderBottomWidth).not.toBe("0px");
+  expect(wideLayout.bodySpacerAppearance.borderBottomStyle).not.toBe("none");
 
   await table.evaluate((element) => {
     element.style.width = "720px";
@@ -261,6 +304,12 @@ test("fill layout gives spare width to the internal spacer and preserves overflo
   expect(narrowLayout.nameWidth).toBeCloseTo(220, 0);
   expect(narrowLayout.spacerIndex).toBe(narrowLayout.actionIndex - 1);
   expect(narrowLayout.scrollWidth).toBeGreaterThan(narrowLayout.clientWidth);
+  expect(narrowLayout.headerSpacerAppearance).toEqual(
+    narrowLayout.headerAdjacentAppearance,
+  );
+  expect(narrowLayout.bodySpacerAppearance).toEqual(
+    narrowLayout.bodyAdjacentAppearance,
+  );
 });
 
 test("interactive grid navigation follows the rendered cell geometry", async ({
