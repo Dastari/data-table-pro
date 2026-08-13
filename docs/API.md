@@ -951,9 +951,11 @@ only when that record is included in the supplied `data` window.
 
 In `layoutMode="fill"`, a genuine flexible data column consumes unused width.
 When every currently visible data column has a configured or user-sized fixed
-width, the table inserts an internal transparent spacer after the data columns
-and before the actions column instead. Fixed columns retain their widths, and
-their combined minimum width still causes horizontal overflow when necessary.
+width, the table inserts an internal empty spacer after the data columns and
+before the actions column instead. The spacer retains the same header and row
+borders/backgrounds as neighboring cells so the table grid remains visually
+continuous. Fixed columns retain their widths, and their combined minimum
+width still causes horizontal overflow when necessary.
 
 The default persistence envelope is:
 

@@ -2405,7 +2405,9 @@ for (const suite of suites) {
       expect(
         screen.getByRole("columnheader", { name: "Role" }).style.minWidth,
       ).toBe("160px");
-      expect(headers[2]?.className).toContain("border-b-0");
+      expect(headers[2]?.className).toContain("border-b");
+      expect(headers[2]?.className).not.toContain("border-b-0");
+      expect(headers[2]?.className).not.toContain("bg-transparent");
       expect(headers[2]?.textContent).toBe("");
       expect(headers[3]?.className).toContain("sticky");
       expect(headers[3]?.style.right).toBe("0px");
@@ -2591,6 +2593,7 @@ describe("DataTable fill spacer", () => {
           layoutMode="fill"
           showFooter={false}
           showToolbar={false}
+          summaryRows={[{ key: "total", label: "Total", cells: {} }]}
         />,
       );
 
@@ -2603,6 +2606,9 @@ describe("DataTable fill spacer", () => {
       const spacerCell = container.querySelector<HTMLElement>(
         'tbody [data-column-id="__spacer__"]',
       );
+      const summarySpacerCell = container.querySelector<HTMLElement>(
+        'tfoot [data-column-id="__spacer__"]',
+      );
 
       expect(leafHeaders.map((header) => header.dataset.columnId)).toEqual([
         "name",
@@ -2610,17 +2616,26 @@ describe("DataTable fill spacer", () => {
         "__spacer__",
       ]);
       expect(spacerHeader?.textContent).toBe("");
-      expect(spacerHeader?.className).toContain("border-b-0");
-      expect(spacerHeader?.className).toContain("bg-transparent");
+      expect(spacerHeader?.className).toContain("border-b");
+      expect(spacerHeader?.className).not.toContain("border-b-0");
+      expect(spacerHeader?.className).not.toContain("bg-transparent");
       expect(spacerHeader?.getAttribute("aria-hidden")).toBe("true");
       expect(spacerHeader?.querySelector("button")).toBeNull();
       expect(spacerCell?.textContent).toBe("");
-      expect(spacerCell?.className).toContain("border-b-0");
-      expect(spacerCell?.className).toContain("bg-transparent");
+      expect(spacerCell?.className).toContain("border-b");
+      expect(spacerCell?.className).toContain("border-border/40");
+      expect(spacerCell?.className).not.toContain("border-b-0");
+      expect(spacerCell?.className).not.toContain("bg-transparent");
       expect(spacerCell?.getAttribute("role")).toBe("presentation");
       expect(spacerCell?.getAttribute("tabindex")).toBeNull();
+      expect(summarySpacerCell?.textContent).toBe("");
+      expect(summarySpacerCell?.className).toContain("border-b");
+      expect(summarySpacerCell?.className).toContain("border-border/40");
+      expect(summarySpacerCell?.className).not.toContain("border-b-0");
+      expect(summarySpacerCell?.className).not.toContain("bg-transparent");
+      expect(summarySpacerCell?.getAttribute("role")).toBe("presentation");
       expect(screen.getByRole("grid").getAttribute("aria-colcount")).toBe("2");
-      expect(screen.getAllByRole("gridcell")).toHaveLength(2);
+      expect(screen.getAllByRole("gridcell")).toHaveLength(4);
       expect(
         screen.getByRole("columnheader", { name: "Name" }).style.width,
       ).toBe("120px");

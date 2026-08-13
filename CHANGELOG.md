@@ -1,5 +1,33 @@
 # Changelog
 
+## 5.1.0 - 2026-08-13
+
+Version 5.1 fixes fill-layout spacer rendering without changing the public API,
+TanStack v9 integration, or persisted table state.
+
+### Fixed
+
+- Render the internal fill-layout spacer with the same header and row borders
+  and backgrounds as neighboring cells, keeping the grid visually continuous
+  through a right-pinned actions column.
+- Apply the continuous grid styling to ordinary rows, virtual rows, and summary
+  rows while preserving the spacer's inert accessibility semantics.
+
+### Compatibility
+
+- No consumer migration or configuration change is required.
+- Existing column widths, horizontal overflow, right-pinned actions, keyboard
+  navigation, and the reserved `__spacer__` behavior remain unchanged.
+
+### Validation
+
+- 318 unit/integration tests, including static, virtual, adapter, and summary
+  spacer coverage
+- Chromium fill/overflow layout regression with computed border and background
+  comparisons
+- lint, typecheck, package build, packed-consumer build, public API snapshot,
+  and bundle budgets
+
 ## 5.0.0 - 2026-08-13
 
 Version 5 upgrades the package's TanStack-facing API to TanStack React Table
