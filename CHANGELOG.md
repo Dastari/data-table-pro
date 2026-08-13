@@ -1,6 +1,6 @@
 # Changelog
 
-## 5.0.0 - 2026-08-12
+## 5.0.0 - 2026-08-13
 
 Version 5 upgrades the package's TanStack-facing API to TanStack React Table
 v9. Existing `DataTable` props, entrypoints, persisted state, saved views, and
