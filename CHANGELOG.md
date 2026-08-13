@@ -1,5 +1,22 @@
 # Changelog
 
+## 5.2.1 - 2026-08-13
+
+Version 5.2.1 aligns the shadcn data-table search surface with the semantic
+input background token without changing the public API.
+
+### Changed
+
+- Use the shadcn `bg-input` surface for data-table search input groups while
+  keeping neighboring toolbar controls on `bg-card`.
+
+### Validation
+
+- 321 unit/integration tests
+- lint, package/demo typechecks and builds, public API snapshot, and bundle
+  budgets
+- 12 Chromium accessibility/layout checks across all adapters and themes
+
 ## 5.2.0 - 2026-08-13
 
 Version 5.2 corrects fill-layout column classification so preferred widths can
