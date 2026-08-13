@@ -100,6 +100,29 @@ export function hasExplicitDataTableColumnSize<TData>(
   );
 }
 
+export function hasFixedDataTableColumnSize<TData>(
+  column: DataTableColumnDef<TData, unknown>,
+) {
+  if (!Object.prototype.hasOwnProperty.call(column, "maxSize")) {
+    return false;
+  }
+
+  const maxSize = (column as { maxSize?: unknown }).maxSize;
+  if (typeof maxSize !== "number") {
+    return false;
+  }
+
+  const size = hasExplicitDataTableColumnSize(column)
+    ? column.size
+    : undefined;
+  const minSize = getConfiguredColumnMinWidth(column);
+
+  return (
+    (typeof size === "number" && maxSize <= size) ||
+    (minSize !== undefined && maxSize <= minSize)
+  );
+}
+
 export function decorateFilterableColumn<TData>(
   column: DataTableColumnDef<TData, unknown>,
 ): ColumnDef<TData, unknown> {

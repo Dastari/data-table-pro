@@ -1,5 +1,36 @@
 # Changelog
 
+## 5.2.0 - 2026-08-13
+
+Version 5.2 corrects fill-layout column classification so preferred widths can
+grow before the table adds its internal spacer. It does not remove or rename
+any public API.
+
+### Fixed
+
+- Treat a column's configured `size` as its preferred width in
+  `layoutMode="fill"`, allowing the last currently rendered growable data
+  column to consume unused table width.
+- Add the internal `__spacer__` column only when every currently rendered data
+  column is growth-locked by `maxSize` constraints or by controlled/user
+  sizing. This prevents a spacer from appearing beside a column that can fill
+  the available space.
+
+### Compatibility
+
+- To keep a configured data column fixed in fill layout, constrain its growth
+  with `maxSize` (commonly `minSize`, `size`, and `maxSize` set to the same
+  value). A `size` without a locking `maxSize` remains a preferred width.
+
+### Validation
+
+- 321 unit/integration tests, including standard and virtual table coverage
+  based on the reported Open Ports column configuration
+- 12 Chromium browser behavior/accessibility checks, including growable-column
+  fill and fixed-column spacer/overflow regressions
+- lint, package/demo typechecks and builds, public API snapshot,
+  packed-consumer build, and bundle budgets
+
 ## 5.1.0 - 2026-08-13
 
 Version 5.1 fixes fill-layout spacer rendering without changing the public API,

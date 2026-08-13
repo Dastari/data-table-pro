@@ -39,6 +39,15 @@ infinite loading, typed server data sources, and host-owned drag/upload
 integrations. See
 [`docs/API.md`](./docs/API.md) for the complete contract.
 
+## 5.2.0 fill-layout sizing correction
+
+In `layoutMode="fill"`, a column's `size` is its preferred width rather than a
+growth lock. The last currently rendered data column that can grow fills the
+remaining table width. The internal `__spacer__` column is added only when all
+rendered data columns are growth-locked by their `maxSize` constraints or by
+controlled/user sizing. Set `maxSize` to the intended fixed width when a
+column must never grow.
+
 ## 5.1.0 Compatibility
 
 Version 5.1.0 makes the internal fill-layout spacer render as an empty table
@@ -114,11 +123,11 @@ The previously planned wrapper API cleanup was ultimately deferred beyond
 ## Installation
 
 ```bash
-pnpm add github:Dastari/data-table-pro#v5.1.0
+pnpm add github:Dastari/data-table-pro#v5.2.0
 ```
 
 This package is installed from GitHub refs. It is not published to npm.
-Release tags such as `v5.1.0` include committed `dist/` output, so consumers
+Release tags such as `v5.2.0` include committed `dist/` output, so consumers
 do not need to allow package build scripts during install.
 
 Peer dependencies:

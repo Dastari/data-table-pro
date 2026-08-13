@@ -193,11 +193,52 @@ test("responsive behavior follows table container boundaries", async ({
   await expect(header("location")).toHaveCount(0);
 });
 
-test("fill layout gives spare width to the internal spacer and preserves overflow", async ({
+test("fill layout gives spare width to the last growable column", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1700, height: 900 });
   await page.goto("/");
+  await hideContentSizedCards(page);
+
+  const table = page.locator('[data-dtp-slot="data-table-root"]').first();
+  await table.evaluate((element) => {
+    element.style.flex = "none";
+    element.style.width = "1500px";
+    element.style.height = "520px";
+  });
+
+  await expect(table.locator('[data-column-id="__spacer__"]')).toHaveCount(0);
+  const layout = await table.evaluate((element) => {
+    const headers = Array.from(
+      element.querySelectorAll<HTMLElement>(
+        "thead tr:last-child [data-column-id]",
+      ),
+    );
+    const manager = headers.find(
+      (header) => header.dataset.columnId === "manager",
+    );
+    const actions = headers.find(
+      (header) => header.dataset.columnId === "__actions__",
+    );
+    if (!manager || !actions) {
+      throw new Error("Expected the growable fill-layout columns");
+    }
+    return {
+      actionIndex: headers.indexOf(actions),
+      managerIndex: headers.indexOf(manager),
+      managerWidth: manager.getBoundingClientRect().width,
+    };
+  });
+
+  expect(layout.managerIndex).toBe(layout.actionIndex - 1);
+  expect(layout.managerWidth).toBeGreaterThan(140);
+});
+
+test("fixed fill layout gives spare width to the internal spacer and preserves overflow", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1700, height: 900 });
+  await page.goto("/?fill-spacer-regression=1");
   await hideContentSizedCards(page);
 
   const table = page.locator('[data-dtp-slot="data-table-root"]').first();
