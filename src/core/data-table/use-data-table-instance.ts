@@ -1,34 +1,23 @@
 import * as React from "react";
-import {
-  getCoreRowModel,
-  getExpandedRowModel,
-  getFacetedMinMaxValues,
-  getFacetedRowModel,
-  getFacetedUniqueValues,
-  getFilteredRowModel,
-  getGroupedRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  useReactTable,
-} from "@tanstack/react-table";
+import { useTable } from "@tanstack/react-table";
 import type {
-  ColumnDef,
   ColumnFiltersState,
   ColumnOrderState,
-  ColumnPinningState,
+  ColumnPinningState as TanStackColumnPinningState,
   ColumnSizingState,
+  ColumnVisibilityState as VisibilityState,
   ExpandedState,
   GroupingState,
-  FilterFnOption,
   OnChangeFn,
   PaginationState,
   RowPinningState,
-  Row,
+  RowSelectionState,
   SortingState,
-  Table as TanStackTable,
-  VisibilityState,
 } from "@tanstack/react-table";
-import type { DataTableProps } from "../types";
+import type {
+  DataTableColumnPinningState,
+  DataTableProps,
+} from "../types";
 import {
   canReorderDataTableColumn,
   getColumnId,
@@ -41,6 +30,39 @@ import type { DataTableColumnGroupPaths } from "./data-table-utils";
 import { useDataTableInfiniteScroll } from "./use-data-table-infinite-scroll";
 import { useDataTablePaginationClamp } from "./use-data-table-pagination-clamp";
 import { useDataTableSearchIndex } from "./use-data-table-search-index";
+import {
+  createDataTableFeatures,
+  type DataTableFeatures,
+  type DataTableTanStackColumn as Column,
+  type DataTableRowData,
+  type DataTableTanStackColumnDef as ColumnDef,
+  type DataTableTanStackFilterFnOption as FilterFnOption,
+  type DataTableTanStackRow as Row,
+  type DataTableTanStackTable as TanStackTable,
+} from "./tanstack-v9";
+
+export type DataTableRowsToRender<TData> = Array<{
+  row: Row<TData>;
+  rowIndex: number;
+}>;
+
+type DataTableInstanceResult<TData> = {
+  effectivePageCount: number;
+  footerTotalRowCount: number | undefined;
+  handleFooterPageIndexChange: (nextPageIndex: number) => void;
+  handleFooterPageSizeChange: (nextPageSize: number) => void;
+  isPageCountKnown: boolean;
+  renderedRows: Array<Row<TData>>;
+  topPinnedRows: Array<Row<TData>>;
+  bottomPinnedRows: Array<Row<TData>>;
+  reorderColumn: (sourceColumnId: string, targetColumnId: string) => void;
+  rowsToRender: DataTableRowsToRender<TData>;
+  sentinelRef: React.RefObject<HTMLDivElement | null>;
+  table: TanStackTable<TData>;
+  virtualPaddingBottom: number;
+  virtualPaddingTop: number;
+  visibleLeafColumns: Array<Column<TData, unknown>>;
+};
 
 export function useDataTableInstance<TData>({
   autoResetPageIndex,
@@ -114,7 +136,7 @@ export function useDataTableInstance<TData>({
   dir: NonNullable<DataTableProps<TData>["dir"]>;
   currentColumnFilters: ColumnFiltersState;
   currentColumnOrder: ColumnOrderState;
-  currentColumnPinning: ColumnPinningState;
+  currentColumnPinning: DataTableColumnPinningState;
   currentRowPinning: RowPinningState;
   currentColumnSizing: ColumnSizingState;
   currentExpanded: ExpandedState;
@@ -144,7 +166,7 @@ export function useDataTableInstance<TData>({
   hasNextPage?: DataTableProps<TData>["hasNextPage"];
   handleColumnFiltersChange: OnChangeFn<ColumnFiltersState>;
   handleColumnOrderChange: OnChangeFn<ColumnOrderState>;
-  handleColumnPinningChange: OnChangeFn<ColumnPinningState>;
+  handleColumnPinningChange: OnChangeFn<DataTableColumnPinningState>;
   handleRowPinningChange: OnChangeFn<RowPinningState>;
   handleColumnVisibilityChange: OnChangeFn<VisibilityState>;
   handleExpandedChange: OnChangeFn<ExpandedState>;
@@ -183,7 +205,7 @@ export function useDataTableInstance<TData>({
   totalRowCount: DataTableProps<TData>["totalRowCount"];
   virtualization: DataTableProps<TData>["virtualization"];
   viewportHeight: number;
-}) {
+}): DataTableInstanceResult<TData> {
   const cachedGlobalFilterFn = useDataTableSearchIndex<TData>();
   const generatedColumnIds = React.useMemo(() => {
     return getDataTableLeafColumns(
@@ -216,7 +238,7 @@ export function useDataTableInstance<TData>({
     ];
   }, [currentColumnOrder, generatedColumnIds]);
 
-  const effectiveColumnPinning = React.useMemo<ColumnPinningState>(() => {
+  const effectiveColumnPinning = React.useMemo<TanStackColumnPinningState>(() => {
     const columnIdSet = new Set(generatedColumnIds);
     const dataColumnIdSet = new Set(
       generatedColumnIds.filter(
@@ -232,18 +254,44 @@ export function useDataTableInstance<TData>({
     );
 
     return {
-      left: [
+      start: [
         ...["__expand__", "__select__"].filter((columnId) =>
           columnIdSet.has(columnId),
         ),
         ...dataLeft,
       ],
-      right: [
+      end: [
         ...dataRight,
         ...["__actions__"].filter((columnId) => columnIdSet.has(columnId)),
       ],
     };
   }, [currentColumnPinning, generatedColumnIds]);
+
+  const handleTanStackColumnPinningChange = React.useCallback<
+    OnChangeFn<TanStackColumnPinningState>
+  >(
+    (updater) => {
+      const nextValue =
+        typeof updater === "function"
+          ? updater(effectiveColumnPinning)
+          : updater;
+      const dataColumnIds = new Set(
+        generatedColumnIds.filter(
+          (columnId) =>
+            !isUtilityColumnId(columnId) && columnId !== "__spacer__",
+        ),
+      );
+      handleColumnPinningChange({
+        left: nextValue.start.filter((columnId) => dataColumnIds.has(columnId)),
+        right: nextValue.end.filter((columnId) => dataColumnIds.has(columnId)),
+      });
+    },
+    [
+      effectiveColumnPinning,
+      generatedColumnIds,
+      handleColumnPinningChange,
+    ],
+  );
 
   const effectiveRowPinning = React.useMemo<RowPinningState>(() => {
     const availableRowIds = new Set<string>();
@@ -275,11 +323,32 @@ export function useDataTableInstance<TData>({
     tableGetRowId,
   ]);
 
+  const tanStackRowSelection = React.useMemo<RowSelectionState>(() => {
+    return Object.fromEntries(
+      Object.entries(currentRowSelection).flatMap(([rowId, selected]) =>
+        selected ? [[rowId, true as const]] : [],
+      ),
+    );
+  }, [currentRowSelection]);
+
+  const handleTanStackRowSelectionChange = React.useCallback<
+    OnChangeFn<RowSelectionState>
+  >(
+    (updater) => {
+      const nextValue =
+        typeof updater === "function"
+          ? updater(tanStackRowSelection)
+          : updater;
+      setCurrentRowSelection({ ...nextValue });
+    },
+    [setCurrentRowSelection, tanStackRowSelection],
+  );
+
   const tableState = React.useMemo(
     () => ({
       sorting: currentSorting,
       pagination: currentPagination,
-      rowSelection: currentRowSelection,
+      rowSelection: tanStackRowSelection,
       columnVisibility: effectiveColumnVisibility,
       columnFilters: currentColumnFilters,
       globalFilter: globalFilterValue,
@@ -296,13 +365,13 @@ export function useDataTableInstance<TData>({
       currentExpanded,
       currentGrouping,
       currentPagination,
-      currentRowSelection,
       currentSorting,
       effectiveColumnVisibility,
       effectiveColumnOrder,
       effectiveColumnPinning,
       effectiveRowPinning,
       globalFilterValue,
+      tanStackRowSelection,
     ],
   );
 
@@ -348,51 +417,15 @@ export function useDataTableInstance<TData>({
     [setLocalColumnSizing],
   );
 
-  const facetingNeeds = React.useMemo(
-    () => {
-      let uniqueValues = false;
-      let minMaxValues = false;
-      for (const { column } of getDataTableLeafColumns(
-        tableColumns as DataTableProps<TData>["columns"],
-      )) {
-        uniqueValues ||= column.meta?.filter?.type === "faceted";
-        minMaxValues ||= column.meta?.filter?.type === "numberRange";
-      }
-      return { minMaxValues, uniqueValues };
-    },
-    [tableColumns],
+  const features = React.useMemo(
+    () => createDataTableFeatures(aggregationFns),
+    [aggregationFns],
   );
 
-  // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Table owns its instance functions.
-  const table = useReactTable({
-    data: tableData,
+  const table = useTable<DataTableFeatures, DataTableRowData<TData>>({
+    features,
+    data: tableData as Array<DataTableRowData<TData>>,
     columns: tableColumns,
-    getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: manualFiltering ? undefined : getFilteredRowModel(),
-    getFacetedRowModel:
-      (facetingNeeds.uniqueValues || facetingNeeds.minMaxValues) &&
-      !manualFiltering
-        ? getFacetedRowModel()
-        : undefined,
-    getFacetedUniqueValues:
-      facetingNeeds.uniqueValues && !manualFiltering
-        ? getFacetedUniqueValues()
-        : undefined,
-    getFacetedMinMaxValues:
-      facetingNeeds.minMaxValues && !manualFiltering
-        ? getFacetedMinMaxValues()
-        : undefined,
-    getGroupedRowModel:
-      currentGrouping.length && !manualGrouping ? getGroupedRowModel() : undefined,
-    getSortedRowModel: manualSorting ? undefined : getSortedRowModel(),
-    getExpandedRowModel:
-      (getSubRows || currentGrouping.length) && !manualExpanding
-        ? getExpandedRowModel()
-        : undefined,
-    getPaginationRowModel:
-      manualPagination || infiniteScroll?.enabled
-        ? undefined
-        : getPaginationRowModel(),
     enableRowSelection: getRowCanSelect
       ? (row) => enableRowSelection && getRowCanSelect(row.original)
       : enableRowSelection,
@@ -413,13 +446,19 @@ export function useDataTableInstance<TData>({
     columnResizeMode,
     columnResizeDirection: dir,
     getRowId: tableGetRowId,
-    getSubRows,
+    getSubRows: getSubRows
+      ? (row, index) =>
+          getSubRows(row, index) as
+            | Array<DataTableRowData<TData>>
+            | undefined
+      : undefined,
     getRowCanExpand: getSubRows
       ? (row) => getRowCanExpand?.(row.original) ?? row.subRows.length > 0
       : undefined,
     globalFilterFn: globalFilterFn ?? cachedGlobalFilterFn,
     getColumnCanGlobalFilter: (column) =>
-      column.columnDef.enableGlobalFilter !== false &&
+      (column.columnDef as ColumnDef<TData, unknown>).enableGlobalFilter !==
+        false &&
       typeof column.accessorFn === "function",
     manualSorting,
     manualGrouping,
@@ -434,19 +473,25 @@ export function useDataTableInstance<TData>({
     state: tableState,
     onSortingChange: setCurrentSorting,
     onPaginationChange: handlePaginationChange,
-    onRowSelectionChange: setCurrentRowSelection,
+    onRowSelectionChange: handleTanStackRowSelectionChange,
     onColumnVisibilityChange: handleColumnVisibilityChange,
     onColumnFiltersChange: handleColumnFiltersChange,
     onExpandedChange: handleExpandedChange,
     onGroupingChange: handleGroupingChange,
     onColumnOrderChange: handleColumnOrderChange,
-    onColumnPinningChange: handleColumnPinningChange,
+    onColumnPinningChange: handleTanStackColumnPinningChange,
     onRowPinningChange: handleRowPinningChange,
     onColumnSizingChange: handleColumnSizingChange,
-    aggregationFns,
     groupedColumnMode,
   });
-  tableRef.current = table;
+  React.useLayoutEffect(() => {
+    tableRef.current = table;
+    return () => {
+      if (tableRef.current === table) {
+        tableRef.current = null;
+      }
+    };
+  }, [table, tableRef]);
 
   const visibleLeafColumns = table.getVisibleLeafColumns();
   const reorderColumn = React.useCallback(
@@ -630,8 +675,3 @@ export function useDataTableInstance<TData>({
     visibleLeafColumns,
   };
 }
-
-export type DataTableRowsToRender<TData> = Array<{
-  row: Row<TData>;
-  rowIndex: number;
-}>;

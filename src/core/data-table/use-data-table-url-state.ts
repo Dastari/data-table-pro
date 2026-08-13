@@ -10,14 +10,13 @@ import {
 import type {
   ColumnFiltersState,
   ColumnOrderState,
-  ColumnPinningState,
+  ColumnVisibilityState as VisibilityState,
   GroupingState,
-  RowSelectionState,
   SortingState,
   Updater,
-  VisibilityState,
 } from "@tanstack/react-table";
 import type {
+  DataTableColumnPinningState as ColumnPinningState,
   DataTableDensity,
   DataTableState,
   DataTableViewMode,
@@ -32,6 +31,8 @@ export type DataTableUrlStateSlice =
   | "grouping"
   | "rowSelection";
 
+type DataTableUrlRowSelectionState = Record<string, boolean>;
+
 export type DataTableUrlEnhancedState = {
   columnFilters: ColumnFiltersState;
   columnVisibility: VisibilityState;
@@ -39,7 +40,7 @@ export type DataTableUrlEnhancedState = {
   columnOrder: ColumnOrderState;
   columnPinning: ColumnPinningState;
   grouping: GroupingState;
-  rowSelection: RowSelectionState;
+  rowSelection: DataTableUrlRowSelectionState;
 };
 
 export type DataTableUrlStateMigrationPayload = {
@@ -67,7 +68,7 @@ const EMPTY_VISIBILITY: VisibilityState = {};
 const EMPTY_ORDER: ColumnOrderState = [];
 const EMPTY_PINNING: ColumnPinningState = {};
 const EMPTY_GROUPING: GroupingState = [];
-const EMPTY_SELECTION: RowSelectionState = {};
+const EMPTY_SELECTION: DataTableUrlRowSelectionState = {};
 
 export function useDataTableUrlState({
   keyPrefix,
@@ -108,7 +109,7 @@ export function useDataTableUrlState({
       columnOrder: parseAsJson<ColumnOrderState>(validateStringArray),
       pinning: parseAsJson<ColumnPinningState>(validateColumnPinning),
       grouping: parseAsJson<GroupingState>(validateStringArray),
-      selection: parseAsJson<RowSelectionState>(validateBooleanRecord),
+      selection: parseAsJson<DataTableUrlRowSelectionState>(validateBooleanRecord),
     },
     {
       clearOnDefault: true,
@@ -380,7 +381,7 @@ export function useDataTableUrlState({
   );
 
   const setRowSelection = React.useCallback(
-    (updater: Updater<RowSelectionState>) => {
+    (updater: Updater<DataTableUrlRowSelectionState>) => {
       if (!enabledSet.has("rowSelection")) return;
       const next = resolveUpdater(updater, rowSelection);
       void setState({

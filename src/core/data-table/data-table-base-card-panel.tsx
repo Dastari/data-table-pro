@@ -1,7 +1,7 @@
 import * as React from "react";
-import type { Row } from "@tanstack/react-table";
 import { cn } from "../../lib/utils";
 import type { DataTableCardPanelProps } from "./data-table-card-panel-types";
+import type { DataTableTanStackRow as Row } from "./tanstack-v9";
 
 export function DataTableBaseCardPanel<TData>({
   cardClassName,

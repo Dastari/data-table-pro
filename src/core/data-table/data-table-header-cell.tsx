@@ -1,7 +1,7 @@
 import * as React from "react";
 import { flexRender } from "@tanstack/react-table";
 import { IconChevronDown, IconSelector } from "../icons";
-import type { Header, SortingState } from "@tanstack/react-table";
+import type { SortingState } from "@tanstack/react-table";
 import type {
   DataTableColumnDef,
   DataTableColumnGroupDef,
@@ -16,6 +16,7 @@ import {
   isUtilityColumnId,
 } from "./data-table-utils";
 import { headerAlignClassName, hideOnClassName } from "../types";
+import type { DataTableTanStackHeader as Header } from "./tanstack-v9";
 
 type DataTableHeaderCellProps<TData> = {
   columnGroupHeaderHeight: DataTableProps<TData>["columnGroupHeaderHeight"];

@@ -39,6 +39,31 @@ infinite loading, typed server data sources, and host-owned drag/upload
 integrations. See
 [`docs/API.md`](./docs/API.md) for the complete contract.
 
+## Breaking changes in 5.0.0
+
+Version 5 upgrades to TanStack React Table v9.1.2 and uses `useTable` with an
+explicit feature registry rather than the deprecated legacy bridge.
+
+Direct TanStack-facing code must:
+
+- rename column `sortingFn` options to `sortFn`;
+- replace callable custom aggregations with context-based
+  `DataTableAggregationFn` definitions;
+- read an underlying table snapshot from `table.store.state` instead of
+  `table.getState()`;
+- use `getPrePaginatedRowModel()` and logical `start` / `end` pinning on the
+  table returned by `apiRef.current.getTable()`;
+- keep row/cell/column/header methods bound to their instances; and
+- use record or array row data rather than primitive rows.
+
+The wrapper-owned `apiRef.current.getState()` method and public/persisted
+`columnPinning: { left, right }` contract remain unchanged. Raw TanStack types
+now take a leading feature generic; package-owned `DataTable*` types already
+contain it.
+
+See [the 5.0 migration guide](./docs/Migration.md) for before/after examples,
+the complete breaking-change list, and the compatibility boundary.
+
 ## Breaking Changes In 3.0.0
 
 - package output is ESM-only; `require()`/CommonJS entrypoints were removed
@@ -46,6 +71,11 @@ integrations. See
 - `nuqs` is an optional peer used only by `data-table-pro/url-state`
 - toolbar search now filters client-side tables by default; disable with `manualFiltering` or `enableToolbarQueryFiltering={false}`
 - column filters, CSV export, row expansion, density, column pinning/reordering, selection policies, labels, and column preference persistence were added
+
+## 4.5.1 Compatibility
+
+Version 4.5.1 is a dependency-maintenance release with no public API changes.
+It remains on TanStack React Table v8; v9 requires a separate migration.
 
 ## 4.5.0 Compatibility
 
@@ -70,16 +100,17 @@ public prop, type, or entrypoint was removed.
 Version 4.0.0 removes no public prop, type, or package entrypoint. It is a
 compatibility-first major that releases the accumulated state, persistence,
 quality, dependency, accessibility, and package-splitting work after 3.0.9.
-The previously planned API cleanup is deferred to a future 5.0 release.
+The previously planned wrapper API cleanup was ultimately deferred beyond
+5.0; version 5 uses its major boundary for the TanStack v9 migration.
 
 ## Installation
 
 ```bash
-pnpm add github:Dastari/data-table-pro#v4.5.0
+pnpm add github:Dastari/data-table-pro#v5.0.0
 ```
 
 This package is installed from GitHub refs. It is not published to npm.
-Release tags such as `v4.5.0` include committed `dist/` output, so consumers
+Release tags such as `v5.0.0` include committed `dist/` output, so consumers
 do not need to allow package build scripts during install.
 
 Peer dependencies:
@@ -651,7 +682,7 @@ hooks, and loading states.
 ## Quality Gates
 
 Contributors need a jsdom 30-supported Node.js release (`^22.22.2`,
-`^24.15.0`, or `>=26`) and pnpm 11.17.0. CI uses Node.js 22.22.2.
+`^24.15.0`, or `>=26`) and pnpm 11.21.0. CI uses Node.js 22.22.2.
 TypeScript 7 provides the `tsc` command; the `typescript` package name
 intentionally points to the official TypeScript 6 compatibility package
 because ESLint and declaration bundling still require the compiler API that

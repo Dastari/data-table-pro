@@ -1,14 +1,10 @@
 import type {
-  Column,
-  ColumnDef,
-  ColumnPinningState,
   ExpandedState,
-  Row,
-  Table as TanStackTable,
 } from "@tanstack/react-table";
 import type {
   DataTableColumnDef,
   DataTableColumnFilterOption,
+  DataTableColumnPinningState,
   DataTableCsvExportOptions,
   DataTableCsvExportScope,
   DataTableDensity,
@@ -16,6 +12,12 @@ import type {
 } from "../types";
 import type { DataTableUiClassNames } from "../ui-kit";
 import { cn } from "../../lib/utils";
+import type {
+  DataTableTanStackColumn as Column,
+  DataTableTanStackColumnDef as ColumnDef,
+  DataTableTanStackRow as Row,
+  DataTableTanStackTable as TanStackTable,
+} from "./tanstack-v9";
 
 const DATA_TABLE_LOADING_ROW = Symbol("data-table-loading-row");
 
@@ -504,12 +506,12 @@ export function getDataTableExportRows<TData>(
       return table.getRowModel().rows;
     case "selected":
       return table
-        .getPrePaginationRowModel()
+        .getPrePaginatedRowModel()
         .rows.filter((row) => row.getIsSelected());
     case "all":
       return table.getCoreRowModel().rows;
     default:
-      return table.getPrePaginationRowModel().rows;
+      return table.getPrePaginatedRowModel().rows;
   }
 }
 
@@ -530,7 +532,7 @@ function escapeCsvCell(value: unknown, escapeFormulaValues: boolean) {
 
 export function getInitialColumnPinning<TData>(
   columns: Array<DataTableColumnDef<TData, unknown>>,
-): ColumnPinningState {
+): DataTableColumnPinningState {
   const left: Array<string> = [];
   const right: Array<string> = [];
 
@@ -615,8 +617,11 @@ export function getAccessorKey<TData>(
 
 export function getFixedSide<TData>(column: Column<TData>) {
   const pinnedSide = column.getIsPinned();
-  if (pinnedSide) {
-    return pinnedSide;
+  if (pinnedSide === "start") {
+    return "left" as const;
+  }
+  if (pinnedSide === "end") {
+    return "right" as const;
   }
 
   if (column.id === "__select__") {

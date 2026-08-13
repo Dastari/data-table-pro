@@ -1,10 +1,10 @@
 import * as React from "react";
-import type { Table as TanStackTable } from "@tanstack/react-table";
 import type {
   DataTableLabels,
   DataTableProps,
   DataTableSavedView,
 } from "../types";
+import type { DataTableTanStackTable as TanStackTable } from "./tanstack-v9";
 
 type DataTableToolbarSectionProps<TData> = {
   allRows: Array<TData>;

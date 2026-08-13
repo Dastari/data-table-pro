@@ -17,7 +17,10 @@ import type {
   DataTableProps,
   DataTableViewMode,
 } from "data-table-pro";
-import type { SortingState, VisibilityState } from "@tanstack/react-table";
+import type {
+  ColumnVisibilityState as VisibilityState,
+  SortingState,
+} from "@tanstack/react-table";
 
 type AdapterKey = "shadcn" | "heroui" | "thegridcn";
 type ThemeKey = "light" | "dark";

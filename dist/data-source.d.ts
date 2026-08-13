@@ -1,5 +1,5 @@
 import { PaginationState, SortingState, ColumnFiltersState, GroupingState } from '@tanstack/react-table';
-import { DataTableProps } from './types.js';
+import { D as DataTableProps } from './types-BGNR6Ymh.js';
 import 'react';
 
 /** The supported server pagination strategies. */

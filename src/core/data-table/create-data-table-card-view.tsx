@@ -1,5 +1,5 @@
 import * as React from "react";
-import type { ExpandedState, OnChangeFn, Row } from "@tanstack/react-table";
+import type { ExpandedState, OnChangeFn } from "@tanstack/react-table";
 import { IconChevronDown } from "../icons";
 import type {
   DataTableCardRendererProps,
@@ -17,6 +17,7 @@ import {
   isDataTableInteractiveTarget,
   toggleDataTableExpandedState,
 } from "./data-table-utils";
+import type { DataTableTanStackRow as Row } from "./tanstack-v9";
 
 type DataTableCardViewProps<TData> = {
   rows: Array<Row<TData>>;

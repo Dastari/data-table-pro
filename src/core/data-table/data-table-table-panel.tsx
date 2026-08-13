@@ -1,11 +1,7 @@
 import * as React from "react";
 import type {
-  Column,
   ExpandedState,
-  Header,
   RowPinningPosition,
-  Row,
-  Table as TanStackTable,
 } from "@tanstack/react-table";
 import type {
   DataTableDensity,
@@ -23,6 +19,12 @@ import { DataTableHeaderCell } from "./data-table-header-cell";
 import type { DataTableColumnLayout } from "./use-column-layout";
 import { isDataTableLoadingRow, isUtilityColumnId } from "./data-table-utils";
 import type { DataTableLabels } from "../types";
+import type {
+  DataTableTanStackColumn as Column,
+  DataTableTanStackHeader as Header,
+  DataTableTanStackRow as Row,
+  DataTableTanStackTable as TanStackTable,
+} from "./tanstack-v9";
 
 export type DataTableTablePanelProps<TData> = {
   ariaDescribedBy: string | undefined;

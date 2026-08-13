@@ -2,6 +2,12 @@
 
 This document describes the public API exported by `data-table-pro`.
 
+Version 5's TanStack-facing types and instances use TanStack React Table v9.
+The wrapper state API remains project-owned: `apiRef.current.getState()` and
+physical `{ left, right }` column-pinning state are stable, while the table
+returned by `apiRef.current.getTable()` follows v9. See the
+[5.0 migration guide](./Migration.md) for the breaking-change map.
+
 ## Package Entry Points
 
 Adapter entrypoints export the table component and public types. Dedicated
@@ -548,11 +554,15 @@ meta: {
 | `manualGrouping` | `boolean` | `false` | Skips the local grouped row model for server-grouped data. |
 | `enableGrouping` | `boolean` | `false` | Adds accessible group/ungroup controls and a removable grouping bar. |
 | `groupedColumnMode` | `false \| "reorder" \| "remove"` | `"reorder"` | Placement of grouped columns. |
-| `aggregationFns` | `Record<string, AggregationFn<TData>>` | `undefined` | Named aggregation functions for column definitions. |
+| `aggregationFns` | `Record<string, DataTableAggregationFn<TData>>` | `undefined` | Named TanStack v9 context-based aggregation definitions for column definitions. |
 
 Use native TanStack `enableGrouping`, `aggregationFn`, and `aggregatedCell`
 on a `DataTableColumnDef`. Grouped cells toggle descendants, aggregated cells
 use `aggregatedCell` when present, and placeholder cells render empty.
+
+`DataTableAggregationFn` uses the v9 definition shape. Its `aggregate`
+callback receives a context containing `rows`, `getValue`, `column`, and the
+owning table. V8's positional aggregation callback is not accepted.
 
 ```tsx
 const columns = [

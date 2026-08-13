@@ -1,5 +1,5 @@
 import * as React from "react";
-import type { Column, ColumnSizingState } from "@tanstack/react-table";
+import type { ColumnSizingState } from "@tanstack/react-table";
 import type { DataTableColumnDef } from "../types";
 import type { DataTableUiClassNames } from "../ui-kit";
 import {
@@ -12,6 +12,7 @@ import {
   hasExplicitDataTableColumnSize,
   isUtilityColumnId,
 } from "./data-table-utils";
+import type { DataTableTanStackColumn as Column } from "./tanstack-v9";
 
 type ColumnLayoutMode = "fill" | "fit";
 

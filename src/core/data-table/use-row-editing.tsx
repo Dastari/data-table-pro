@@ -1,5 +1,4 @@
 import * as React from "react";
-import type { CellContext } from "@tanstack/react-table";
 import type {
   DataTableColumnDef,
   DataTableColumnType,
@@ -7,6 +6,7 @@ import type {
 } from "../types";
 import type { DataTableUiKit } from "../ui-kit";
 import { getDataTableLeafColumns } from "./data-table-utils";
+import type { DataTableTanStackCellContext as CellContext } from "./tanstack-v9";
 
 export function useRowEditing<TData>({
   columns,
