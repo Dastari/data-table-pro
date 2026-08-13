@@ -2763,6 +2763,75 @@ describe("DataTable fill spacer", () => {
     expect(flexibleHeader.style.minWidth).toBe("100px");
   });
 
+  it.each([
+    ["standard", ShadcnDataTable],
+    ["virtual", VirtualShadcnDataTable],
+  ] as const)(
+    "uses the last preferred-size column as the %s fill column",
+    (_name, DataTable) => {
+      const { container } = render(
+        <DataTable
+          columns={[
+            {
+              accessorKey: "name",
+              header: "Name",
+              size: 260,
+              meta: { minWidth: 210 },
+            },
+            {
+              id: "ipAddress",
+              header: "IP Address",
+              accessorFn: () => "10.0.1.1",
+              size: 110,
+              meta: { minWidth: 100 },
+            },
+            {
+              id: "vendor",
+              header: "Vendor",
+              accessorFn: () => "Example",
+              size: 180,
+              meta: { minWidth: 140 },
+            },
+            {
+              id: "openPorts",
+              header: "Open Ports",
+              accessorFn: () => "22, 80, 443",
+              size: 360,
+              meta: { minWidth: 220, overflow: "visible" },
+            },
+          ]}
+          data={rows}
+          getRowId={(row) => row.id}
+          layoutMode="fill"
+          rowActions={[{ key: "open", label: "Open", onClick: vi.fn() }]}
+          showFooter={false}
+          showToolbar={false}
+        />,
+      );
+
+      expect(
+        Array.from(
+          container.querySelectorAll<HTMLElement>(
+            "thead tr:last-child [data-column-id]",
+          ),
+          (header) => header.dataset.columnId,
+        ),
+      ).toEqual(["name", "ipAddress", "vendor", "openPorts", "__actions__"]);
+      expect(
+        container.querySelector('[data-column-id="__spacer__"]'),
+      ).toBeNull();
+      expect(
+        screen.getByRole("columnheader", { name: "Name" }).style.width,
+      ).toBe("260px");
+      const openPortsHeader = screen.getByRole("columnheader", {
+        name: "Open Ports",
+      });
+      expect(openPortsHeader.style.width).toBe("");
+      expect(openPortsHeader.style.minWidth).toBe("220px");
+      expect(openPortsHeader.style.maxWidth).toBe("");
+    },
+  );
+
   it("preserves fixed minimum width so wide content overflows instead of compressing", () => {
     const { container } = render(
       <ShadcnDataTable

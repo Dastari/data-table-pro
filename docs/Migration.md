@@ -1,5 +1,18 @@
 # Migration Guide
 
+## 5.2.0 fill-layout sizing correction
+
+No public API was removed. In `layoutMode="fill"`, a configured `size` is now
+treated as a preferred width, matching TanStack Table's sizing model. The last
+currently rendered data column that is still able to grow consumes the unused
+table width, and the internal `__spacer__` is omitted.
+
+If a configured column must remain fixed, give it a growth-locking `maxSize`.
+For a completely fixed column, use the same value for `minSize`, `size`, and
+`maxSize`. Controlled or user-resized widths remain fixed for layout purposes.
+The spacer is still inserted when every currently rendered data column is
+growth-locked.
+
 ## 5.1.0 Fill spacer rendering
 
 No consumer migration is required for 5.1.0. The internal `__spacer__` column

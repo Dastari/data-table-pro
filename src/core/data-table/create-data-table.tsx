@@ -39,7 +39,7 @@ import {
   getDataTableColumnGroupPaths,
   getDataTableLeafColumns,
   getInitialColumnPinning,
-  hasExplicitDataTableColumnSize,
+  hasFixedDataTableColumnSize,
   validateDataTableColumnIds,
 } from "./data-table-utils";
 import { useDataTableState } from "./use-data-table-state";
@@ -728,7 +728,7 @@ export function createDataTableWithPanels(
         visibleDataColumns.every(({ column, index }) => {
           const columnId = getColumnId(column, index);
           return (
-            hasExplicitDataTableColumnSize(column) ||
+            hasFixedDataTableColumnSize(column) ||
             Object.prototype.hasOwnProperty.call(
               currentColumnSizing,
               columnId,

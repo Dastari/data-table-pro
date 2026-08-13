@@ -949,13 +949,16 @@ Pinned regions are rendered in table view only. Card view keeps pinned rows in
 its ordinary card order, and server/manual pagination can render a pinned row
 only when that record is included in the supplied `data` window.
 
-In `layoutMode="fill"`, a genuine flexible data column consumes unused width.
-When every currently visible data column has a configured or user-sized fixed
-width, the table inserts an internal empty spacer after the data columns and
-before the actions column instead. The spacer retains the same header and row
-borders/backgrounds as neighboring cells so the table grid remains visually
-continuous. Fixed columns retain their widths, and their combined minimum
-width still causes horizontal overflow when necessary.
+In `layoutMode="fill"`, `size` is a column's preferred width. The last currently
+rendered data column that is able to grow consumes unused width. A configured
+column is growth-locked when its `maxSize` prevents growth (for example,
+`minSize`, `size`, and `maxSize` all use the same value); a controlled or
+user-resized width is also fixed for layout purposes. Only when every currently
+rendered data column is growth-locked does the table insert an internal empty
+spacer after the data columns and before the actions column. The spacer retains
+the same header and row borders/backgrounds as neighboring cells so the table
+grid remains visually continuous. Fixed columns retain their widths, and their
+combined minimum width still causes horizontal overflow when necessary.
 
 The default persistence envelope is:
 

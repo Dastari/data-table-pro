@@ -120,6 +120,9 @@ export function DemoApp() {
   const [scrollbarRegressionFixture] = React.useState(() =>
     new URLSearchParams(window.location.search).has("scrollbar-regression"),
   );
+  const [fillSpacerRegressionFixture] = React.useState(() =>
+    new URLSearchParams(window.location.search).has("fill-spacer-regression"),
+  );
   const [adapter, setAdapter] = React.useState<AdapterKey>("shadcn");
   const [theme, setTheme] = React.useState<ThemeKey>("light");
   const [rows, setRows] = React.useState(() => generateEmployees(96));
@@ -162,7 +165,7 @@ export function DemoApp() {
   }, [adapter, theme]);
 
   const columns = React.useMemo<Array<DataTableColumnDef<Employee>>>(() => {
-    return [
+    const definitions: Array<DataTableColumnDef<Employee>> = [
       {
         accessorKey: "name",
         header: "Name",
@@ -300,7 +303,19 @@ export function DemoApp() {
         },
       },
     ];
-  }, []);
+
+    return fillSpacerRegressionFixture
+      ? definitions.map((column) =>
+          typeof column.size === "number"
+            ? {
+                ...column,
+                minSize: column.size,
+                maxSize: column.size,
+              }
+            : column,
+        )
+      : definitions;
+  }, [fillSpacerRegressionFixture]);
 
   const tableRows = useInfiniteScroll ? rows.slice(0, visibleCount) : rows;
   const sparseCardRows = rows.slice(0, 3);

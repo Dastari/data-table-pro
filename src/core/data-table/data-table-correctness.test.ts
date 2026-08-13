@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { DataTableColumnDef } from "../types";
 import {
   getColumnId,
+  hasFixedDataTableColumnSize,
   validateDataTableColumnIds,
 } from "./data-table-utils";
 import { quantizeDataTableContainerWidth } from "./use-data-table-container-width";
@@ -49,6 +50,37 @@ describe("data table correctness contracts", () => {
         { accessorKey: "name", id: "__actions__" },
       ]),
     ).toThrow(/reserved for an internal column/i);
+  });
+
+  it("distinguishes preferred column sizes from growth-locked sizes", () => {
+    expect(
+      hasFixedDataTableColumnSize<TestRow>({
+        accessorKey: "name",
+        size: 360,
+      }),
+    ).toBe(false);
+    expect(
+      hasFixedDataTableColumnSize<TestRow>({
+        accessorKey: "name",
+        size: 360,
+        minSize: 220,
+        maxSize: 720,
+      }),
+    ).toBe(false);
+    expect(
+      hasFixedDataTableColumnSize<TestRow>({
+        accessorKey: "name",
+        size: 360,
+        maxSize: 360,
+      }),
+    ).toBe(true);
+    expect(
+      hasFixedDataTableColumnSize<TestRow>({
+        accessorKey: "name",
+        minSize: 220,
+        maxSize: 220,
+      }),
+    ).toBe(true);
   });
 
   it("switches responsive buckets at the exact package breakpoints", () => {

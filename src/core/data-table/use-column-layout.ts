@@ -10,6 +10,7 @@ import {
   getFixedSide,
   getPinnedColumnClassName,
   hasExplicitDataTableColumnSize,
+  hasFixedDataTableColumnSize,
   isUtilityColumnId,
 } from "./data-table-utils";
 import type { DataTableTanStackColumn as Column } from "./tanstack-v9";
@@ -109,6 +110,18 @@ export function useColumnLayout<TData>({
     return widths;
   }, [columns]);
 
+  const configuredFixedWidthColumnIds = React.useMemo(() => {
+    const ids = new Set<string>();
+
+    for (const { column, index } of getDataTableLeafColumns(columns)) {
+      if (hasFixedDataTableColumnSize(column)) {
+        ids.add(getColumnId(column, index));
+      }
+    }
+
+    return ids;
+  }, [columns]);
+
   const pinnedColumns = React.useMemo(() => {
     const left = new Map<string, number>();
     const right = new Map<string, number>();
@@ -132,12 +145,45 @@ export function useColumnLayout<TData>({
     return { left, right };
   }, [visibleLeafColumns]);
 
+  const fillColumnId = React.useMemo(() => {
+    if (layoutMode !== "fill") {
+      return undefined;
+    }
+
+    return [...visibleLeafColumns]
+      .reverse()
+      .find(
+        (column) =>
+          column.id !== "__spacer__" &&
+          !isUtilityColumnId(column.id) &&
+          !configuredFixedWidthColumnIds.has(column.id) &&
+          !Object.prototype.hasOwnProperty.call(columnSizing, column.id),
+      )?.id;
+  }, [
+    columnSizing,
+    configuredFixedWidthColumnIds,
+    layoutMode,
+    visibleLeafColumns,
+  ]);
+
   const fixedWidthColumnIds = React.useMemo(() => {
-    return new Set([
+    const ids = new Set([
       ...explicitlySizedColumnIds,
+      ...configuredFixedWidthColumnIds,
       ...Object.keys(columnSizing),
     ]);
-  }, [columnSizing, explicitlySizedColumnIds]);
+
+    if (fillColumnId) {
+      ids.delete(fillColumnId);
+    }
+
+    return ids;
+  }, [
+    columnSizing,
+    configuredFixedWidthColumnIds,
+    explicitlySizedColumnIds,
+    fillColumnId,
+  ]);
 
   const columnLayouts = React.useMemo(() => {
     const layouts = new Map<string, DataTableColumnLayout>();
@@ -150,7 +196,12 @@ export function useColumnLayout<TData>({
         isSelectionColumn || isExpansionColumn || isActionsColumn;
       const isSpacerColumn = column.id === "__spacer__";
       const configuredMinWidth = minimumColumnWidths.get(column.id);
-      const columnMinWidth = configuredMinWidth;
+      const isFlexibleFillColumn = column.id === fillColumnId;
+      const columnMinWidth =
+        configuredMinWidth ??
+        (isFlexibleFillColumn && explicitlySizedColumnIds.has(column.id)
+          ? column.getSize()
+          : undefined);
       const shouldFixWidth =
         !isSpacerColumn &&
         (layoutMode === "fit" ||
@@ -213,6 +264,8 @@ export function useColumnLayout<TData>({
 
     return layouts;
   }, [
+    explicitlySizedColumnIds,
+    fillColumnId,
     fixedWidthColumnIds,
     layoutMode,
     minimumColumnWidths,
@@ -225,6 +278,7 @@ export function useColumnLayout<TData>({
     return visibleLeafColumns.reduce((total, column) => {
       const layout = columnLayouts.get(column.id);
       const configuredMinWidth = minimumColumnWidths.get(column.id);
+      const isFlexibleFillColumn = column.id === fillColumnId;
 
       if (layout?.isUtilityColumn) {
         return total + UTILITY_COLUMN_SIZE;
@@ -236,11 +290,16 @@ export function useColumnLayout<TData>({
 
       return (
         total +
-        (configuredMinWidth ?? 0)
+        (configuredMinWidth ??
+          (isFlexibleFillColumn && explicitlySizedColumnIds.has(column.id)
+            ? column.getSize()
+            : 0))
       );
     }, 0);
   }, [
     columnLayouts,
+    explicitlySizedColumnIds,
+    fillColumnId,
     fixedWidthColumnIds,
     minimumColumnWidths,
     visibleLeafColumns,
