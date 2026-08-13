@@ -39,6 +39,12 @@ infinite loading, typed server data sources, and host-owned drag/upload
 integrations. See
 [`docs/API.md`](./docs/API.md) for the complete contract.
 
+## 5.2.1 styling correction
+
+Version 5.2.1 uses the shadcn `bg-input` surface for data-table search input
+groups while keeping neighboring toolbar controls on `bg-card`. It changes no
+public API and requires no consumer migration.
+
 ## 5.2.0 fill-layout sizing correction
 
 In `layoutMode="fill"`, a column's `size` is its preferred width rather than a
@@ -123,11 +129,11 @@ The previously planned wrapper API cleanup was ultimately deferred beyond
 ## Installation
 
 ```bash
-pnpm add github:Dastari/data-table-pro#v5.2.0
+pnpm add github:Dastari/data-table-pro#v5.2.1
 ```
 
 This package is installed from GitHub refs. It is not published to npm.
-Release tags such as `v5.2.0` include committed `dist/` output, so consumers
+Release tags such as `v5.2.1` include committed `dist/` output, so consumers
 do not need to allow package build scripts during install.
 
 Peer dependencies:

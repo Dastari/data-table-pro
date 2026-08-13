@@ -120,7 +120,7 @@ const ShadcnInput = withClassName(
 );
 const ShadcnInputGroup = withClassName(
   PrimitiveInputGroup,
-  "rounded-md border-input bg-card text-foreground",
+  "rounded-md border-input bg-input text-foreground",
 );
 const ShadcnInputGroupAddon = withClassName(
   PrimitiveInputGroupAddon,

@@ -356,9 +356,9 @@ describe("DataTable adapter providers", () => {
     const rowCheckbox = screen.getByRole("checkbox", { name: "Select row" });
 
     expect(searchGroup?.className).toContain("border-input");
-    expect(searchGroup?.className).toContain("bg-card");
+    expect(searchGroup?.className).toContain("bg-input");
     expect(searchGroup?.className).not.toContain("border-border");
-    expect(searchGroup?.className).not.toContain("bg-input");
+    expect(searchGroup?.className).not.toContain("bg-card");
     expect(searchGroup?.className).not.toContain("bg-background");
     expect(optionsButton.className).toContain("border-input");
     expect(optionsButton.className).toContain("bg-card");
@@ -2498,7 +2498,8 @@ for (const suite of suites) {
         );
 
         expect(searchGroup?.className).toContain("border-input");
-        expect(searchGroup?.className).toContain("bg-card");
+        expect(searchGroup?.className).toContain("bg-input");
+        expect(searchGroup?.className).not.toContain("bg-card");
         expect(pageSizeTrigger?.className).toContain("border-input");
         expect(pageSizeTrigger?.className).toContain("bg-card");
         expect(

@@ -1,5 +1,11 @@
 # Migration Guide
 
+## 5.2.1 search surface styling
+
+No consumer migration is required for 5.2.1. The shadcn adapter now uses
+`bg-input` for data-table search input groups; adjacent toolbar controls remain
+on `bg-card`. No prop, type, entrypoint, or persisted state changed.
+
 ## 5.2.0 fill-layout sizing correction
 
 No public API was removed. In `layoutMode="fill"`, a configured `size` is now
