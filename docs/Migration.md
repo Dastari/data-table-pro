@@ -1,5 +1,16 @@
 # Migration Guide
 
+## 5.3.0 known-total infinite scrolling
+
+No consumer migration is required. Tables using `infiniteScroll` continue to
+hide pagination controls. If they also supply `totalRowCount`, the package now
+renders its native record-count footer; omit `totalRowCount` or set
+`showFooter={false}` to retain no footer. Applications that previously passed a
+custom count-only footer child can remove that child after adopting 5.3.0.
+
+Keep `getRowId` at module scope or memoize it with `React.useCallback`; the
+README examples now consistently demonstrate that stable identity contract.
+
 ## 5.2.1 search surface styling
 
 No consumer migration is required for 5.2.1. The shadcn adapter now uses

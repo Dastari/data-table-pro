@@ -17,7 +17,7 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
-import type { ExpandedState } from "@tanstack/react-table";
+import type { ExpandedState, SortingState } from "@tanstack/react-table";
 import { createDataTable } from "./create-data-table";
 import * as RootEntry from "../../index";
 import { DataTable as ShadcnDataTable } from "../../index";
@@ -54,6 +54,8 @@ const columns: Array<DataTableColumnDef<TestRow, unknown>> = [
 ];
 
 const rows: Array<TestRow> = [{ id: "1", name: "Ada" }];
+const getTestRowId = (row: TestRow) => row.id;
+const observeInfiniteScrollSentinel = vi.fn();
 const forbiddenNonShadcnTokens = [
   "border-border",
   "bg-card",
@@ -88,7 +90,7 @@ class ResizeObserverMock {
 }
 
 class IntersectionObserverMock {
-  observe() {}
+  observe = observeInfiniteScrollSentinel;
 
   disconnect() {}
 
@@ -445,6 +447,7 @@ afterEach(() => {
   cleanup();
   vi.useRealTimers();
   vi.restoreAllMocks();
+  observeInfiniteScrollSentinel.mockClear();
 });
 
 for (const suite of suites) {
@@ -2230,6 +2233,22 @@ for (const suite of suites) {
       expect(screen.getByLabelText("Total records: 42")).not.toBeNull();
     });
 
+    it("shows only the total record count for infinite scrolling when supplied", () => {
+      renderTable({
+        data: rows.slice(0, 1),
+        totalRowCount: 42,
+        infiniteScroll: {
+          enabled: true,
+          hasMore: true,
+          onLoadMore: vi.fn(),
+        },
+      });
+
+      expect(screen.getByLabelText("Total records: 42")).not.toBeNull();
+      expect(screen.queryByLabelText("Records per page")).toBeNull();
+      expect(screen.queryByLabelText("Next page")).toBeNull();
+    });
+
     it("automatically paginates local data when manual pagination is disabled", () => {
       renderTable({
         data: [
@@ -2283,6 +2302,57 @@ for (const suite of suites) {
 
       expect(screen.queryByText("Ada")).toBeNull();
       expect(screen.getByText("Linus")).not.toBeNull();
+    });
+
+    it("preserves server row order with controlled manual sorting and infinite scroll", () => {
+      const onSortingChange = vi.fn();
+      const onLoadMore = vi.fn();
+
+      function ControlledInfiniteTable() {
+        const [sorting, setSorting] = React.useState<SortingState>([]);
+
+        return (
+          <TooltipProvider>
+            <DataTable
+              columns={columns}
+              data={[
+                { id: "2", name: "Grace" },
+                { id: "1", name: "Ada" },
+              ]}
+              getRowId={getTestRowId}
+              sorting={sorting}
+              onSortingChange={(nextSorting) => {
+                onSortingChange(nextSorting);
+                setSorting(nextSorting);
+              }}
+              manualSorting
+              infiniteScroll={{
+                enabled: true,
+                hasMore: true,
+                onLoadMore,
+              }}
+            />
+          </TooltipProvider>
+        );
+      }
+
+      const { container } = render(<ControlledInfiniteTable />);
+      const renderedNames = () =>
+        Array.from(container.querySelectorAll("tbody tr"), (row) =>
+          row.textContent?.trim(),
+        );
+
+      expect(renderedNames()).toEqual(["Grace", "Ada"]);
+      expect(observeInfiniteScrollSentinel).toHaveBeenCalledTimes(1);
+
+      fireEvent.click(screen.getByRole("button", { name: "Name" }));
+
+      expect(onSortingChange).toHaveBeenCalledWith([
+        { id: "name", desc: false },
+      ]);
+      expect(renderedNames()).toEqual(["Grace", "Ada"]);
+      expect(onLoadMore).not.toHaveBeenCalled();
+      expect(screen.queryByLabelText(/Total records:/)).toBeNull();
     });
 
     it("does not reset controlled pagination when inline visibility config changes identity", () => {

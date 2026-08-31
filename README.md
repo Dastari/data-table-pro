@@ -39,6 +39,13 @@ infinite loading, typed server data sources, and host-owned drag/upload
 integrations. See
 [`docs/API.md`](./docs/API.md) for the complete contract.
 
+## 5.3.0 infinite-scroll footer
+
+When `infiniteScroll.enabled` and `totalRowCount` are both supplied, the table
+now keeps a native count-only footer visible while suppressing records-per-page
+and pagination controls. Unknown-total infinite scrolling remains footerless.
+No public prop or persisted-state format changed.
+
 ## 5.2.1 styling correction
 
 Version 5.2.1 uses the shadcn `bg-input` surface for data-table search input
@@ -129,11 +136,11 @@ The previously planned wrapper API cleanup was ultimately deferred beyond
 ## Installation
 
 ```bash
-pnpm add github:Dastari/data-table-pro#v5.2.1
+pnpm add github:Dastari/data-table-pro#v5.3.0
 ```
 
 This package is installed from GitHub refs. It is not published to npm.
-Release tags such as `v5.2.1` include committed `dist/` output, so consumers
+Release tags such as `v5.3.0` include committed `dist/` output, so consumers
 do not need to allow package build scripts during install.
 
 Peer dependencies:
@@ -183,13 +190,21 @@ or when the application preloads routes:
 ```tsx
 import { DataTable } from "data-table-pro/virtual";
 
+function getRowId<TRow extends { id: string }>(row: TRow) {
+  return row.id;
+}
+
 <DataTable
   columns={columns}
   data={rows}
-  getRowId={(row) => row.id}
+  getRowId={getRowId}
   virtualization
 />;
 ```
+
+Keep `getRowId` at module scope, as above, or memoize it with
+`React.useCallback`. A new inline function on every render defeats the stable
+identity contract used by row state, diagnostics, and virtualization.
 
 The existing base entrypoints remain source-compatible with
 `virtualization`. They load the virtual row/card implementation only when the
@@ -361,12 +376,16 @@ const columns: Array<DataTableColumnDef<Person>> = [
   },
 ];
 
+function getPersonRowId(person: Person) {
+  return person.id;
+}
+
 export function PeopleTable({ rows }: { rows: Array<Person> }) {
   return (
     <DataTable
       columns={columns}
       data={rows}
-      getRowId={(row) => row.id}
+      getRowId={getPersonRowId}
       title="People"
     />
   );
@@ -424,7 +443,7 @@ visible descendants proportionally.
 <DataTable
   columns={columns}
   data={rows}
-  getRowId={(row) => row.id}
+  getRowId={getRowId}
   toolbarQueryValue={query}
   onToolbarQueryValueChange={setQuery}
 />
@@ -444,7 +463,7 @@ const apiRef = React.createRef<DataTableApi<Person>>();
   apiRef={apiRef}
   columns={columns}
   data={rows}
-  getRowId={(row) => row.id}
+  getRowId={getRowId}
   enableRowPinning
   initialState={{ rowPinning: { top: ["important-id"], bottom: [] } }}
 />;
@@ -470,7 +489,7 @@ Toolbar search filters local/client-side data by default. Server-side tables can
 <DataTable
   columns={columns}
   data={rows}
-  getRowId={(row) => row.id}
+  getRowId={getRowId}
   manualFiltering
   toolbarQueryValue={query}
   onToolbarQueryValueChange={setQuery}
@@ -488,7 +507,7 @@ inventing a total:
 <DataTable
   columns={columns}
   data={pageRows}
-  getRowId={(row) => row.id}
+  getRowId={getRowId}
   manualPagination
   pageIndex={pageIndex}
   pageSize={pageSize}
@@ -508,7 +527,7 @@ configuration:
 <DataTable
   columns={columns}
   data={rows}
-  getRowId={(row) => row.id}
+  getRowId={getRowId}
   persistence={{
     key: "people-table",
     version: 2,
@@ -538,7 +557,7 @@ const [tableState, setTableState] = React.useState<DataTableState>(
   apiRef={apiRef}
   columns={columns}
   data={rows}
-  getRowId={(row) => row.id}
+  getRowId={getRowId}
   state={tableState}
   onStateChange={setTableState}
 />;
@@ -580,7 +599,7 @@ or opt into the built-in table-options controls:
   apiRef={apiRef}
   columns={columns}
   data={rows}
-  getRowId={(row) => row.id}
+  getRowId={getRowId}
   savedViews={{
     key: "people-table",
     version: 1,
@@ -648,7 +667,7 @@ const columns: Array<DataTableColumnDef<Person>> = [
 <DataTable
   columns={columns}
   data={people}
-  getRowId={(person) => person.id}
+  getRowId={getPersonRowId}
   enableGrouping
   initialState={{ grouping: ["team"] }}
 />;
@@ -664,7 +683,7 @@ clipboard handling independently:
 <DataTable
   columns={columns}
   data={rows}
-  getRowId={(row) => row.id}
+  getRowId={getRowId}
   interactiveGrid
   enableCellSelection
   clipboard={{
@@ -767,7 +786,7 @@ Example:
 <DataTable
   columns={columns}
   data={rows}
-  getRowId={(row) => row.id}
+  getRowId={getRowId}
   toolbarQueryValue={query}
   onToolbarQueryValueChange={setQuery}
   customToolbar={

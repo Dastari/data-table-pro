@@ -93,7 +93,8 @@ export function createDataTableWithPanels(
   } = ui;
   const DataTableEmptyState = createDataTableEmptyState(ui);
   const DataTableRowActions = createDataTableRowActions(ui);
-  const { DataTableFooter } = createDataTablePagination(ui);
+  const { DataTableCountOnlyFooter, DataTableFooter } =
+    createDataTablePagination(ui);
   const DataTableToolbar = createDataTableToolbar(ui);
   const DataTableCardView = createDataTableCardView(ui, DataTableRowActions);
   const DataTableStateOverlay = React.lazy(async () => {
@@ -1760,7 +1761,11 @@ export function createDataTableWithPanels(
             </div>
             <DataTableFooterSection
               currentPagination={currentPagination}
-              DataTableFooter={DataTableFooter}
+              DataTableFooter={
+                infiniteScroll?.enabled
+                  ? DataTableCountOnlyFooter
+                  : DataTableFooter
+              }
               effectivePageCount={effectivePageCount}
               footerTotalRowCount={footerTotalRowCount}
               handleFooterPageIndexChange={handleFooterPageIndexChange}
@@ -1768,7 +1773,10 @@ export function createDataTableWithPanels(
               labels={resolvedLabels}
               pageCountKnown={isPageCountKnown}
               rowsPerPageOptions={rowsPerPageOptions}
-              showFooter={showFooter && !infiniteScroll?.enabled}
+              showFooter={
+                showFooter &&
+                (!infiniteScroll?.enabled || totalRowCount !== undefined)
+              }
             >
               {children}
             </DataTableFooterSection>
