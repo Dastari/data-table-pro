@@ -1,5 +1,29 @@
 # Changelog
 
+## 5.3.0 - 2026-08-31
+
+Version 5.3 adds a native known-total infinite-scroll footer and strengthens
+the documented stable-row-identity contract without removing any public API.
+
+### Changed
+
+- Show the native total-record count as a count-only footer during infinite
+  scrolling when `totalRowCount` is supplied, while continuing to suppress
+  pagination controls.
+
+### Documentation
+
+- Use stable module-scope `getRowId` functions throughout the README examples,
+  matching the identity guidance for row state and virtualization.
+
+### Validation
+
+- Cover controlled `manualSorting` together with `infiniteScroll`, including
+  server-order preservation, sorting callbacks, and sentinel observation.
+- 327 unit/integration tests across the shadcn, HeroUI, and The Gridcn
+  adapters, plus lint, package/demo typechecks and builds, public API snapshot,
+  packed-consumer build, and bundle budgets.
+
 ## 5.2.1 - 2026-08-13
 
 Version 5.2.1 aligns the shadcn data-table search surface with the semantic

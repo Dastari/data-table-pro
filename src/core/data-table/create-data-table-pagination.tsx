@@ -5,6 +5,7 @@ import type { DataTableUiKit } from "../ui-kit";
 import { DATA_TABLE_DEFAULT_LABELS } from "./data-table-labels";
 
 type DataTablePaginationProps = {
+  countOnly?: boolean;
   pageIndex: number;
   pageCount: number;
   pageCountKnown: boolean;
@@ -40,6 +41,7 @@ export function createDataTablePagination(ui: DataTableUiKit) {
   } = ui;
 
   function DataTablePagination({
+    countOnly = false,
     pageIndex,
     pageCount,
     pageCountKnown,
@@ -56,6 +58,25 @@ export function createDataTablePagination(ui: DataTableUiKit) {
     const canGoPrevious = pageIndex > 0;
     const canGoNext = pageIndex + 1 < pageCount;
     const lastPageIndex = Math.max(0, pageCount - 1);
+    const totalRecordCount =
+      totalRowCount !== undefined ? (
+        <div className="flex shrink-0 items-center justify-center">
+          <div
+            className={`inline-flex items-center gap-2 px-2.5 py-1.5 text-sm ${uiClassNames.paginationTotal ?? ""}`}
+            aria-label={labels.totalRecords(totalRowCount)}
+          >
+            <IconDatabase className="size-4" />
+            <span className="@min-[768px]/data-table:hidden">{totalRowCount}</span>
+            <span className="hidden @min-[768px]/data-table:inline">
+              {labels.totalRecords(totalRowCount)}
+            </span>
+          </div>
+        </div>
+      ) : null;
+
+    if (countOnly) {
+      return <div className="flex justify-center">{totalRecordCount}</div>;
+    }
 
     return (
       <div className="flex flex-row items-center justify-between gap-4">
@@ -89,20 +110,7 @@ export function createDataTablePagination(ui: DataTableUiKit) {
           </Select>
         </div>
 
-        {totalRowCount !== undefined ? (
-          <div className="flex shrink-0 items-center justify-center">
-            <div
-              className={`inline-flex items-center gap-2 px-2.5 py-1.5 text-sm ${uiClassNames.paginationTotal ?? ""}`}
-              aria-label={labels.totalRecords(totalRowCount)}
-            >
-              <IconDatabase className="size-4" />
-              <span className="@min-[768px]/data-table:hidden">{totalRowCount}</span>
-              <span className="hidden @min-[768px]/data-table:inline">
-                {labels.totalRecords(totalRowCount)}
-              </span>
-            </div>
-          </div>
-        ) : null}
+        {totalRecordCount}
 
         <div className="flex flex-1 items-center justify-end gap-4">
           <div
@@ -254,7 +262,12 @@ export function createDataTablePagination(ui: DataTableUiKit) {
     );
   }
 
+  function DataTableCountOnlyFooter(props: DataTablePaginationProps) {
+    return <DataTableFooter {...props} countOnly />;
+  }
+
   return {
+    DataTableCountOnlyFooter,
     DataTableFooter,
     DataTablePagination,
   };

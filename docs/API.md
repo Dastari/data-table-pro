@@ -476,7 +476,7 @@ table's first-class `grouping` / `onGroupingChange` contract.
 | `cardClassName` | `string` | `undefined` | Applied to each card item wrapper in card mode. |
 | `flexGrow` | `boolean` | `true` | Fills the remaining height of a constrained flex parent. |
 | `showToolbar` | `boolean` | `true` | Controls the package toolbar region. |
-| `showFooter` | `boolean` | `true` | Controls the pagination/record-count footer when infinite loading is not active. |
+| `showFooter` | `boolean` | `true` | Controls the pagination/record-count footer. Infinite loading shows only the record count when `totalRowCount` is supplied. |
 
 ### Layout requirements
 
@@ -843,7 +843,7 @@ discarded.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `infiniteScroll` | `DataTableInfiniteScroll` | `undefined` | Enables sentinel-based load-more behavior and hides the pagination footer. Only one load request runs at a time; failures are reported through `onActionError`. |
+| `infiniteScroll` | `DataTableInfiniteScroll` | `undefined` | Enables sentinel-based load-more behavior and hides pagination controls. When `totalRowCount` is supplied, a native count-only footer remains visible. Only one load request runs at a time; failures are reported through `onActionError`. |
 
 ### Virtualization props
 
