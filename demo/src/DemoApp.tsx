@@ -363,7 +363,7 @@ export function DemoApp() {
             <h1 className="text-xl font-semibold tracking-tight">
               data-table-pro adapter demo
             </h1>
-            <p className="text-sm text-muted-foreground">{notice}</p>
+            <p className="text-sm text-muted-foreground">{notice} · <a className="underline" href="?gallery=1">Open design gallery ↗</a></p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {Object.entries(adapters).map(([key, value]) => (

@@ -1,5 +1,72 @@
 # Changelog
 
+## 6.0.0 - 2026-09-25
+
+Version 6 refreshes the table UI across shadcn, HeroUI and The Gridcn, fixes
+resizing in fill layouts, and adds an interactive design gallery. This is a
+major release for styling, theme setup and controlled-sizing behavior; no
+public TypeScript prop, type or entrypoint was removed or renamed.
+
+### Breaking changes and migration
+
+- The Gridcn adapter now follows host theme tokens (`--card`, `--border`,
+  `--primary`, `--foreground`, `--muted-foreground`, etc.) instead of hardcoded
+  black/cyan surfaces. Hosts that relied on those hardcoded colors must import
+  a complete Gridcn theme and expose its semantic Tailwind colors.
+- HeroUI consumers must use `@heroui/styles@^3.2.6` (previously `^3.2.2`).
+- Footers are borderless and transparent, with the record count at the leading
+  edge and pagination grouped at the trailing edge. Shadcn controls use
+  `border-border`; search surfaces continue to use `bg-input`. Update CSS
+  overrides and screenshot expectations that depend on the previous styling.
+- Starting a resize snapshots rendered widths through the dragged edge.
+  `onColumnSizingChange` can include preceding columns, even on pointer-down;
+  controlled consumers must apply the complete supplied sizing object.
+  Home/double-click removes the column override rather than storing its
+  preferred width, restoring fill eligibility. Persisted state formats remain
+  unchanged.
+
+See [the v6 migration guide](./docs/Migration.md#600-table-design-and-flex-resizing)
+for setup examples and compatibility details.
+
+### Changed
+
+- Remove the boxed footer and decorative count icon; keep counts readable on
+  mobile, allow controls to wrap, and retain known/unknown-total pagination
+  and infinite-scroll behavior.
+- Refine shadcn field borders and header typography; use shorter resize
+  dividers with an accessible focus outline and an inset pointer target.
+- Preserve HeroUI styling and make Gridcn light/dark themes follow host tokens.
+- Upgrade shadcn to 4.21.0, HeroUI styles to 3.2.6, TanStack Table to 9.2.4,
+  TanStack Virtual to 3.14.13 and tailwind-merge to 3.7.0. Develop and validate
+  with React/React DOM 19.3.0; React peer support remains `^19.2.8`.
+
+### Fixed
+
+- Base pointer, touch and keyboard resizing on rendered flex widths instead
+  of preferred widths; batch width priming before TanStack starts the gesture.
+- Prevent earlier columns from moving the dragged edge while preserving later
+  columns' ability to absorb spare space.
+- Keep the last column's resize handle inside the header's hit area.
+- Restore fill behavior on column-size reset, including grouped headers and RTL.
+
+### Examples and documentation
+
+- Add Minimal, Everyday and Power user presets across all three adapters in
+  light/dark themes, with optional feature, layout and loading-state switches.
+- Include 21 desktop/mobile browser renders, a comparison image, and a
+  reproducible capture script in `docs/ui-renders/`.
+- Bind the demo server to `0.0.0.0` by default; open `/?gallery=1` for the gallery.
+- Load the workbench and gallery as separate routes. Account for React 19.3
+  with a 195 KiB demo-loaded budget (formerly 190 KiB); library budgets stay
+  unchanged and the checker follows nested lazy route imports.
+
+### Validation
+
+- 327 unit/integration tests with coverage thresholds satisfied.
+- 37 Chromium layout, interaction, screenshot and accessibility checks.
+- Lint, package/demo typechecks and builds, public API snapshot, packed-consumer
+  validation and bundle budgets.
+
 ## 5.3.0 - 2026-08-31
 
 Version 5.3 adds a native known-total infinite-scroll footer and strengthens

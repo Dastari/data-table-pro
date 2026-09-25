@@ -57,107 +57,104 @@ function withClassName<TProps extends { className?: string }>(
 
 const GridButton = withClassName(
   PrimitiveButton,
-  "rounded-md border border-cyan-400/45 bg-black/75 font-mono text-[0.8rem] tracking-[0.045em] text-cyan-50 uppercase shadow-[0_0_0_1px_rgba(34,211,238,0.12),0_0_18px_rgba(34,211,238,0.1)] data-[variant=default]:bg-cyan-300 data-[variant=default]:text-slate-950 data-[variant=outline]:bg-black/55 data-[variant=ghost]:border-transparent data-[variant=ghost]:bg-transparent data-[variant=ghost]:hover:bg-cyan-400/10 data-[variant=secondary]:bg-cyan-400/12 data-[variant=destructive]:border-rose-400/50 data-[variant=destructive]:bg-rose-500/15 data-[variant=destructive]:text-rose-200",
+  "rounded-md border border-border bg-card font-mono text-[0.8rem] tracking-[0.045em] text-foreground uppercase shadow-none data-[variant=default]:bg-primary data-[variant=default]:text-primary-foreground data-[variant=outline]:bg-card data-[variant=ghost]:border-transparent data-[variant=ghost]:bg-transparent data-[variant=ghost]:hover:bg-primary/10 data-[variant=secondary]:bg-primary/12 data-[variant=destructive]:border-rose-400/50 data-[variant=destructive]:bg-rose-500/15 data-[variant=destructive]:text-rose-200",
 );
 const GridCard = withClassName(
   PrimitiveCard,
-  "rounded-md border border-cyan-400/35 bg-[linear-gradient(180deg,rgba(0,229,255,0.055),transparent_58%),rgba(1,8,11,0.9)] font-mono text-cyan-50 shadow-[inset_0_1px_0_rgba(125,211,252,0.08),0_0_0_1px_rgba(34,211,238,0.12),0_0_28px_rgba(34,211,238,0.08)] ring-0",
+  "rounded-md border border-border bg-card font-mono text-foreground shadow-none ring-0",
 );
 const GridCardHeader = withClassName(PrimitiveCardHeader, "px-5 pt-5 pb-3");
 const GridCardContent = withClassName(PrimitiveCardContent, "px-5 pb-5");
 const GridCheckbox = withClassName(
   PrimitiveCheckbox,
-  "rounded-sm border-cyan-400/55 bg-black/65 ring-cyan-300/70 data-checked:bg-cyan-300 data-checked:text-slate-950 data-checked:ring-cyan-300",
+  "rounded-sm border-border bg-card ring-ring/50 data-checked:bg-primary data-checked:text-primary-foreground data-checked:ring-cyan-300",
 );
 const GridDropdownMenuContent = withClassName(
   PrimitiveDropdownMenuContent,
-  "rounded-md border border-cyan-400/35 bg-black/92 font-mono text-cyan-50 shadow-[0_0_26px_rgba(34,211,238,0.16)] ring-0 before:hidden **:data-[slot$=-item]:focus:bg-cyan-400/12 **:data-[slot$=-item]:data-highlighted:bg-cyan-400/12 **:data-[slot$=-separator]:bg-cyan-400/18 **:data-[slot$=-trigger]:focus:bg-cyan-400/12",
+  "rounded-md border border-border bg-card font-mono text-foreground shadow-none ring-0 before:hidden **:data-[slot$=-item]:focus:bg-primary/12 **:data-[slot$=-item]:data-highlighted:bg-primary/12 **:data-[slot$=-separator]:bg-primary/18 **:data-[slot$=-trigger]:focus:bg-primary/12",
 );
 const GridDropdownMenuItem = withClassName(
   PrimitiveDropdownMenuItem,
-  "rounded-sm font-mono text-cyan-50 focus:bg-cyan-400/12 focus:text-cyan-50 data-[variant=destructive]:text-rose-200 data-[variant=destructive]:focus:bg-rose-500/15",
+  "rounded-sm font-mono text-foreground focus:bg-primary/12 focus:text-foreground data-[variant=destructive]:text-rose-200 data-[variant=destructive]:focus:bg-rose-500/15",
 );
 const GridDropdownMenuCheckboxItem = withClassName(
   PrimitiveDropdownMenuCheckboxItem,
-  "rounded-sm font-mono text-cyan-50 focus:bg-cyan-400/12 focus:text-cyan-50",
+  "rounded-sm font-mono text-foreground focus:bg-primary/12 focus:text-foreground",
 );
 const GridDropdownMenuRadioItem = withClassName(
   PrimitiveDropdownMenuRadioItem,
-  "rounded-sm font-mono text-cyan-50 focus:bg-cyan-400/12 focus:text-cyan-50",
+  "rounded-sm font-mono text-foreground focus:bg-primary/12 focus:text-foreground",
 );
 const GridDropdownMenuLabel = withClassName(
   PrimitiveDropdownMenuLabel,
-  "font-mono text-[0.68rem] tracking-[0.16em] text-cyan-200/70 uppercase",
+  "font-mono text-[0.68rem] tracking-[0.16em] text-primary uppercase",
 );
 const GridDropdownMenuSeparator = withClassName(
   PrimitiveDropdownMenuSeparator,
-  "bg-cyan-400/20",
+  "bg-primary/20",
 );
 const GridDropdownMenuSubContent = withClassName(
   PrimitiveDropdownMenuSubContent,
-  "rounded-md border border-cyan-400/35 bg-black/92 font-mono text-cyan-50 shadow-[0_0_26px_rgba(34,211,238,0.16)] ring-0 before:hidden",
+  "rounded-md border border-border bg-card font-mono text-foreground shadow-none ring-0 before:hidden",
 );
 const GridDropdownMenuSubTrigger = withClassName(
   PrimitiveDropdownMenuSubTrigger,
-  "rounded-sm font-mono text-cyan-50 focus:bg-cyan-400/12 focus:text-cyan-50 data-open:bg-cyan-400/12 data-open:text-cyan-50",
+  "rounded-sm font-mono text-foreground focus:bg-primary/12 focus:text-foreground data-open:bg-primary/12 data-open:text-foreground",
 );
 const GridEmpty = withClassName(
   PrimitiveEmpty,
-  "rounded-md border-cyan-400/35 bg-black/80 font-mono text-cyan-50",
+  "rounded-md border-border bg-card font-mono text-foreground",
 );
 const GridEmptyMedia = withClassName(
   PrimitiveEmptyMedia,
-  "[&[data-variant=icon]]:rounded-xl [&[data-variant=icon]]:bg-cyan-400/12 [&[data-variant=icon]]:text-cyan-200",
+  "[&[data-variant=icon]]:rounded-xl [&[data-variant=icon]]:bg-primary/12 [&[data-variant=icon]]:text-primary",
 );
-const GridEmptyTitle = withClassName(PrimitiveEmptyTitle, "text-cyan-50");
+const GridEmptyTitle = withClassName(PrimitiveEmptyTitle, "text-foreground");
 const GridEmptyDescription = withClassName(
   PrimitiveEmptyDescription,
-  "text-cyan-100/70",
+  "text-muted-foreground",
 );
 const GridInput = withClassName(
   PrimitiveInput,
-  "rounded-md border-cyan-400/45 bg-black/70 font-mono text-cyan-50 placeholder:text-cyan-100/45 focus-visible:ring-cyan-300/70",
+  "rounded-md border-border bg-card font-mono text-foreground placeholder:text-muted-foreground focus-visible:ring-ring/50",
 );
 const GridInputGroup = withClassName(
   PrimitiveInputGroup,
-  "rounded-md border-cyan-400/45 bg-black/70 font-mono text-cyan-50 shadow-[0_0_18px_rgba(34,211,238,0.06)]",
+  "rounded-md border-border bg-card font-mono text-foreground shadow-none",
 );
 const GridPaginationLink = withClassName(
   PrimitivePaginationLink,
-  "rounded-md border-cyan-400/35 bg-black/55 font-mono text-cyan-50 hover:bg-cyan-400/12 data-[active=true]:bg-cyan-300 data-[active=true]:text-slate-950",
+  "rounded-md border-border bg-card font-mono text-foreground hover:bg-primary/12 data-[active=true]:bg-primary data-[active=true]:text-primary-foreground",
 );
-const GridScrollArea = withClassName(
-  PrimitiveScrollArea,
-  "rounded-md border border-cyan-400/35 bg-black/72 shadow-[0_0_0_1px_rgba(34,211,238,0.08),0_0_26px_rgba(34,211,238,0.08)]",
-);
+const GridScrollArea = withClassName(PrimitiveScrollArea, "rounded-md bg-card");
 const GridScrollBar = withClassName(
   PrimitiveScrollBar,
-  "[&>[data-slot=scroll-area-thumb]]:bg-cyan-300/65",
+  "[&>[data-slot=scroll-area-thumb]]:bg-primary/65",
 );
 const GridSelectTrigger = withClassName(
   PrimitiveSelectTrigger,
-  "rounded-md border-cyan-400/45 bg-black/70 font-mono text-cyan-50 focus-visible:ring-cyan-300/70",
+  "rounded-md border-border bg-card font-mono text-foreground focus-visible:ring-ring/50",
 );
 const GridSelectContent = withClassName(
   PrimitiveSelectContent,
-  "rounded-md border border-cyan-400/35 bg-black/95 font-mono text-cyan-50 ring-0 shadow-[0_0_26px_rgba(34,211,238,0.16)] before:hidden",
+  "rounded-md border border-border bg-card font-mono text-foreground ring-0 shadow-none before:hidden",
 );
 const GridSelectItem = withClassName(
   PrimitiveSelectItem,
-  "rounded-sm focus:bg-cyan-400/12 focus:text-cyan-50",
+  "rounded-sm focus:bg-primary/12 focus:text-foreground",
 );
-const GridSeparator = withClassName(PrimitiveSeparator, "bg-cyan-400/20");
+const GridSeparator = withClassName(PrimitiveSeparator, "bg-primary/20");
 const GridSkeleton = withClassName(
   PrimitiveSkeleton,
-  "rounded-md bg-cyan-400/12",
+  "rounded-md bg-primary/12",
 );
 const GridTable = withClassName(
   PrimitiveTable,
-  "border-separate border-spacing-0 border border-cyan-400/45 bg-black/72 font-mono text-[0.84rem] text-cyan-50 shadow-[0_0_0_1px_rgba(34,211,238,0.08),0_0_24px_rgba(34,211,238,0.08)]",
+  "border-separate border-spacing-0 bg-card font-mono text-[0.84rem] text-foreground shadow-none",
 );
 const GridTableHeader = withClassName(
   PrimitiveTableHeader,
-  "[&_tr]:border-cyan-400/45",
+  "[&_tr]:border-border",
 );
 const GridTableBody = withClassName(
   PrimitiveTableBody,
@@ -165,65 +162,64 @@ const GridTableBody = withClassName(
 );
 const GridTableFooter = withClassName(
   PrimitiveTableFooter,
-  "border-cyan-400/40 bg-cyan-400/10 font-mono",
+  "border-border bg-primary/10 font-mono",
 );
 const GridTableHead = withClassName(
   PrimitiveTableHead,
-  "h-12 border-b border-cyan-400/45 bg-cyan-950/20 px-3 font-mono text-[0.68rem] font-bold tracking-[0.18em] text-cyan-300 uppercase",
+  "h-12 border-b border-border bg-primary/5 px-3 font-mono text-[0.68rem] font-bold tracking-[0.1em] text-primary uppercase",
 );
 const GridTableRow = withClassName(
   PrimitiveTableRow,
-  "border-cyan-400/25 hover:bg-cyan-400/10 data-[state=selected]:bg-cyan-400/15",
+  "border-border hover:bg-primary/10 data-[state=selected]:bg-primary/15",
 );
 const GridTableCell = withClassName(
   PrimitiveTableCell,
-  "border-b border-cyan-400/16 px-3 py-3 font-mono text-cyan-50",
+  "border-b border-border px-3 py-3 font-mono text-foreground",
 );
 const GridTableCaption = withClassName(
   PrimitiveTableCaption,
-  "font-mono text-cyan-100/65",
+  "font-mono text-muted-foreground",
 );
 const GridTooltipContent = withClassName(
   PrimitiveTooltipContent,
-  "rounded-md bg-black text-cyan-50 ring-1 ring-cyan-400/35 shadow-[0_0_22px_rgba(34,211,238,0.18)] [&>svg]:bg-black [&>svg]:fill-black",
+  "rounded-md bg-card text-foreground ring-1 ring-ring/50 shadow-none [&>svg]:bg-card [&>svg]:fill-card",
 );
 
 export const theGridcnUiKit: DataTableUiKit = {
   ...primitiveUiKit,
   rootClassName: "dtp-thegridcn",
   classNames: {
-    card: "hover:bg-cyan-400/10 data-[state=selected]:bg-cyan-400/15",
+    card: "hover:bg-primary/10 data-[state=selected]:bg-primary/15",
     cardGrid: "bg-transparent",
     cardItem: "min-w-0",
-    cardOverlay: "from-black/95 via-black/75 to-transparent",
+    cardOverlay: "from-card/95 via-card/75 to-transparent",
     cardScrollArea: "bg-transparent",
-    cardSelected: "bg-cyan-400/15 ring-cyan-300/70",
-    cardUnselected: "border-cyan-400/35",
+    cardSelected: "bg-primary/15 ring-ring/50",
+    cardUnselected: "border-border",
     cardViewport: "bg-transparent",
-    cellBorder: "border-cyan-400/16",
-    cellSelected: "!bg-cyan-400/15 ring-1 ring-inset ring-cyan-300/60",
-    columnGroupHeader: "bg-cyan-400/10 text-cyan-200",
-    dragActive: "rounded-md border-dashed border-cyan-300",
-    emptyState: "border-cyan-400/35 bg-black/80",
-    footer: "border-cyan-400/40 bg-black/80 text-cyan-50",
-    headerSortIcon: "text-cyan-100/65",
-    mutedText: "text-cyan-100/70",
-    paginationSelectTrigger: "border-cyan-400/45 bg-black/70 text-cyan-50",
-    paginationTotal: "text-cyan-100/70",
-    pinnedColumn: "border-cyan-400/25",
-    pinnedUtilityColumn: "bg-black/80",
-    resizeHandle: "after:bg-cyan-400/20 hover:after:bg-cyan-300",
-    resizeHandleActive: "after:bg-cyan-300",
-    row: "hover:bg-cyan-400/10 data-[state=selected]:!bg-cyan-400/15",
-    rowSelected: "!bg-cyan-400/15",
-    tableContainer:
-      "border-cyan-400/35 bg-black/72 text-cyan-50 shadow-[0_0_0_1px_rgba(34,211,238,0.08),0_0_26px_rgba(34,211,238,0.08)]",
-    tableScrollArea: "bg-black/72",
+    cellBorder: "border-border",
+    cellSelected: "!bg-primary/15 ring-1 ring-inset ring-ring/50",
+    columnGroupHeader: "bg-primary/10 text-primary",
+    dragActive: "rounded-md border-dashed border-primary",
+    emptyState: "border-border bg-card",
+    footer: "font-mono text-muted-foreground",
+    headerSortIcon: "text-muted-foreground",
+    mutedText: "text-muted-foreground",
+    paginationSelectTrigger: "border-border bg-card text-foreground",
+    paginationTotal: "text-muted-foreground",
+    pinnedColumn: "border-border",
+    pinnedUtilityColumn: "bg-card",
+    resizeHandle: "after:bg-primary/20 hover:after:bg-primary",
+    resizeHandleActive: "after:bg-primary",
+    row: "hover:bg-primary/10 data-[state=selected]:!bg-primary/15",
+    rowSelected: "!bg-primary/15",
+    tableContainer: "border-border bg-card text-foreground shadow-none",
+    tableScrollArea: "bg-card",
     tableStickyHeader:
-      "sticky top-0 z-30 bg-black/90 backdrop-blur [&_th]:border-cyan-400/45 [&_th]:bg-black/90",
+      "sticky top-0 z-30 bg-card backdrop-blur [&_th]:border-border [&_th]:bg-card",
     toolbarCompactIconButton: "size-7",
-    toolbarIconButton: "text-cyan-100/70 hover:text-cyan-50",
-    toolbarInputButton: "border-cyan-400/45 bg-black/70 text-cyan-50",
+    toolbarIconButton: "text-muted-foreground hover:text-foreground",
+    toolbarInputButton: "border-border bg-card text-foreground",
   },
   Button: GridButton,
   Card: GridCard,

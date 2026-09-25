@@ -15,7 +15,8 @@ const budgets = {
   urlState: 5 * kib,
   dataSource: 3 * kib,
   demoInitial: 100 * kib,
-  demoLoadedAdapter: 190 * kib,
+  // React 19.3 grows the shared renderer; lazy demo routes keep this to +5 KiB.
+  demoLoadedAdapter: 195 * kib,
   demoCss: 20 * kib,
 };
 
@@ -178,12 +179,27 @@ async function readDemoBuildSizes() {
 
   visit(entry, initialFiles);
   const initialJavaScript = await gzipDemoFiles(demoDist, initialFiles);
+  // Follow lazy demo routes before their adapter imports. Measuring just the
+  // entry's direct dynamic imports would miss the table in split route builds.
+  const adapterGraphs = [];
+  function visitDynamicRoutes(chunk, parentFiles, seen = new Set()) {
+    for (const key of chunk.dynamicImports ?? []) {
+      if (seen.has(key)) continue;
+      const child = manifest[key];
+      if (!child) continue;
+      const files = new Set(parentFiles);
+      visit(child, files);
+      if (key.includes("demo-adapters/")) {
+        adapterGraphs.push(files);
+      } else {
+        visitDynamicRoutes(child, files, new Set([...seen, key]));
+      }
+    }
+  }
+  visitDynamicRoutes(entry, initialFiles);
+  if (!adapterGraphs.length) throw new Error("No demo adapter chunks found");
   const loadedAdapterSizes = await Promise.all(
-    (entry.dynamicImports ?? []).map(async (dynamicImportKey) => {
-      const files = new Set(initialFiles);
-      visit(manifest[dynamicImportKey], files);
-      return gzipDemoFiles(demoDist, files);
-    }),
+    adapterGraphs.map(files => gzipDemoFiles(demoDist, files)),
   );
   const css = await gzipDemoFiles(demoDist, new Set(entry.css ?? []));
 

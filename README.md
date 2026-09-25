@@ -39,6 +39,19 @@ infinite loading, typed server data sources, and host-owned drag/upload
 integrations. See
 [`docs/API.md`](./docs/API.md) for the complete contract.
 
+## 6.0.0 UI refresh and migration
+
+Version 6 introduces a borderless, responsive footer; fixes flex-column resizing
+and reset behavior; and adds a design gallery with Minimal, Everyday and Power
+user examples across all three adapters and light/dark themes.
+
+This is a major release for styling and theme setup. Gridcn now requires host
+semantic theme tokens, HeroUI requires `@heroui/styles@^3.2.6`, and controlled
+resize callbacks can include preceding columns' rendered widths. No public
+TypeScript API or persisted-state format was removed or renamed. Read the
+[v6 migration guide](./docs/Migration.md#600-table-design-and-flex-resizing)
+before upgrading, especially if you customize adapter CSS or column sizing.
+
 ## 5.3.0 infinite-scroll footer
 
 When `infiniteScroll.enabled` and `totalRowCount` are both supplied, the table
@@ -136,11 +149,11 @@ The previously planned wrapper API cleanup was ultimately deferred beyond
 ## Installation
 
 ```bash
-pnpm add github:Dastari/data-table-pro#v5.3.0
+pnpm add github:Dastari/data-table-pro#v6.0.0
 ```
 
 This package is installed from GitHub refs. It is not published to npm.
-Release tags such as `v5.3.0` include committed `dist/` output, so consumers
+Release tags such as `v6.0.0` include committed `dist/` output, so consumers
 do not need to allow package build scripts during install.
 
 Peer dependencies:
@@ -148,7 +161,7 @@ Peer dependencies:
 - `react@^19.2.8`
 - `react-dom@^19.2.8`
 - `nuqs@^2.9.2` only when using `data-table-pro/url-state`
-- `@heroui/styles@^3.2.2` when using `data-table-pro/heroui`
+- `@heroui/styles@^3.2.6` when using `data-table-pro/heroui`
 
 Baseline assumptions:
 
@@ -706,6 +719,10 @@ optional undo/redo callbacks remain application-owned. Enhanced toolbar,
 clipboard, auto-size, and error-overlay implementations are first-use chunks.
 
 ## Demo App
+
+Open `/?gallery=1` for the design lab: Minimal, Everyday and Power user tables
+in all three ecosystems, light/dark themes, and interactive feature switches.
+See the [design notes](./docs/UI-design.md) and [21 browser renders](./docs/ui-renders/index.html).
 
 Run the bundled demo workbench:
 

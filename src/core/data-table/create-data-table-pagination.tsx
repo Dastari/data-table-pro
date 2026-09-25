@@ -1,5 +1,4 @@
 import * as React from "react";
-import { IconDatabase } from "../icons";
 import type { DataTableLabels } from "../types";
 import type { DataTableUiKit } from "../ui-kit";
 import { DATA_TABLE_DEFAULT_LABELS } from "./data-table-labels";
@@ -60,28 +59,25 @@ export function createDataTablePagination(ui: DataTableUiKit) {
     const lastPageIndex = Math.max(0, pageCount - 1);
     const totalRecordCount =
       totalRowCount !== undefined ? (
-        <div className="flex shrink-0 items-center justify-center">
+        <div className="flex shrink-0 items-center">
           <div
-            className={`inline-flex items-center gap-2 px-2.5 py-1.5 text-sm ${uiClassNames.paginationTotal ?? ""}`}
+            className={`inline-flex items-center text-xs tabular-nums ${uiClassNames.paginationTotal ?? ""}`}
             aria-label={labels.totalRecords(totalRowCount)}
           >
-            <IconDatabase className="size-4" />
-            <span className="@min-[768px]/data-table:hidden">{totalRowCount}</span>
-            <span className="hidden @min-[768px]/data-table:inline">
-              {labels.totalRecords(totalRowCount)}
-            </span>
+            <span>{labels.totalRecords(totalRowCount)}</span>
           </div>
         </div>
       ) : null;
 
     if (countOnly) {
-      return <div className="flex justify-center">{totalRecordCount}</div>;
+      return <div className="flex justify-start">{totalRecordCount}</div>;
     }
 
     return (
-      <div className="flex flex-row items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+        {totalRecordCount}
         <div
-          className={`flex flex-1 items-center gap-3 text-sm ${uiClassNames.mutedText ?? "opacity-70"}`}
+          className={`ml-auto flex items-center gap-2 text-xs ${uiClassNames.mutedText ?? "opacity-70"}`}
         >
           <span className="hidden @min-[768px]/data-table:inline">
             {labels.recordsPerPage}
@@ -94,7 +90,7 @@ export function createDataTablePagination(ui: DataTableUiKit) {
           >
             <SelectTrigger
               aria-label={labels.recordsPerPage}
-              className={`w-22 ${uiClassNames.paginationSelectTrigger ?? ""}`}
+              className={`h-8 w-18 text-xs ${uiClassNames.paginationSelectTrigger ?? ""}`}
             >
               <SelectValue />
             </SelectTrigger>
@@ -110,11 +106,9 @@ export function createDataTablePagination(ui: DataTableUiKit) {
           </Select>
         </div>
 
-        {totalRecordCount}
-
-        <div className="flex flex-1 items-center justify-end gap-4">
+        <div className="flex items-center justify-end gap-3">
           <div
-            className={`hidden text-sm @min-[768px]/data-table:inline ${uiClassNames.mutedText ?? "opacity-70"}`}
+            className={`hidden text-xs tabular-nums @min-[1024px]/data-table:inline ${uiClassNames.mutedText ?? "opacity-70"}`}
           >
             {pageCountKnown
               ? labels.pageStatus(pageIndex, Math.max(1, pageCount))
@@ -180,8 +174,7 @@ export function createDataTablePagination(ui: DataTableUiKit) {
                   {item === "ellipsis" ? (
                     <PaginationEllipsis
                       text={
-                        labels.morePages ??
-                        DATA_TABLE_DEFAULT_LABELS.morePages
+                        labels.morePages ?? DATA_TABLE_DEFAULT_LABELS.morePages
                       }
                     />
                   ) : (
@@ -254,9 +247,7 @@ export function createDataTablePagination(ui: DataTableUiKit) {
 
   function DataTableFooter(props: DataTablePaginationProps) {
     return (
-      <div
-        className={`rounded-md border px-2 py-1 ${uiClassNames.footer ?? ""}`}
-      >
+      <div className={`px-1 py-2 ${uiClassNames.footer ?? ""}`}>
         <DataTablePagination {...props} />
       </div>
     );

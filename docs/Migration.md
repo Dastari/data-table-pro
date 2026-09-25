@@ -1,5 +1,93 @@
 # Migration Guide
 
+## 6.0.0 table design and flex resizing
+
+Version 6 changes the styling and sizing contracts below. Public props,
+TypeScript types, entrypoints, persisted-state versions, saved views and
+URL-state formats are unchanged. React peer support remains `^19.2.8`;
+React 19.3 is used for development and validation, not required from consumers.
+
+```bash
+pnpm add github:Dastari/data-table-pro#v6.0.0
+# When using the HeroUI adapter:
+pnpm add '@heroui/styles@^3.2.6'
+```
+
+### Gridcn theme setup
+
+Previously, many Gridcn surfaces used hardcoded black/cyan colors. The adapter
+now uses the semantic tokens in Gridcn's published themes, so hosts must supply
+a complete theme rather than rely on the adapter to supply its own colors.
+Import the host's Gridcn stylesheet and map its tokens into Tailwind v4 if the
+host does not already do so:
+
+```css
+@import "tailwindcss";
+@import "data-table-pro/styles.css";
+@import "./thegridcn-theme.css";
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+}
+```
+
+The stylesheet must define these variables in the active theme scope, including
+any portaled menus/tooltips. Start from the [published Gridcn tokens](https://thegridcn.com/tokens)
+or the light/dark host examples in `demo/src/styles.css`. The adapter retains
+its Gridcn typography and geometry; theme colors now come from the host.
+
+### Footer and CSS overrides
+
+The footer no longer has its own rounded border or filled background. Counts
+align at the leading edge; page-size and paging controls share the trailing
+side and wrap as needed. Known-total infinite scrolling keeps a leading-aligned
+count without paging controls. `showFooter={false}` still hides it.
+
+Review overrides that target the former footer wrapper, database icon, centered
+count, fixed control positions, or old utility classes. Prefer the existing
+`[data-dtp-slot="data-table-footer"]` hook for host styling. Custom adapter
+implementations can continue to use `ui.classNames.footer`. Shadcn field/control
+borders now use `border-border`, while the search background stays `bg-input`.
+Update visual snapshots for the intentional changes across adapters.
+
+### Controlled column widths
+
+Resizing begins from the widths actually rendered by the browser. To keep the
+dragged edge under the pointer, the table snapshots preceding columns through
+that edge into explicit sizing state. Columns after it remain eligible to fill
+available space. This happens at gesture start, including `columnResizeMode="onEnd"`;
+that mode defers the drag delta until release, not the initial width snapshot.
+
+Apply the complete `onColumnSizingChange` value; do not discard entries for
+columns other than the one being dragged:
+
+```tsx
+const [columnSizing, setColumnSizing] = React.useState<Record<string, number>>({});
+
+<DataTable
+  columns={columns}
+  data={rows}
+  getRowId={getRowId}
+  columnSizing={columnSizing}
+  onColumnSizingChange={setColumnSizing}
+  enableColumnResizing
+  layoutMode="fill"
+/>
+```
+
+Home/double-click removes the resized column's override so its configured
+preferred size and fill eligibility apply again. To restore all columns'
+original flexibility, use Reset layout. Existing stored widths remain valid;
+clearing saved layout preferences is optional if you want the new default
+layout. No persisted-state migration is required.
+
 ## 5.3.0 known-total infinite scrolling
 
 No consumer migration is required. Tables using `infiniteScroll` continue to

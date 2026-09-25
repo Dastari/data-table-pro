@@ -221,7 +221,7 @@ export const heroUiKit: DataTableUiKit = {
     columnGroupHeader: "bg-default/50 font-semibold",
     dragActive: "rounded-2xl border-dashed border-accent",
     emptyState: "border-separator bg-surface",
-    footer: "border-separator bg-surface text-surface-foreground",
+    footer: "text-muted",
     headerSortIcon: "text-muted",
     mutedText: "text-muted",
     paginationSelectTrigger: "border-field-border bg-field",

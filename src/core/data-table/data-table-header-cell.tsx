@@ -1,4 +1,5 @@
 import * as React from "react";
+import { flushSync } from "react-dom";
 import { flexRender } from "@tanstack/react-table";
 import { IconChevronDown, IconSelector } from "../icons";
 import type { SortingState } from "@tanstack/react-table";
@@ -65,8 +66,7 @@ function DataTableHeaderCellInner<TData>({
   const meta = (header.column.columnDef as DataTableColumnDef<TData, unknown>)
     .meta;
   const headerContentId = React.useId();
-  const isColumnGroup =
-    !header.isPlaceholder && header.subHeaders.length > 0;
+  const isColumnGroup = !header.isPlaceholder && header.subHeaders.length > 0;
   const groupDefinition = isColumnGroup
     ? (header.column.columnDef as DataTableColumnGroupDef<TData>)
     : undefined;
@@ -104,10 +104,10 @@ function DataTableHeaderCellInner<TData>({
       aria-colindex={
         gridMode && !layout.isSpacerColumn ? gridColumnIndex : undefined
       }
-      aria-hidden={
-        header.isPlaceholder || layout.isSpacerColumn || undefined
+      aria-hidden={header.isPlaceholder || layout.isSpacerColumn || undefined}
+      aria-description={
+        isColumnGroup ? groupDefinition?.description : undefined
       }
-      aria-description={isColumnGroup ? groupDefinition?.description : undefined}
       aria-labelledby={
         !header.isPlaceholder &&
         !layout.isUtilityColumn &&
@@ -124,7 +124,7 @@ function DataTableHeaderCellInner<TData>({
           : "data-table-column-header"
       }
       className={cn(
-        "relative border-b",
+        "group/header relative border-b",
         getDensityHeaderClassName(currentDensity),
         isColumnGroup && uiClassNames.columnGroupHeader,
         layout.utilityClassName,
@@ -142,8 +142,7 @@ function DataTableHeaderCellInner<TData>({
         ...(isColumnGroup &&
         (groupDefinition?.headerHeight ?? columnGroupHeaderHeight) !== undefined
           ? {
-              height:
-                groupDefinition?.headerHeight ?? columnGroupHeaderHeight,
+              height: groupDefinition?.headerHeight ?? columnGroupHeaderHeight,
             }
           : undefined),
         ...layout.headerStyle,
@@ -261,14 +260,12 @@ function DataTableHeaderCellInner<TData>({
             />
           )}
         </button>
+      ) : layout.isUtilityColumn || layout.isSpacerColumn ? (
+        flexRender(header.column.columnDef.header, header.getContext())
       ) : (
-        layout.isUtilityColumn || layout.isSpacerColumn ? (
-          flexRender(header.column.columnDef.header, header.getContext())
-        ) : (
-          <span id={headerContentId}>
-            {flexRender(header.column.columnDef.header, header.getContext())}
-          </span>
-        )
+        <span id={headerContentId}>
+          {flexRender(header.column.columnDef.header, header.getContext())}
+        </span>
       )}
 
       {enableColumnResizing &&
@@ -288,21 +285,19 @@ function DataTableHeaderCellInner<TData>({
             }
           }}
           onMouseDown={(event) => {
-            for (const leafHeader of getResizableLeafHeaders(header)) {
-              primeColumnForResize(
-                leafHeader.column.id,
-                leafHeader.getSize(),
-              );
-            }
+            primeRenderedWidths(
+              header,
+              event.currentTarget,
+              primeColumnForResize,
+            );
             header.getResizeHandler()(event);
           }}
           onTouchStart={(event) => {
-            for (const leafHeader of getResizableLeafHeaders(header)) {
-              primeColumnForResize(
-                leafHeader.column.id,
-                leafHeader.getSize(),
-              );
-            }
+            primeRenderedWidths(
+              header,
+              event.currentTarget,
+              primeColumnForResize,
+            );
             header.getResizeHandler()(event);
           }}
           onKeyDown={(event) => {
@@ -322,15 +317,19 @@ function DataTableHeaderCellInner<TData>({
 
             event.preventDefault();
             event.stopPropagation();
-            const grows =
-              (event.key === "ArrowRight") !== (dir === "rtl");
+            const grows = (event.key === "ArrowRight") !== (dir === "rtl");
+            primeRenderedWidths(
+              header,
+              event.currentTarget,
+              primeColumnForResize,
+            );
             resizeHeaderBy(
               header,
               (grows ? 1 : -1) * (event.shiftKey ? 25 : 10),
             );
           }}
           className={cn(
-            "absolute inset-y-0 z-50 h-full w-3 cursor-col-resize touch-none select-none ltr:right-0 ltr:translate-x-1/2 rtl:left-0 rtl:-translate-x-1/2 after:absolute after:top-0 after:left-1/2 after:h-full after:w-px after:-translate-x-1/2",
+            "absolute inset-y-0 z-50 h-full w-3 cursor-col-resize touch-none select-none ltr:right-0 rtl:left-0 after:absolute after:top-1/4 after:left-1/2 after:h-1/2 after:w-px after:-translate-x-1/2 after:transition-colors focus-visible:outline-2 focus-visible:outline-ring",
             uiClassNames.resizeHandle ??
               "after:bg-current after:opacity-20 hover:after:opacity-70",
             header.column.getIsResizing() &&
@@ -377,6 +376,44 @@ function areDataTableHeaderCellsEqual<TData>(
   );
 }
 
+// CSS fill widths can be much larger than TanStack's preferred sizes. Take
+// one DOM snapshot before any update. Lock columns through the dragged edge;
+// later columns can still absorb spare space without moving that edge.
+function primeRenderedWidths<TData>(
+  header: Header<TData, unknown>,
+  handle: HTMLElement,
+  prime: (columnId: string, currentSize: number) => void,
+) {
+  const tableElement = handle.closest("table");
+  const table = header.getContext().table;
+  const targets = new Set(
+    getResizableLeafHeaders(header).map((leaf) => leaf.column.id),
+  );
+  const widths = Array.from(
+    tableElement?.querySelectorAll<HTMLElement>("thead [data-column-id]") ?? [],
+  ).flatMap((cell) => {
+    const id = cell.dataset.columnId!;
+    const column = table.getColumn(id);
+    if (
+      !column ||
+      column.columns.length ||
+      id === "__spacer__" ||
+      isUtilityColumnId(id)
+    )
+      return [];
+    const width = cell.getBoundingClientRect().width;
+    return width > 0 ? [{ id, width }] : [];
+  });
+  const lastTarget = widths.reduce(
+    (last, { id }, index) => (targets.has(id) ? index : last),
+    -1,
+  );
+  flushSync(() => {
+    for (const { id, width } of widths.slice(0, lastTarget + 1))
+      prime(id, width);
+  });
+}
+
 function getResizableLeafHeaders<TData>(header: Header<TData, unknown>) {
   if (!header.subHeaders.length) {
     return [header];
@@ -389,8 +426,7 @@ function getResizableLeafHeaders<TData>(header: Header<TData, unknown>) {
 
 function getHeaderMinimumSize<TData>(header: Header<TData, unknown>) {
   return getResizableLeafHeaders(header).reduce(
-    (total, leafHeader) =>
-      total + (leafHeader.column.columnDef.minSize ?? 20),
+    (total, leafHeader) => total + (leafHeader.column.columnDef.minSize ?? 20),
     0,
   );
 }
@@ -403,10 +439,7 @@ function getHeaderMaximumSize<TData>(header: Header<TData, unknown>) {
   );
 }
 
-function resizeHeaderBy<TData>(
-  header: Header<TData, unknown>,
-  delta: number,
-) {
+function resizeHeaderBy<TData>(header: Header<TData, unknown>, delta: number) {
   const leafHeaders = getResizableLeafHeaders(header);
   const deltaPerLeaf = delta / leafHeaders.length;
   header.getContext().table.setColumnSizing((current) => {
@@ -415,8 +448,7 @@ function resizeHeaderBy<TData>(
     for (const leafHeader of leafHeaders) {
       const column = leafHeader.column;
       const minimum = column.columnDef.minSize ?? 20;
-      const maximum =
-        column.columnDef.maxSize ?? Number.MAX_SAFE_INTEGER;
+      const maximum = column.columnDef.maxSize ?? Number.MAX_SAFE_INTEGER;
       next[column.id] = Math.min(
         maximum,
         Math.max(minimum, column.getSize() + deltaPerLeaf),

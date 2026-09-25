@@ -1,6 +1,11 @@
 import * as React from "react";
 import { createRoot } from "react-dom/client";
-import { DemoApp } from "./DemoApp";
+const Gallery = React.lazy(() =>
+  import("./Gallery").then((module) => ({ default: module.Gallery })),
+);
+const DemoApp = React.lazy(() =>
+  import("./DemoApp").then((module) => ({ default: module.DemoApp })),
+);
 import "./styles.css";
 
 const root = document.getElementById("root");
@@ -11,6 +16,12 @@ if (!root) {
 
 createRoot(root).render(
   <React.StrictMode>
-    <DemoApp />
+    <React.Suspense fallback={<p role="status">Loading examples…</p>}>
+      {new URLSearchParams(window.location.search).has("gallery") ? (
+        <Gallery />
+      ) : (
+        <DemoApp />
+      )}
+    </React.Suspense>
   </React.StrictMode>,
 );

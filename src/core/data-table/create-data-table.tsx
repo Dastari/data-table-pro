@@ -1,5 +1,4 @@
 import * as React from "react";
-import { flushSync } from "react-dom";
 import type { DataTableTanStackTable as TanStackTable } from "./tanstack-v9";
 import type {
   DataTableActionErrorContext,
@@ -872,7 +871,7 @@ export function createDataTableWithPanels(
       uiClassNames,
       visibleLeafColumns,
     });
-    const { explicitlySizedColumnIds, fillMinWidth, getColumnLayout } =
+    const { fillMinWidth, getColumnLayout } =
       columnLayout;
     const explicitCustomCellColumnIds = React.useMemo(() => {
       return new Set(
@@ -905,31 +904,20 @@ export function createDataTableWithPanels(
     const primeColumnForResize = React.useCallback(
       (columnId: string, currentSize: number) => {
         if (
-          explicitlySizedColumnIds.has(columnId) ||
-          Object.prototype.hasOwnProperty.call(
-            table.store.state.columnSizing,
-            columnId,
-          )
+          table.store.state.columnSizing[columnId] === currentSize
         ) {
           return;
         }
 
-        flushSync(() => {
-          table.setColumnSizing((current) => ({
-            ...current,
-            [columnId]: currentSize,
-          }));
-        });
+        table.setColumnSizing((current) => ({
+          ...current,
+          [columnId]: currentSize,
+        }));
       },
-      [explicitlySizedColumnIds, table],
+      [table],
     );
     const resetColumnSize = React.useCallback(
       (columnId: string) => {
-        if (explicitlySizedColumnIds.has(columnId)) {
-          table.getColumn(columnId)?.resetSize();
-          return;
-        }
-
         table.setColumnSizing((current) => {
           if (!Object.prototype.hasOwnProperty.call(current, columnId)) {
             return current;
@@ -940,7 +928,7 @@ export function createDataTableWithPanels(
           return next;
         });
       },
-      [explicitlySizedColumnIds, table],
+      [table],
     );
 
     const filteredData = table

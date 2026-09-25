@@ -52,7 +52,7 @@ function withClassName<TProps extends { className?: string }>(
 
 const ShadcnButton = withClassName(
   PrimitiveButton,
-  "rounded-md text-foreground data-[variant=default]:border-primary data-[variant=default]:bg-primary data-[variant=default]:text-primary-foreground data-[variant=outline]:border-input data-[variant=outline]:bg-card data-[variant=outline]:hover:bg-accent data-[variant=outline]:hover:text-accent-foreground data-[variant=secondary]:border-secondary data-[variant=secondary]:bg-secondary data-[variant=secondary]:text-secondary-foreground data-[variant=ghost]:border-transparent data-[variant=ghost]:bg-transparent data-[variant=ghost]:hover:bg-accent data-[variant=ghost]:hover:text-accent-foreground data-[variant=destructive]:border-destructive data-[variant=destructive]:bg-destructive data-[variant=destructive]:text-destructive-foreground data-[variant=link]:border-transparent data-[variant=link]:bg-transparent",
+  "rounded-md text-foreground data-[variant=default]:border-primary data-[variant=default]:bg-primary data-[variant=default]:text-primary-foreground data-[variant=outline]:border-border data-[variant=outline]:bg-card data-[variant=outline]:hover:bg-accent data-[variant=outline]:hover:text-accent-foreground data-[variant=secondary]:border-secondary data-[variant=secondary]:bg-secondary data-[variant=secondary]:text-secondary-foreground data-[variant=ghost]:border-transparent data-[variant=ghost]:bg-transparent data-[variant=ghost]:hover:bg-accent data-[variant=ghost]:hover:text-accent-foreground data-[variant=destructive]:border-destructive data-[variant=destructive]:bg-destructive data-[variant=destructive]:text-destructive-foreground data-[variant=link]:border-transparent data-[variant=link]:bg-transparent",
 );
 const ShadcnCard = withClassName(
   PrimitiveCard,
@@ -68,7 +68,7 @@ const ShadcnCardFooter = withClassName(
 );
 const ShadcnCheckbox = withClassName(
   PrimitiveCheckbox,
-  "border-input bg-card ring-ring/40 data-checked:border-primary data-checked:bg-primary data-checked:text-primary-foreground data-checked:ring-primary",
+  "border-border bg-card ring-ring/40 data-checked:border-primary data-checked:bg-primary data-checked:text-primary-foreground data-checked:ring-primary",
 );
 const ShadcnDropdownMenuContent = withClassName(
   PrimitiveDropdownMenuContent,
@@ -116,11 +116,11 @@ const ShadcnEmptyMedia = withClassName(
 );
 const ShadcnInput = withClassName(
   PrimitiveInput,
-  "rounded-md border-input bg-card text-foreground placeholder:text-muted-foreground",
+  "rounded-md border-border bg-card text-foreground placeholder:text-muted-foreground",
 );
 const ShadcnInputGroup = withClassName(
   PrimitiveInputGroup,
-  "rounded-md border-input bg-input text-foreground",
+  "rounded-md border-border bg-input text-foreground",
 );
 const ShadcnInputGroupAddon = withClassName(
   PrimitiveInputGroupAddon,
@@ -136,7 +136,7 @@ const ShadcnScrollBar = withClassName(
 );
 const ShadcnSelectTrigger = withClassName(
   PrimitiveSelectTrigger,
-  "rounded-md border-input bg-card text-foreground",
+  "rounded-md border-border bg-card text-foreground",
 );
 const ShadcnSelectContent = withClassName(
   PrimitiveSelectContent,
@@ -162,7 +162,7 @@ const ShadcnTableFooter = withClassName(
 );
 const ShadcnTableHead = withClassName(
   PrimitiveTableHead,
-  "text-foreground",
+  "text-xs font-medium text-muted-foreground",
 );
 const ShadcnTooltipContent = withClassName(
   PrimitiveTooltipContent,
@@ -186,10 +186,10 @@ export const shadcnUiKit: DataTableUiKit = {
     columnGroupHeader: "bg-muted/50 font-semibold",
     dragActive: "rounded-md border-dashed border-primary",
     emptyState: "border-border/60 bg-background/70",
-    footer: "border-border bg-card",
+    footer: "text-muted-foreground",
     headerSortIcon: "text-muted-foreground",
     mutedText: "text-muted-foreground",
-    paginationSelectTrigger: "border-input bg-card",
+    paginationSelectTrigger: "border-border bg-card",
     paginationTotal: "text-muted-foreground",
     pinnedColumn: "border-border",
     pinnedUtilityColumn: "bg-card",
@@ -202,7 +202,7 @@ export const shadcnUiKit: DataTableUiKit = {
       "sticky top-0 z-30 bg-card/95 backdrop-blur [&_th]:border-border [&_th]:bg-card/95",
     toolbarCompactIconButton: "size-7",
     toolbarIconButton: "text-muted-foreground hover:text-foreground",
-    toolbarInputButton: "border-input bg-card",
+    toolbarInputButton: "border-border bg-card",
   },
   Button: ShadcnButton,
   Card: ShadcnCard,

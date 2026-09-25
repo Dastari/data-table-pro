@@ -272,7 +272,7 @@ describe("DataTable adapter providers", () => {
     expect(bottomPinnedRow?.textContent).toContain("Record 20");
   });
 
-  it("keeps The Gridcn output free of shadcn token aliases", () => {
+  it("uses The Gridcn published semantic tokens instead of hardcoded dark surfaces", () => {
     const { container } = render(
       <GridDataTable
         columns={columns}
@@ -289,7 +289,12 @@ describe("DataTable adapter providers", () => {
       />,
     );
 
-    expectNoForbiddenNonShadcnTokens(container.innerHTML);
+    // Gridcn's published themes define --card, --border and --muted-foreground:
+    // https://thegridcn.com/tokens/tron.json. Follow them in both color schemes.
+    expect(container.innerHTML).toContain("bg-card");
+    expect(container.innerHTML).toContain("text-muted-foreground");
+    expect(container.innerHTML).not.toContain("bg-black");
+    expect(container.innerHTML).not.toContain("text-cyan-50");
   });
 
   it("exposes the URL-state hook from the dedicated subpath entry", () => {
@@ -357,14 +362,14 @@ describe("DataTable adapter providers", () => {
     });
     const rowCheckbox = screen.getByRole("checkbox", { name: "Select row" });
 
-    expect(searchGroup?.className).toContain("border-input");
+    expect(searchGroup?.className).toContain("border-border");
     expect(searchGroup?.className).toContain("bg-input");
-    expect(searchGroup?.className).not.toContain("border-border");
+    expect(searchGroup?.className).not.toContain("border-input");
     expect(searchGroup?.className).not.toContain("bg-card");
     expect(searchGroup?.className).not.toContain("bg-background");
-    expect(optionsButton.className).toContain("border-input");
+    expect(optionsButton.className).toContain("border-border");
     expect(optionsButton.className).toContain("bg-card");
-    expect(optionsButton.className).not.toContain("border-border");
+    expect(optionsButton.className).not.toContain("border-input");
     expect(optionsButton.className).not.toContain("bg-input");
     expect(optionsButton.className).not.toContain("bg-background");
     expect(rowCheckbox.className).toContain("bg-card");
@@ -2567,19 +2572,19 @@ for (const suite of suites) {
           '[data-slot="select-trigger"]',
         );
 
-        expect(searchGroup?.className).toContain("border-input");
+        expect(searchGroup?.className).toContain("border-border");
         expect(searchGroup?.className).toContain("bg-input");
         expect(searchGroup?.className).not.toContain("bg-card");
-        expect(pageSizeTrigger?.className).toContain("border-input");
+        expect(pageSizeTrigger?.className).toContain("border-border");
         expect(pageSizeTrigger?.className).toContain("bg-card");
         expect(
           screen.getByRole("button", { name: "Search table" }).className,
-        ).toContain("border-input");
+        ).toContain("border-border");
         expect(
           screen.getByRole("button", { name: "Search table" }).className,
         ).toContain("bg-card");
         expect(screen.getByRole("button", { name: "Export" }).className).toContain(
-          "border-input",
+          "border-border",
         );
         expect(screen.getByRole("button", { name: "Export" }).className).toContain(
           "bg-card",

@@ -53,6 +53,10 @@ Override HeroUI slot styling in the host app only if you want a different visual
 @import "./thegridcn-theme.css";
 ```
 
+The Gridcn adapter follows its [published semantic tokens](https://thegridcn.com/tokens/tron.json)
+(`--card`, `--border`, `--primary`, `--muted-foreground`, etc.). Supply the theme
+tokens in the host stylesheet so both light and dark surfaces render correctly.
+
 ## Styling Ownership
 
 - `data-table-pro/styles.css` owns package scanning and table container-query helpers.
