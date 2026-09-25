@@ -87,7 +87,10 @@ node scripts/render-gallery.mjs
 ```
 
 Set `PLAYWRIGHT_BASE_URL` to use another port. Install Playwright Chromium and
-its system dependencies if needed. Output is 18 desktop PNGs (three presets ×
+its system dependencies if needed (`corepack pnpm exec playwright install --with-deps chromium`).
+Linux screenshot baselines use Liberation Sans/Mono from the `fonts-liberation`
+package; missing fonts change text metrics even when the tests otherwise pass.
+Output is 18 desktop PNGs (three presets ×
 three adapters × two themes), three mobile PNGs, and an HTML contact sheet in
 `docs/ui-renders/`. Advanced captures show a selected row and expanded details.
 
