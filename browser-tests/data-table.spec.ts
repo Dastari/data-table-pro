@@ -176,7 +176,7 @@ test("responsive behavior follows table container boundaries", async ({
   await setContainerWidth(768);
   await expect(header("role")).toBeVisible();
   await expect(
-    table.getByPlaceholder("Search name, role, status, manager..."),
+    table.getByRole("button", { name: "Search table" }),
   ).toBeVisible();
 
   await setContainerWidth(1023);
@@ -184,6 +184,10 @@ test("responsive behavior follows table container boundaries", async ({
 
   await setContainerWidth(1024);
   await expect(header("location")).toBeVisible();
+  await setContainerWidth(1280);
+  await expect(
+    table.getByPlaceholder("Search name, role, status, manager..."),
+  ).toBeVisible();
 
   await page.evaluate(() => {
     document.documentElement.style.fontSize = "20px";
@@ -192,6 +196,69 @@ test("responsive behavior follows table container boundaries", async ({
   await expect(header("role")).toBeVisible();
   await expect(header("location")).toHaveCount(0);
 });
+
+for (const adapter of adapters) {
+  test(`${adapter.label} search uses the remaining toolbar space before collapsing`, async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: adapter.label, exact: true }).click();
+    const table = page.locator('[data-dtp-slot="data-table-root"]').first();
+    const controls = table.locator('[data-dtp-slot="data-table-toolbar-controls"]');
+    const search = controls.getByPlaceholder("Search name, role, status, manager...");
+    const trigger = table.getByRole("button", { name: "Search table", exact: true });
+    const expandedSearch = table.locator('[data-dtp-slot="data-table-toolbar-compact-search"] input');
+    const setWidth = async (width: number) => {
+      await table.evaluate((element, nextWidth) => {
+        element.style.flex = "none";
+        element.style.maxWidth = "none";
+        element.style.width = `${nextWidth}px`;
+      }, width);
+    };
+
+    await expect(table.getByRole("button", { name: "Enter fullscreen" })).toBeVisible();
+    // The demo's custom toolbar contains a wide set of feature switches.
+    // Exercise the standard controls here; the boundary test covers that toolbar.
+    await table.locator('[data-dtp-slot="data-table-toolbar-compact-custom"]').evaluate((element) => {
+      (element as HTMLElement).style.display = "none";
+    });
+    await setWidth(600);
+    await expect(search).toBeVisible();
+    await expect(trigger).toBeHidden();
+    const initialWidth = (await search.boundingBox())!.width;
+    await setWidth(700);
+    await expect.poll(async () => (await search.boundingBox())!.width).toBeCloseTo(initialWidth + 100, 0);
+
+    // Changing the controls must also update the fit without resizing the table.
+    await table.locator('[data-dtp-slot="data-table-toolbar-end-controls"]').evaluate((element) => {
+      const extra = document.createElement("span");
+      extra.dataset.testExtraControl = "true";
+      extra.style.width = "400px";
+      extra.style.flexShrink = "0";
+      element.append(extra);
+    });
+    await expect(trigger).toBeVisible();
+    await table.locator('[data-test-extra-control]').evaluate((element) => element.remove());
+    await expect(search).toBeVisible();
+
+    await search.fill("Ada");
+    await setWidth(320);
+    await expect(search).toBeHidden();
+    await expect(trigger).toBeVisible();
+    await trigger.click();
+    await expect(expandedSearch).toBeVisible();
+    await expect(expandedSearch).toBeFocused();
+    await expect(expandedSearch).toHaveValue("Ada");
+    expect((await expandedSearch.boundingBox())!.y).toBeGreaterThan((await controls.boundingBox())!.y);
+    await expandedSearch.fill("Grace");
+
+    await setWidth(600);
+    await expect(search).toBeVisible();
+    await expect(search).toHaveValue("Grace");
+    await expect(expandedSearch).toBeHidden();
+    await expect(trigger).toBeHidden();
+    await table.getByRole("button", { name: "Clear search", exact: true }).click();
+    await expect(search).toHaveValue("");
+  });
+}
 
 test("fill layout gives spare width to the last growable column", async ({
   page,

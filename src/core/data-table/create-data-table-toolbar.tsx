@@ -21,6 +21,7 @@ import type {
 } from "../types";
 import type { DataTableUiKit } from "../ui-kit";
 import { DATA_TABLE_DEFAULT_LABELS } from "./data-table-labels";
+import { useDataTableToolbarSearch } from "./use-data-table-toolbar-search";
 
 const LazyToolbarDataOperations = React.lazy(
   () => import("./data-table-toolbar-operations"),
@@ -160,6 +161,7 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
     reorderColumn,
     table,
   }: DataTableToolbarProps<TData>) {
+    const controlsRef = React.useRef<HTMLDivElement | null>(null);
     const compactSearchInputRef = React.useRef<HTMLInputElement | null>(null);
     const [isCompactSearchVisible, setIsCompactSearchVisible] =
       React.useState(false);
@@ -173,6 +175,7 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
     );
     const showTitle = toolbarVisibility?.title ?? true;
     const showSearch = toolbarVisibility?.search ?? true;
+    const isSearchCollapsed = useDataTableToolbarSearch(controlsRef, showSearch);
     const showActions = toolbarVisibility?.actions ?? true;
     const showTrailingActions = toolbarVisibility?.trailingActions ?? true;
     const showOptions = toolbarVisibility?.options ?? true;
@@ -308,12 +311,20 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
 
         <div className="flex flex-col gap-3">
           <div
+            ref={controlsRef}
             data-dtp-slot="data-table-toolbar-controls"
             className="flex items-center gap-2 overflow-x-auto px-1 @min-[768px]/data-table:gap-3 @min-[768px]/data-table:overflow-visible"
           >
             {showSearch ? (
-              <>
-                <div className="hidden min-w-0 grow max-w-md @min-[768px]/data-table:block">
+              <div
+                data-dtp-slot="data-table-toolbar-search"
+                className={
+                  isSearchCollapsed
+                    ? "shrink-0"
+                    : "min-w-0 flex-1 @min-[768px]/data-table:flex-auto @min-[768px]/data-table:max-w-md"
+                }
+              >
+                <div className={isSearchCollapsed ? "hidden" : "min-w-0"}>
                   <InputGroup className="min-w-0">
                     <InputGroupInput
                       value={toolbarQueryValue}
@@ -354,7 +365,7 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
                       size="icon-sm"
                       aria-label={labels.searchTable}
                       aria-pressed={isCompactSearchVisible}
-                      className={`shrink-0 @min-[768px]/data-table:hidden ${compactToolbarIconButtonClassName} ${uiClassNames.toolbarInputButton ?? ""}`}
+                      className={`${isSearchCollapsed ? "" : "hidden"} shrink-0 ${compactToolbarIconButtonClassName} ${uiClassNames.toolbarInputButton ?? ""}`}
                       onClick={() => {
                         setIsCompactSearchVisible((current) => !current);
                       }}
@@ -365,7 +376,7 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
                   </TooltipTrigger>
                   <TooltipContent>{labels.searchTable}</TooltipContent>
                 </Tooltip>
-              </>
+              </div>
             ) : null}
 
             {showActions ? (
@@ -430,7 +441,15 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
               </div>
             ) : null}
 
-            <div className="grow" aria-hidden="true" />
+            <div
+              data-dtp-slot="data-table-toolbar-spacer"
+              className={
+                showSearch && !isSearchCollapsed
+                  ? "@min-[768px]/data-table:grow"
+                  : "grow"
+              }
+              aria-hidden="true"
+            />
 
             <div
               data-dtp-slot="data-table-toolbar-end-controls"
@@ -769,7 +788,7 @@ export function createDataTableToolbar(ui: DataTableUiKit) {
           {showSearch && isCompactSearchVisible ? (
             <div
               data-dtp-slot="data-table-toolbar-compact-search"
-              className="min-w-0 @min-[768px]/data-table:hidden"
+              className={isSearchCollapsed ? "min-w-0" : "hidden"}
             >
               <InputGroup>
                 <InputGroupInput

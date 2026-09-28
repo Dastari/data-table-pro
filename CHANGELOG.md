@@ -1,5 +1,15 @@
 # Changelog
 
+## 6.1.0 - 2026-09-28
+
+### Changed
+
+- Let search grow to fill the remaining toolbar space in collapsed layouts.
+- Switch search to a button only when the other controls leave less than 160px
+  for the input. The button opens the search field below the toolbar.
+- Recalculate search placement when the table or toolbar controls resize,
+  preserving the query when switching layouts across all three adapters.
+
 ## 6.0.0 - 2026-09-25
 
 Version 6 refreshes the table UI across shadcn, HeroUI and The Gridcn, fixes
