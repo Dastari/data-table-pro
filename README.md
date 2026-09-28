@@ -39,6 +39,13 @@ infinite loading, typed server data sources, and host-owned drag/upload
 integrations. See
 [`docs/API.md`](./docs/API.md) for the complete contract.
 
+## 6.1.0 responsive toolbar search
+
+Search fills the remaining toolbar space in collapsed layouts. When the other
+controls leave less than 160px for the input, it becomes a button that opens
+search below the toolbar. Placement updates as the table or controls resize,
+and the query is preserved across layouts.
+
 ## 6.0.0 UI refresh and migration
 
 Version 6 introduces a borderless, responsive footer; fixes flex-column resizing
@@ -149,11 +156,11 @@ The previously planned wrapper API cleanup was ultimately deferred beyond
 ## Installation
 
 ```bash
-pnpm add github:Dastari/data-table-pro#v6.0.0
+pnpm add github:Dastari/data-table-pro#v6.1.0
 ```
 
 This package is installed from GitHub refs. It is not published to npm.
-Release tags such as `v6.0.0` include committed `dist/` output, so consumers
+Release tags such as `v6.1.0` include committed `dist/` output, so consumers
 do not need to allow package build scripts during install.
 
 Peer dependencies:
